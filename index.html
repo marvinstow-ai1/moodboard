@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moodboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#050505;--text:#fff;--border:rgba(255,255,255,.12);--muted:rgba(255,255,255,.65);--panel:rgba(10,10,10,.92)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden}
+button,input{font:inherit}
+.app{position:fixed;inset:0}
+.titlewrap{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;justify-content:center;align-items:center;padding:14px 18px;pointer-events:none}
+.title{pointer-events:auto;width:240px;max-width:58vw;border:0;background:transparent;color:#fff;text-align:center;font-size:18px;font-weight:700;letter-spacing:.04em;outline:none;opacity:.92}
+.iconbtn{position:fixed;z-index:30;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(18px) saturate(120%);-webkit-backdrop-filter:blur(18px) saturate(120%);box-shadow:0 10px 22px rgba(0,0,0,.16);transition:.16s}
+.iconbtn:hover{background:rgba(255,255,255,.1)}
+#menuBtn{top:18px;right:18px;font-size:22px}
+#shuffleBtn{right:18px;bottom:18px;font-size:18px}
+.menu{position:fixed;top:72px;right:18px;z-index:40;min-width:230px;display:none;padding:10px;border:1px solid var(--border);border-radius:16px;background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 16px 40px rgba(0,0,0,.35)}
+.menu.show{display:block}
+.menu .head{padding:8px 10px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.5}
+.menu .divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0}
+.menu button{width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px;border-radius:10px;cursor:pointer}
+.menu button:hover{background:rgba(255,255,255,.08)}
+.grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:1fr;gap:2px}
+.cell{position:relative;overflow:hidden;background:#111;aspect-ratio:1/1}
+.cell img,.cell video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.editor,.settings{position:fixed;z-index:60;display:none;width:min(520px,calc(100vw - 32px));background:rgba(12,12,12,.96);border:1px solid var(--border);border-radius:18px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+.editor.show,.settings.show{display:block}
+.editor{left:50%;top:50%;transform:translate(-50%,-50%)}
+.settings{right:18px;top:72px;width:min(320px,calc(100vw - 36px))}
+.editor h4,.settings h4{margin:0 0 12px;font-size:14px}
+.tagrow,.row{display:flex;gap:8px;flex-wrap:wrap}
+.tagrow{margin-bottom:12px}
+.tagchip{border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:999px;padding:8px 10px;font-size:12px;cursor:pointer}
+.tagchip.active{background:#fff;color:#111;border-color:#fff}
+.editor input,.settings input{flex:1;min-width:0;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:10px 12px;outline:none}
+.editor button,.settings button{border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:10px 12px;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:80;background:rgba(0,0,0,.8);border:1px solid var(--border);color:#fff;padding:10px 14px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s}
+.toast.show{opacity:1}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="titlewrap"><input id="boardTitle" class="title" value="Moodboard"></div>
+  <button id="menuBtn" class="iconbtn">⋯</button>
+  <button id="shuffleBtn" class="iconbtn" title="Shuffle">⇄</button>
+  <div id="menuPanel" class="menu"></div>
+  <div id="settingsPanel" class="settings">
+    <h4>Settings</h4>
+    <div class="row"><input id="newMood" placeholder="Neue Mood hinzufügen"><button id="addMoodBtn">Add</button></div>
+    <div class="row"><input id="renameMood" placeholder="Aktuelle Mood umbenennen"><button id="renameMoodBtn">Rename</button></div>
+    <div class="row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn">Delete</button></div>
+    <div class="row"><button id="uploadBtn">Upload</button><button id="clearBtn">Alle löschen</button></div>
+    <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
+  </div>
+  <div id="grid" class="grid"></div>
+  <div id="editor" class="editor">
+    <h4>Tags</h4>
+    <div id="tagHint" style="font-size:12px;opacity:.6;margin-bottom:10px"></div>
+    <div id="tagButtons" class="tagrow"></div>
+    <div class="row"><input id="tagInput" placeholder="Tags durch Komma getrennt"><button id="saveTagsBtn">Save</button><button id="closeEditorBtn">Close</button></div>
+  </div>
+  <div id="toast" class="toast"></div>
+</div>
+<script>
+const LS={items:'mood_items_clean',moods:'mood_moods_clean',title:'mood_title_clean',current:'mood_current_clean',shuffle:'mood_shuffle_clean'};
+let items=JSON.parse(localStorage.getItem(LS.items)||'[]');
+let moods=JSON.parse(localStorage.getItem(LS.moods)||'["All","Summer","Winter","Cozy","Dark"]');
+if(!moods.includes('All')) moods.unshift('All');
+let currentMood=localStorage.getItem(LS.current)||'All';
+let boardTitle=localStorage.getItem(LS.title)||'Moodboard';
+let shuffleState=JSON.parse(localStorage.getItem(LS.shuffle)||'false');
+let editId=null;
+const grid=document.getElementById('grid');
+const menuPanel=document.getElementById('menuPanel');
+const settingsPanel=document.getElementById('settingsPanel');
+const editor=document.getElementById('editor');
+const toast=document.getElementById('toast');
+const fileInput=document.getElementById('fileInput');
+function save(){localStorage.setItem(LS.items,JSON.stringify(items));localStorage.setItem(LS.moods,JSON.stringify(moods));localStorage.setItem(LS.title,boardTitle);localStorage.setItem(LS.current,currentMood);localStorage.setItem(LS.shuffle,JSON.stringify(shuffleState));}
+function showToast(t){toast.textContent=t;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),1200)}
+function uid(){return Math.random().toString(36).slice(2,10)}
+function isVideo(n){return /\.(mp4|webm|mov|m4v)$/i.test(n||'')}
+function visible(){let arr=items.filter(i=>currentMood==='All'||(i.moods||[]).includes(currentMood)); if(shuffleState) arr=[...arr].sort(()=>Math.random()-.5); return arr;}
+function renderMenu(){menuPanel.innerHTML=`<div class='head'>Moods</div>${moods.map(m=>`<button data-act='mood' data-val='${m}'>${m}${m===currentMood?' ✓':''}</button>`).join('')}<div class='divider'></div><div class='head'>Settings</div><button data-act='settings'>Settings</button><button data-act='upload'>Upload</button><button data-act='shuffle'>Shuffle</button>`;}
+function renderGrid(){const arr=visible(); grid.innerHTML=arr.map(it=>`<div class='cell' data-id='${it.id}'>${it.type==='video'?`<video src='${it.src}' muted loop playsinline></video>`:`<img src='${it.src}'>`}</div>`).join(''); grid.querySelectorAll('.cell').forEach(c=>c.onclick=()=>openEditor(c.dataset.id));}
+function render(){document.getElementById('boardTitle').value=boardTitle; renderMenu(); renderGrid();}
+function openEditor(id){editId=id;const it=items.find(x=>x.id===id); if(!it)return; document.getElementById('tagHint').textContent=it.name||'Item'; document.getElementById('tagInput').value=(it.moods||[]).join(', '); editor.classList.add('show'); renderTagButtons();}
+function renderTagButtons(){document.getElementById('tagButtons').innerHTML=moods.filter(m=>m!=='All').map(m=>`<button class='tagchip ${currentMood===m?'active':''}' data-m='${m}'>${m}</button>`).join(''); document.querySelectorAll('#tagButtons .tagchip').forEach(b=>b.onclick=()=>{const it=items.find(x=>x.id===editId); if(!it)return; const m=b.dataset.m; const tags=it.moods||[]; it.moods=tags.includes(m)?tags.filter(x=>x!==m):[...tags,m]; save(); render(); renderTagButtons();});}
+function closeAll(){menuPanel.classList.remove('show'); settingsPanel.classList.remove('show'); editor.classList.remove('show');}
+function doShuffle(){shuffleState=!shuffleState; window.scrollTo({top:0,behavior:'smooth'}); save(); render(); showToast(shuffleState?'Shuffle an':'Shuffle aus')}
+function addMood(){const v=document.getElementById('newMood').value.trim(); if(!v||moods.includes(v)) return; moods.push(v); currentMood=v; document.getElementById('newMood').value=''; save(); render()}
+function renameMood(){const v=document.getElementById('renameMood').value.trim(); if(!v||currentMood==='All'||moods.includes(v)) return; const old=currentMood; moods=moods.map(m=>m===old?v:m); items=items.map(i=>({...i,moods:(i.moods||[]).map(m=>m===old?v:m)})); currentMood=v; document.getElementById('renameMood').value=''; save(); render()}
+function deleteMood(){const v=document.getElementById('deleteMood').value.trim(); if(!v||v==='All'||!moods.includes(v)) return; moods=moods.filter(m=>m!==v); items=items.map(i=>({...i,moods:(i.moods||[]).filter(m=>m!==v)})); if(currentMood===v) currentMood='All'; document.getElementById('deleteMood').value=''; save(); render()}
+function addFiles(files){[...files].forEach(file=>{const r=new FileReader(); r.onload=e=>{items.unshift({id:uid(),name:file.name,type:isVideo(file.name)?'video':'image',src:e.target.result,moods:[currentMood==='All'?(moods[1]||'Summer'):currentMood]}); save(); render(); showToast('Importiert')}; r.readAsDataURL(file)})}
+document.getElementById('menuBtn').onclick=()=>{menuPanel.classList.toggle('show'); settingsPanel.classList.remove('show'); editor.classList.remove('show'); renderMenu()};
+document.getElementById('shuffleBtn').onclick=doShuffle;
+document.getElementById('boardTitle').addEventListener('input',e=>{boardTitle=e.target.value.trim()||'Moodboard'; save()});
+document.getElementById('saveTagsBtn').onclick=()=>{const it=items.find(x=>x.id===editId); if(!it)return; it.moods=document.getElementById('tagInput').value.split(',').map(s=>s.trim()).filter(Boolean); save(); render(); editor.classList.remove('show')};
+document.getElementById('closeEditorBtn').onclick=()=>editor.classList.remove('show');
+document.getElementById('addMoodBtn').onclick=addMood;
+document.getElementById('renameMoodBtn').onclick=renameMood;
+document.getElementById('deleteMoodBtn').onclick=deleteMood;
+document.getElementById('uploadBtn').onclick=()=>fileInput.click();
+fileInput.onchange=e=>addFiles(e.target.files);
+document.getElementById('clearBtn').onclick=()=>{if(confirm('Alle Bilder wirklich löschen?')){items=[];save();render()}};
+document.getElementById('menuPanel').onclick=e=>{const b=e.target.closest('button'); if(!b) return; const act=b.dataset.act; if(act==='mood'){currentMood=b.dataset.val; shuffleState=false; save(); render(); closeAll();} if(act==='settings'){menuPanel.classList.remove('show'); settingsPanel.classList.toggle('show');} if(act==='upload'){fileInput.click(); closeAll()} if(act==='shuffle'){doShuffle(); closeAll()}};
+document.addEventListener('click',e=>{if(!e.target.closest('#menuBtn')&&!e.target.closest('#menuPanel')) menuPanel.classList.remove('show'); if(!e.target.closest('#editor')&&!e.target.closest('.cell')) editor.classList.remove('show'); if(!e.target.closest('#menuBtn')&&!e.target.closest('#menuPanel')&&!e.target.closest('#settingsPanel')) settingsPanel.classList.remove('show')});
+window.addEventListener('dragover',e=>e.preventDefault());
+window.addEventListener('drop',e=>{e.preventDefault(); addFiles(e.dataTransfer.files)});
+render();
+</script>
+</body>
+</html>
