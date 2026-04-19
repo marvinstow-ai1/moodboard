@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -58,4 +59,250 @@ button,input{font:inherit}
 
 <div class="topbar">
   <input class="board-title" id="boardTitle" value="Moodboard">
-  <button class="menubtn" 
+  <button class="menubtn" id="menuBtn">···</button>
+</div>
+
+<div class="dropdown" id="dropdown">
+  <div class="dd-section">Mood</div>
+  <div class="mood-chips" id="moodChips"></div>
+  <div class="dd-divider"></div>
+  <div class="dd-section">Aktionen</div>
+  <button class="dd-btn" id="uploadBtn"><span class="icon">＋</span> Bilder / Videos hochladen</button>
+  <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
+  <div class="dd-divider"></div>
+  <div class="editor-wrap" id="editorWrap">
+    <div class="dd-section">Editor — <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
+    <div class="tag-chips" id="tagChips"></div>
+    <div class="dd-input-row">
+      <input id="tagInput" placeholder="Tags, kommagetrennt">
+      <button id="saveTagsBtn">Save</button>
+    </div>
+    <div class="dd-divider"></div>
+  </div>
+  <div class="dd-section">Mood verwalten</div>
+  <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood"><button id="addMoodBtn">Add</button></div>
+  <div class="dd-input-row"><input id="renameMood" placeholder="Aktuelle umbenennen"><button id="renameMoodBtn">Rename</button></div>
+  <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn">Delete</button></div>
+  <div class="dd-divider"></div>
+  <button class="dd-btn" id="clearBtn"><span class="icon">⚠</span> Alle Bilder löschen</button>
+</div>
+
+<button class="shufflebtn" id="shuffleBtn">⇄</button>
+
+<div class="gridwrap" id="gridWrap">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lb-inner" id="lbInner">
+    <button class="lb-close" id="lbClose">✕</button>
+  </div>
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://bnwcbxjgsmmvmtvqblrr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJud2NieGpnc21tdm10dnFibHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjAyMDQsImV4cCI6MjA5MjE5NjIwNH0.Lo0lAnOoyFhMpq7YwO3pw2vMccSsJc8Xbk7Teck5QmE';
+const BUCKET = 'moodboard';
+const MAX_PX = 2400;
+
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+let items = [];
+let moods = ['All','Summer','Winter','Cozy','Dark'];
+let currentMood = localStorage.getItem('mb_mood') || 'All';
+let shuffleOn = false;
+let editId = null;
+
+const gridEl = document.getElementById('grid');
+const gridWrap = document.getElementById('gridWrap');
+const dropdown = document.getElementById('dropdown');
+const lightbox = document.getElementById('lightbox');
+const lbInner = document.getElementById('lbInner');
+const fileInput = document.getElementById('fileInput');
+const progressBar = document.getElementById('progress');
+const toastEl = document.getElementById('toast');
+const editorWrap = document.getElementById('editorWrap');
+const shuffleBtn = document.getElementById('shuffleBtn');
+
+function toast(t){ toastEl.textContent=t; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1600) }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6) }
+function isVid(n){ return /[.](mp4|webm|mov|m4v)$/i.test(n||'') }
+function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600) }
+
+function compress(file, maxPx=MAX_PX, q=0.88){
+  return new Promise(res=>{
+    if(isVid(file.name)){res(file);return}
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=img.width,h=img.height;
+      if(w<=maxPx&&h<=maxPx){res(file);return}
+      const r=Math.min(maxPx/w,maxPx/h); w=Math.round(w*r); h=Math.round(h*r);
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      c.toBlob(b=>res(new File([b],file.name,{type:'image/jpeg'})),'image/jpeg',q);
+    };
+    img.src=url;
+  });
+}
+
+function renderMoodChips(){
+  document.getElementById('moodChips').innerHTML=moods.map(m=>
+    `<button class="mchip ${m===currentMood?'active':''}" data-m="${m}">${m}</button>`
+  ).join('');
+  document.querySelectorAll('.mchip').forEach(b=>b.onclick=()=>{
+    currentMood=b.dataset.m; localStorage.setItem('mb_mood',currentMood);
+    renderMoodChips(); renderGrid();
+  });
+}
+
+function renderGrid(){
+  let arr=items.filter(i=>currentMood==='All'||i.mood===currentMood);
+  if(shuffleOn) arr=[...arr].sort(()=>Math.random()-.5);
+  gridEl.innerHTML=arr.map(it=>`
+    <div class="cell" data-id="${it.id}">
+      ${it.media_type==='video'
+        ?`<video src="${it.media_url}" muted loop playsinline loading="lazy"></video>`
+        :`<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
+    </div>`).join('');
+  const obs=new IntersectionObserver(es=>es.forEach(e=>{
+    const v=e.target.querySelector('video'); if(!v)return;
+    e.isIntersecting?v.play().catch(()=>{}):(v.pause(),v.currentTime=0);
+  }),{threshold:0.3});
+  gridEl.querySelectorAll('.cell').forEach(c=>{
+    obs.observe(c);
+    c.onclick=()=>openLightbox(c.dataset.id);
+    c.oncontextmenu=e=>{e.preventDefault();openEditor(c.dataset.id)};
+  });
+}
+
+function openLightbox(id){
+  const it=items.find(x=>x.id===id); if(!it)return;
+  lbInner.querySelectorAll('img,video').forEach(e=>e.remove());
+  const el=it.media_type==='video'?document.createElement('video'):document.createElement('img');
+  el.src=it.media_url;
+  if(it.media_type==='video'){el.controls=true;el.autoplay=true;}
+  lbInner.appendChild(el);
+  lightbox.classList.add('show');
+}
+document.getElementById('lbClose').onclick=closeLb;
+lightbox.onclick=e=>{if(e.target===lightbox)closeLb()};
+function closeLb(){ lightbox.classList.remove('show'); lbInner.querySelectorAll('video').forEach(v=>v.pause()) }
+
+function openEditor(id){
+  editId=id;
+  const it=items.find(x=>x.id===id); if(!it)return;
+  document.getElementById('editorTitle').textContent=it.title||'Item';
+  document.getElementById('tagInput').value=(it.tags||[]).join(', ');
+  editorWrap.classList.add('show');
+  renderTagChips();
+  dropdown.classList.add('show');
+}
+function renderTagChips(){
+  const it=items.find(x=>x.id===editId);
+  document.getElementById('tagChips').innerHTML=moods.filter(m=>m!=='All').map(m=>
+    `<button class="tchip ${it&&it.mood===m?'active':''}" data-m="${m}">${m}</button>`
+  ).join('');
+  document.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{
+    const it=items.find(x=>x.id===editId); if(!it)return;
+    it.mood=b.dataset.m; sbUpdate(it); renderGrid(); renderTagChips();
+  });
+}
+document.getElementById('saveTagsBtn').onclick=()=>{
+  const it=items.find(x=>x.id===editId); if(!it)return;
+  it.tags=document.getElementById('tagInput').value.split(',').map(s=>s.trim()).filter(Boolean);
+  sbUpdate(it); renderGrid(); toast('Tags gespeichert');
+};
+
+async function upload(files){
+  const arr=Array.from(files);
+  for(let i=0;i<arr.length;i++){
+    prog(Math.round(i/arr.length*90));
+    toast(`Upload ${i+1}/${arr.length}…`);
+    const f=arr[i];
+    const cf=await compress(f);
+    const ext=cf.name.split('.').pop().toLowerCase();
+    const path=`${uid()}.${ext}`;
+    const {error:e1}=await sb.storage.from(BUCKET).upload(path,cf,{upsert:false,contentType:cf.type});
+    if(e1){toast('Upload-Fehler: '+e1.message);console.error(e1);continue}
+    const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+    const item={
+      id:uid(), title:f.name.replace(/[.][^.]+$/,''),
+      mood:currentMood==='All'?(moods[1]||'Summer'):currentMood,
+      tags:[], media_url:pub.publicUrl,
+      media_type:isVid(f.name)?'video':'image', favorite:false
+    };
+    const {data:ins,error:e2}=await sb.from('moodboard_items').insert(item).select().single();
+    if(e2){toast('DB-Fehler: '+e2.message);console.error(e2);continue}
+    items.unshift(ins||item); renderGrid();
+  }
+  prog(100); toast('Fertig ✓'); fileInput.value='';
+}
+
+async function loadItems(){
+  const {data,error}=await sb.from('moodboard_items').select('*').order('created_at',{ascending:false});
+  if(error){toast('Ladefehler: '+error.message);console.error(error);return}
+  items=data||[]; renderGrid();
+}
+async function sbUpdate(item){
+  await sb.from('moodboard_items').update({
+    title:item.title||'',mood:item.mood,tags:item.tags||[],
+    media_url:item.media_url,media_type:item.media_type,favorite:false
+  }).eq('id',item.id);
+}
+async function sbDeleteAll(){
+  await sb.from('moodboard_items').delete().neq('id','00000000-0000-0000-0000-000000000000');
+}
+
+document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();dropdown.classList.toggle('show')};
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#dropdown')&&!e.target.closest('#menuBtn')) dropdown.classList.remove('show');
+});
+shuffleBtn.onclick=()=>{
+  shuffleOn=!shuffleOn; shuffleBtn.classList.toggle('on',shuffleOn);
+  renderGrid(); toast(shuffleOn?'Shuffle an':'Shuffle aus');
+};
+document.getElementById('uploadBtn').onclick=()=>fileInput.click();
+fileInput.onchange=e=>{upload(e.target.files);dropdown.classList.remove('show')};
+document.getElementById('boardTitle').oninput=e=>localStorage.setItem('mb_title',e.target.value);
+document.getElementById('boardTitle').value=localStorage.getItem('mb_title')||'Moodboard';
+document.getElementById('addMoodBtn').onclick=()=>{
+  const v=document.getElementById('newMood').value.trim();
+  if(!v||moods.includes(v))return; moods.push(v); currentMood=v;
+  document.getElementById('newMood').value=''; renderMoodChips(); renderGrid(); toast('Mood hinzugefügt');
+};
+document.getElementById('renameMoodBtn').onclick=()=>{
+  const v=document.getElementById('renameMood').value.trim();
+  if(!v||currentMood==='All'||moods.includes(v))return;
+  const old=currentMood; moods=moods.map(m=>m===old?v:m);
+  items=items.map(i=>({...i,mood:i.mood===old?v:i.mood}));
+  currentMood=v; document.getElementById('renameMood').value='';
+  items.forEach(sbUpdate); renderMoodChips(); renderGrid(); toast('Mood umbenannt');
+};
+document.getElementById('deleteMoodBtn').onclick=()=>{
+  const v=document.getElementById('deleteMood').value.trim();
+  if(!v||v==='All'||!moods.includes(v))return;
+  moods=moods.filter(m=>m!==v);
+  items=items.map(i=>({...i,mood:i.mood===v?'All':i.mood}));
+  if(currentMood===v)currentMood='All';
+  document.getElementById('deleteMood').value='';
+  items.forEach(sbUpdate); renderMoodChips(); renderGrid(); toast('Mood gelöscht');
+};
+document.getElementById('clearBtn').onclick=async()=>{
+  if(!confirm('Wirklich alle Bilder löschen?'))return;
+  items=[]; await sbDeleteAll(); renderGrid(); toast('Gelöscht');
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLb();dropdown.classList.remove('show')}});
+gridWrap.addEventListener('dragover',e=>{e.preventDefault();gridWrap.classList.add('dragover')});
+gridWrap.addEventListener('dragleave',()=>gridWrap.classList.remove('dragover'));
+gridWrap.addEventListener('drop',e=>{e.preventDefault();gridWrap.classList.remove('dragover');upload(e.dataTransfer.files)});
+
+renderMoodChips();
+loadItems();
+</script>
+</body>
+</html>
