@@ -14,13 +14,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:"DM San
 button,input{font:inherit}
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border)}
 .board-title{background:transparent;border:0;color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;outline:none;opacity:.9}
-.avatarbtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:.15s;overflow:hidden;padding:0}
-.avatarbtn:hover{background:rgba(255,255,255,.13)}
-.pixel-avatar{image-rendering:pixelated;image-rendering:crisp-edges;width:28px;height:28px;display:block;animation:float-bob 3s ease-in-out infinite}
-@keyframes float-bob{0%{transform:translateY(0px)}25%{transform:translateY(-3px)}50%{transform:translateY(-5px)}75%{transform:translateY(-3px)}100%{transform:translateY(0px)}}
-.avatarbtn:hover .pixel-avatar{animation:pixel-shake .4s steps(1) infinite}
-@keyframes pixel-shake{0%{transform:translateX(0px) translateY(0px)}25%{transform:translateX(-2px) translateY(-1px)}50%{transform:translateX(2px) translateY(0px)}75%{transform:translateX(-1px) translateY(1px)}100%{transform:translateX(0px) translateY(0px)}}
-.dropdown{position:fixed;top:58px;right:14px;z-index:40;width:280px;display:none;padding:10px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.menubtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);transition:.15s}
+.menubtn:hover{background:rgba(255,255,255,.13)}
+.dropdown{position:fixed;top:58px;right:14px;z-index:40;width:280px;display:none;padding:10px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
 .dropdown.show{display:block}
 .dd-section{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:8px 8px 4px}
 .dd-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
@@ -38,7 +34,7 @@ button,input{font:inherit}
 .tchip.active{background:#fff;color:#111;border-color:#fff}
 .editor-wrap{display:none}
 .editor-wrap.show{display:block}
-.shufflebtn{position:fixed;bottom:20px;right:20px;z-index:30;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:19px;display:grid;place-items:center;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:.15s}
+.shufflebtn{position:fixed;bottom:20px;right:20px;z-index:30;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:19px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:.15s}
 .shufflebtn:hover{background:rgba(255,255,255,.13)}
 .gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
@@ -62,12 +58,35 @@ button,input{font:inherit}
 
 <div class="topbar">
   <input class="board-title" id="boardTitle" value="Moodboard">
-  <button class="avatarbtn" id="menuBtn" aria-label="Menu"><span class="pixel-avatar">🍔</span></button>
+  <button class="menubtn" id="menuBtn">☰</button>
 </div>
 
 <div class="dropdown" id="dropdown">
+  <div class="dd-section">Mood</div>
+  <div class="mood-chips" id="moodChips"></div>
+  <div class="dd-divider"></div>
+
   <div class="dd-section">Aktionen</div>
-  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">🗑</span> Bilder löschen starten</button>
+  <button class="dd-btn" id="uploadBtn"><span class="icon">＋</span> Bilder / Videos hochladen</button>
+  <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
+  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">🗑</span> Bilder löschen auswählen</button>
+
+  <div class="dd-divider"></div>
+
+  <div class="editor-wrap" id="editorWrap">
+    <div class="dd-section">Editor — <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
+    <div class="tag-chips" id="tagChips"></div>
+    <div class="dd-input-row">
+      <input id="tagInput" placeholder="Tags, kommagetrennt">
+      <button id="saveTagsBtn">Save</button>
+    </div>
+    <div class="dd-divider"></div>
+  </div>
+
+  <div class="dd-section">Mood verwalten</div>
+  <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood"><button id="addMoodBtn">Add</button></div>
+  <div class="dd-input-row"><input id="renameMood" placeholder="Aktuelle umbenennen"><button id="renameMoodBtn">Rename</button></div>
+  <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn">Delete</button></div>
 </div>
 
 <button class="shufflebtn" id="shuffleBtn">⇄</button>
@@ -143,6 +162,11 @@ function renderMoodChips(){
   });
 }
 
+function isDeleteMode(){
+  const boxes=gridEl.querySelectorAll('.delcheck');
+  return boxes.length>0&&[...boxes][0].style.pointerEvents==='auto';
+}
+
 function renderGrid(){
   let arr=items.filter(i=>currentMood==='All'||i.mood===currentMood);
   arr=[...arr].sort(()=>Math.random()-.5);
@@ -159,8 +183,15 @@ function renderGrid(){
   }),{threshold:0.3});
   gridEl.querySelectorAll('.cell').forEach(c=>{
     obs.observe(c);
-    c.onclick=()=>{ const chk=c.querySelector('.delcheck'); if(chk&&chk.style.pointerEvents==='auto'){ chk.checked=!chk.checked; return; } openLightbox(c.dataset.id); };
-    c.oncontextmenu=e=>{e.preventDefault(); if(!(c.querySelector('.delcheck')&&c.querySelector('.delcheck').style.pointerEvents==='auto')) openEditor(c.dataset.id)};
+    c.onclick=()=>{
+      const chk=c.querySelector('.delcheck');
+      if(chk&&chk.style.pointerEvents==='auto'){chk.checked=!chk.checked;return;}
+      openLightbox(c.dataset.id);
+    };
+    c.oncontextmenu=e=>{
+      e.preventDefault();
+      if(!isDeleteMode()) openEditor(c.dataset.id);
+    };
   });
 }
 
@@ -177,42 +208,30 @@ document.getElementById('lbClose').onclick=closeLb;
 lightbox.onclick=e=>{if(e.target===lightbox)closeLb()};
 function closeLb(){lightbox.classList.remove('show');lbInner.querySelectorAll('video').forEach(v=>v.pause())}
 
-document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();dropdown.classList.toggle('show')};
-document.addEventListener('click',e=>{
-  if(!e.target.closest('#dropdown')&&!e.target.closest('#menuBtn'))dropdown.classList.remove('show');
-});
-shuffleBtn.onclick=()=>{renderGrid();toast('Neue Zufallsansicht')};
-
-document.getElementById('pickDeleteBtn').onclick=()=>{
-  const boxes=[...gridEl.querySelectorAll('.delcheck')];
-  const active=boxes.some(b=>b.style.pointerEvents==='auto');
-  boxes.forEach(b=>{
-    b.style.opacity=active?'0':'1';
-    b.style.pointerEvents=active?'none':'auto';
-    b.checked=false;
+function openEditor(id){
+  editId=id;
+  const it=items.find(x=>x.id===id);if(!it)return;
+  document.getElementById('editorTitle').textContent=it.title||'Item';
+  document.getElementById('tagInput').value=(it.tags||[]).join(', ');
+  editorWrap.classList.add('show');
+  renderTagChips();
+  dropdown.classList.add('show');
+}
+function renderTagChips(){
+  const it=items.find(x=>x.id===editId);
+  document.getElementById('tagChips').innerHTML=moods.filter(m=>m!=='All').map(m=>
+    `<button class="tchip ${it&&it.mood===m?'active':''}" data-m="${m}">${m}</button>`
+  ).join('');
+  document.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{
+    const it=items.find(x=>x.id===editId);if(!it)return;
+    it.mood=b.dataset.m;sbUpdate(it);renderGrid();renderTagChips();
   });
-  document.getElementById('deleteFloatingBtn')?.remove();
-  if(!active){
-    const btn=document.createElement('button');
-    btn.id='deleteFloatingBtn';
-    btn.textContent='🗑';
-    btn.style.cssText='position:fixed;left:20px;bottom:20px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)';
-    btn.onclick=async()=>{
-      const ids=[...gridEl.querySelectorAll('.delcheck:checked')].map(b=>b.dataset.del);
-      if(!ids.length){toast('Nichts ausgewählt'); return;}
-      if(!confirm(ids.length+' Bilder löschen?'))return;
-      await sbDeleteMany(ids);
-      items=items.filter(i=>!ids.includes(i.id)); renderGrid(); toast('Ausgewählt gelöscht'); btn.remove();
-    };
-    document.body.appendChild(btn);
-  }
-  toast(active?'Löschmodus aus':'Wähle Bilder aus');
+}
+document.getElementById('saveTagsBtn').onclick=()=>{
+  const it=items.find(x=>x.id===editId);if(!it)return;
+  it.tags=document.getElementById('tagInput').value.split(',').map(s=>s.trim()).filter(Boolean);
+  sbUpdate(it);renderGrid();toast('Tags gespeichert');
 };
-
-document.getElementById('uploadBtn').onclick=()=>fileInput.click();
-fileInput.onchange=e=>{upload(e.target.files);dropdown.classList.remove('show')};
-document.getElementById('boardTitle').oninput=e=>localStorage.setItem('mb_title',e.target.value);
-document.getElementById('boardTitle').value=localStorage.getItem('mb_title')||'Moodboard';
 
 async function upload(files){
   const arr=Array.from(files);
@@ -241,11 +260,10 @@ async function upload(files){
 
 async function loadItems(){
   const {data,error}=await sb.from('moodboard_items').select('*').order('created_at',{ascending:false});
-  if(error){toast('Ladefehler: '+error.message);console.error('loadItems error',error);document.getElementById('grid').innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>';return}
+  if(error){toast('Ladefehler: '+error.message);console.error(error);document.getElementById('grid').innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>';return}
   items=data||[];renderGrid();
   const bm=document.getElementById('bootMsg');if(bm)bm.remove();
 }
-
 async function sbUpdate(item){
   await sb.from('moodboard_items').update({
     title:item.title||'',mood:item.mood,tags:item.tags||[],
@@ -257,9 +275,70 @@ async function sbDeleteMany(ids){
   await sb.from('moodboard_items').delete().in('id',ids);
 }
 
-document.getElementById('addMoodBtn').onclick=()=>{};
-document.getElementById('renameMoodBtn').onclick=()=>{};
-document.getElementById('deleteMoodBtn').onclick=()=>{};
+document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();dropdown.classList.toggle('show')};
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#dropdown')&&!e.target.closest('#menuBtn'))dropdown.classList.remove('show');
+});
+
+shuffleBtn.onclick=()=>{renderGrid();toast('Neue Zufallsansicht')};
+
+document.getElementById('uploadBtn').onclick=()=>{fileInput.click();dropdown.classList.remove('show')};
+fileInput.onchange=e=>upload(e.target.files);
+
+document.getElementById('boardTitle').oninput=e=>localStorage.setItem('mb_title',e.target.value);
+document.getElementById('boardTitle').value=localStorage.getItem('mb_title')||'Moodboard';
+
+document.getElementById('addMoodBtn').onclick=()=>{
+  const v=document.getElementById('newMood').value.trim();
+  if(!v||moods.includes(v))return;moods.push(v);currentMood=v;
+  document.getElementById('newMood').value='';renderMoodChips();renderGrid();toast('Mood hinzugefügt');
+};
+document.getElementById('renameMoodBtn').onclick=()=>{
+  const v=document.getElementById('renameMood').value.trim();
+  if(!v||currentMood==='All'||moods.includes(v))return;
+  const old=currentMood;moods=moods.map(m=>m===old?v:m);
+  items=items.map(i=>({...i,mood:i.mood===old?v:i.mood}));
+  currentMood=v;document.getElementById('renameMood').value='';
+  items.forEach(sbUpdate);renderMoodChips();renderGrid();toast('Mood umbenannt');
+};
+document.getElementById('deleteMoodBtn').onclick=()=>{
+  const v=document.getElementById('deleteMood').value.trim();
+  if(!v||v==='All'||!moods.includes(v))return;
+  moods=moods.filter(m=>m!==v);
+  items=items.map(i=>({...i,mood:i.mood===v?'All':i.mood}));
+  if(currentMood===v)currentMood='All';
+  document.getElementById('deleteMood').value='';
+  items.forEach(sbUpdate);renderMoodChips();renderGrid();toast('Mood gelöscht');
+};
+
+document.getElementById('pickDeleteBtn').onclick=()=>{
+  dropdown.classList.remove('show');
+  const boxes=[...gridEl.querySelectorAll('.delcheck')];
+  const active=boxes.some(b=>b.style.pointerEvents==='auto');
+  boxes.forEach(b=>{
+    b.style.opacity=active?'0':'1';
+    b.style.pointerEvents=active?'none':'auto';
+    b.checked=false;
+  });
+  document.getElementById('deleteFloatingBtn')?.remove();
+  if(!active){
+    const btn=document.createElement('button');
+    btn.id='deleteFloatingBtn';
+    btn.textContent='🗑';
+    btn.style.cssText='position:fixed;left:20px;bottom:20px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)';
+    btn.onclick=async()=>{
+      const ids=[...gridEl.querySelectorAll('.delcheck:checked')].map(b=>b.dataset.del);
+      if(!ids.length){toast('Nichts ausgewählt');return;}
+      if(!confirm(ids.length+' Bilder löschen?'))return;
+      await sbDeleteMany(ids);
+      items=items.filter(i=>!ids.includes(i.id));
+      renderGrid();toast('Ausgewählt gelöscht');btn.remove();
+    };
+    document.body.appendChild(btn);
+  }
+  toast(active?'Löschmodus aus':'Wähle Bilder aus');
+};
+
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLb();dropdown.classList.remove('show')}});
 gridWrap.addEventListener('dragover',e=>{e.preventDefault();gridWrap.classList.add('dragover')});
 gridWrap.addEventListener('dragleave',()=>gridWrap.classList.remove('dragover'));
