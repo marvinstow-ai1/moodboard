@@ -62,34 +62,12 @@ button,input{font:inherit}
 
 <div class="topbar">
   <input class="board-title" id="boardTitle" value="Moodboard">
-  <button class="avatarbtn" id="menuBtn" aria-label="Menu"><span class="pixel-avatar">🤖</span></button>
+  <button class="avatarbtn" id="menuBtn" aria-label="Menu"><span class="pixel-avatar">🍔</span></button>
 </div>
 
 <div class="dropdown" id="dropdown">
-  <div class="dd-section">Mood</div>
-  <div class="mood-chips" id="moodChips"></div>
-  <div class="dd-divider"></div>
   <div class="dd-section">Aktionen</div>
-  <button class="dd-btn" id="uploadBtn"><span class="icon">＋</span> Bilder / Videos hochladen</button>
-  <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
-  <div class="dd-divider"></div>
-  <div class="editor-wrap" id="editorWrap">
-    <div class="dd-section">Editor — <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
-    <div class="tag-chips" id="tagChips"></div>
-    <div class="dd-input-row">
-      <input id="tagInput" placeholder="Tags, kommagetrennt">
-      <button id="saveTagsBtn">Save</button>
-    </div>
-    <div class="dd-divider"></div>
-  </div>
-  <div class="dd-section">Mood verwalten</div>
-  <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood"><button id="addMoodBtn">Add</button></div>
-  <div class="dd-input-row"><input id="renameMood" placeholder="Aktuelle umbenennen"><button id="renameMoodBtn">Rename</button></div>
-  <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn">Delete</button></div>
-  <div class="dd-divider"></div>
-  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">🗑</span> Bilder löschen auswählen</button>
-  <div id="deletePickWrap" class="hidden"></div>
-  <div class="dd-input-row"><button id="deleteSelectedBtn" style="width:100%">Ausgewählte löschen</button></div>
+  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">🗑</span> Bilder löschen starten</button>
 </div>
 
 <button class="shufflebtn" id="shuffleBtn">⇄</button>
@@ -181,8 +159,8 @@ function renderGrid(){
   }),{threshold:0.3});
   gridEl.querySelectorAll('.cell').forEach(c=>{
     obs.observe(c);
-    c.onclick=()=>openLightbox(c.dataset.id);
-    c.oncontextmenu=e=>{e.preventDefault();openEditor(c.dataset.id)};
+    c.onclick=()=>{ const chk=c.querySelector('.delcheck'); if(chk&&chk.style.pointerEvents==='auto'){ chk.checked=!chk.checked; return; } openLightbox(c.dataset.id); };
+    c.oncontextmenu=e=>{e.preventDefault(); if(!(c.querySelector('.delcheck')&&c.querySelector('.delcheck').style.pointerEvents==='auto')) openEditor(c.dataset.id)};
   });
 }
 
@@ -199,30 +177,42 @@ document.getElementById('lbClose').onclick=closeLb;
 lightbox.onclick=e=>{if(e.target===lightbox)closeLb()};
 function closeLb(){lightbox.classList.remove('show');lbInner.querySelectorAll('video').forEach(v=>v.pause())}
 
-function openEditor(id){
-  editId=id;
-  const it=items.find(x=>x.id===id);if(!it)return;
-  document.getElementById('editorTitle').textContent=it.title||'Item';
-  document.getElementById('tagInput').value=(it.tags||[]).join(', ');
-  editorWrap.classList.add('show');
-  renderTagChips();
-  dropdown.classList.add('show');
-}
-function renderTagChips(){
-  const it=items.find(x=>x.id===editId);
-  document.getElementById('tagChips').innerHTML=moods.filter(m=>m!=='All').map(m=>
-    `<button class="tchip ${it&&it.mood===m?'active':''}" data-m="${m}">${m}</button>`
-  ).join('');
-  document.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{
-    const it=items.find(x=>x.id===editId);if(!it)return;
-    it.mood=b.dataset.m;sbUpdate(it);renderGrid();renderTagChips();
+document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();dropdown.classList.toggle('show')};
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#dropdown')&&!e.target.closest('#menuBtn'))dropdown.classList.remove('show');
+});
+shuffleBtn.onclick=()=>{renderGrid();toast('Neue Zufallsansicht')};
+
+document.getElementById('pickDeleteBtn').onclick=()=>{
+  const boxes=[...gridEl.querySelectorAll('.delcheck')];
+  const active=boxes.some(b=>b.style.pointerEvents==='auto');
+  boxes.forEach(b=>{
+    b.style.opacity=active?'0':'1';
+    b.style.pointerEvents=active?'none':'auto';
+    b.checked=false;
   });
-}
-document.getElementById('saveTagsBtn').onclick=()=>{
-  const it=items.find(x=>x.id===editId);if(!it)return;
-  it.tags=document.getElementById('tagInput').value.split(',').map(s=>s.trim()).filter(Boolean);
-  sbUpdate(it);renderGrid();toast('Tags gespeichert');
+  document.getElementById('deleteFloatingBtn')?.remove();
+  if(!active){
+    const btn=document.createElement('button');
+    btn.id='deleteFloatingBtn';
+    btn.textContent='🗑';
+    btn.style.cssText='position:fixed;left:20px;bottom:20px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)';
+    btn.onclick=async()=>{
+      const ids=[...gridEl.querySelectorAll('.delcheck:checked')].map(b=>b.dataset.del);
+      if(!ids.length){toast('Nichts ausgewählt'); return;}
+      if(!confirm(ids.length+' Bilder löschen?'))return;
+      await sbDeleteMany(ids);
+      items=items.filter(i=>!ids.includes(i.id)); renderGrid(); toast('Ausgewählt gelöscht'); btn.remove();
+    };
+    document.body.appendChild(btn);
+  }
+  toast(active?'Löschmodus aus':'Wähle Bilder aus');
 };
+
+document.getElementById('uploadBtn').onclick=()=>fileInput.click();
+fileInput.onchange=e=>{upload(e.target.files);dropdown.classList.remove('show')};
+document.getElementById('boardTitle').oninput=e=>localStorage.setItem('mb_title',e.target.value);
+document.getElementById('boardTitle').value=localStorage.getItem('mb_title')||'Moodboard';
 
 async function upload(files){
   const arr=Array.from(files);
@@ -267,53 +257,9 @@ async function sbDeleteMany(ids){
   await sb.from('moodboard_items').delete().in('id',ids);
 }
 
-document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();dropdown.classList.toggle('show')};
-document.addEventListener('click',e=>{
-  if(!e.target.closest('#dropdown')&&!e.target.closest('#menuBtn'))dropdown.classList.remove('show');
-});
-shuffleBtn.onclick=()=>{renderGrid();toast('Neue Zufallsansicht')};
-
-document.getElementById('uploadBtn').onclick=()=>fileInput.click();
-fileInput.onchange=e=>{upload(e.target.files);dropdown.classList.remove('show')};
-document.getElementById('boardTitle').oninput=e=>localStorage.setItem('mb_title',e.target.value);
-document.getElementById('boardTitle').value=localStorage.getItem('mb_title')||'Moodboard';
-
-document.getElementById('addMoodBtn').onclick=()=>{
-  const v=document.getElementById('newMood').value.trim();
-  if(!v||moods.includes(v))return;moods.push(v);currentMood=v;
-  document.getElementById('newMood').value='';renderMoodChips();renderGrid();toast('Mood hinzugefügt');
-};
-document.getElementById('renameMoodBtn').onclick=()=>{
-  const v=document.getElementById('renameMood').value.trim();
-  if(!v||currentMood==='All'||moods.includes(v))return;
-  const old=currentMood;moods=moods.map(m=>m===old?v:m);
-  items=items.map(i=>({...i,mood:i.mood===old?v:i.mood}));
-  currentMood=v;document.getElementById('renameMood').value='';
-  items.forEach(sbUpdate);renderMoodChips();renderGrid();toast('Mood umbenannt');
-};
-document.getElementById('deleteMoodBtn').onclick=()=>{
-  const v=document.getElementById('deleteMood').value.trim();
-  if(!v||v==='All'||!moods.includes(v))return;
-  moods=moods.filter(m=>m!==v);
-  items=items.map(i=>({...i,mood:i.mood===v?'All':i.mood}));
-  if(currentMood===v)currentMood='All';
-  document.getElementById('deleteMood').value='';
-  items.forEach(sbUpdate);renderMoodChips();renderGrid();toast('Mood gelöscht');
-};
-document.getElementById('pickDeleteBtn').onclick=()=>{
-  const boxes=[...gridEl.querySelectorAll('.delcheck')];
-  const active=boxes.some(b=>b.style.pointerEvents==='auto');
-  boxes.forEach(b=>{b.style.opacity=active?'0':'1';b.style.pointerEvents=active?'none':'auto';b.checked=false;});
-  toast(active?'Löschmodus aus':'Wähle Bilder aus');
-};
-document.getElementById('deleteSelectedBtn').onclick=async()=>{
-  const ids=[...gridEl.querySelectorAll('.delcheck:checked')].map(b=>b.dataset.del);
-  if(!ids.length){toast('Nichts ausgewählt');return;}
-  if(!confirm(ids.length+' Bilder löschen?'))return;
-  await sbDeleteMany(ids);
-  items=items.filter(i=>!ids.includes(i.id));renderGrid();toast('Ausgewählt gelöscht');
-};
-
+document.getElementById('addMoodBtn').onclick=()=>{};
+document.getElementById('renameMoodBtn').onclick=()=>{};
+document.getElementById('deleteMoodBtn').onclick=()=>{};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeLb();dropdown.classList.remove('show')}});
 gridWrap.addEventListener('dragover',e=>{e.preventDefault();gridWrap.classList.add('dragover')});
 gridWrap.addEventListener('dragleave',()=>gridWrap.classList.remove('dragover'));
