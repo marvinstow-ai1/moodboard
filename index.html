@@ -64,11 +64,11 @@ button,input{font:inherit}
 .ab-act.remove{background:rgba(255,60,60,.15);color:#ff6b6b;border-color:rgba(255,60,60,.3)}
 .ab-act.remove:hover{background:rgba(255,60,60,.25)}
 .ab-count{font-size:12px;opacity:.5}
-.lightbox{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);touch-action:pan-y}
+/* Lightbox — kein X mehr, Klick auf Bild schließt */
+.lightbox{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);touch-action:pan-y;cursor:pointer}
 .lightbox.show{display:flex}
-.lb-inner{position:relative;max-width:92vw;max-height:92vh;user-select:none}
+.lb-inner{position:relative;max-width:92vw;max-height:92vh;user-select:none;cursor:default}
 .lb-inner img,.lb-inner video{max-width:92vw;max-height:92vh;object-fit:contain;border-radius:10px;display:block;pointer-events:none}
-.lb-close{position:absolute;top:-14px;right:-14px;width:32px;height:32px;background:rgba(255,255,255,.1);border:1px solid var(--border);border-radius:999px;color:#fff;font-size:16px;cursor:pointer;display:grid;place-items:center;pointer-events:auto}
 .lb-arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:81;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;font-size:18px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(10px);transition:.15s}
 .lb-arrow:hover{background:rgba(255,255,255,.18)}
 .lb-arrow.prev{left:14px}
@@ -151,11 +151,10 @@ button,input{font:inherit}
   </div>
 </div>
 
+<!-- Lightbox: kein lb-close Button mehr -->
 <div class="lightbox" id="lightbox">
   <button class="lb-arrow prev" id="lbPrev">‹</button>
-  <div class="lb-inner" id="lbInner">
-    <button class="lb-close" id="lbClose">✕</button>
-  </div>
+  <div class="lb-inner" id="lbInner"></div>
   <button class="lb-arrow next" id="lbNext">›</button>
 </div>
 
@@ -367,8 +366,15 @@ function lbNavigate(dir){
 }
 document.getElementById('lbPrev').onclick=e=>{e.stopPropagation();lbNavigate(-1)};
 document.getElementById('lbNext').onclick=e=>{e.stopPropagation();lbNavigate(1)};
-document.getElementById('lbClose').onclick=closeLb;
-lightbox.onclick=e=>{if(e.target===lightbox){closeLbMoodPicker();closeLb();}};
+
+// Klick auf Hintergrund ODER direkt auf das Bild/Video schließt
+lightbox.onclick=e=>{
+  if(lbMoodPicker.classList.contains('show')){closeLbMoodPicker();return;}
+  if(!e.target.closest('.lb-arrow')&&!e.target.closest('#lbMoodBtn')){
+    closeLb();
+  }
+};
+
 function closeLb(){
   lightbox.classList.remove('show');
   lbMoodBtn.classList.remove('show');
@@ -384,7 +390,6 @@ function openLbMoodPicker(){
   renderLbMoodTiles();
   lbMoodPicker.classList.add('show');
 }
-
 function renderLbMoodTiles(){
   lbMoodTiles.innerHTML=moods.filter(m=>m!=='All').map(m=>
     `<button class="lb-mood-tile ${lbPickedMoods.has(m)?'sel':''}" data-m="${m}">${m}</button>`
@@ -392,27 +397,19 @@ function renderLbMoodTiles(){
   lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(b=>{
     b.onclick=e=>{
       e.stopPropagation();
-      if(lbPickedMoods.has(b.dataset.m)){
-        lbPickedMoods.delete(b.dataset.m);
-        b.classList.remove('sel');
-      } else {
-        lbPickedMoods.add(b.dataset.m);
-        b.classList.add('sel');
-      }
+      if(lbPickedMoods.has(b.dataset.m)){lbPickedMoods.delete(b.dataset.m);b.classList.remove('sel');}
+      else{lbPickedMoods.add(b.dataset.m);b.classList.add('sel');}
     };
   });
 }
-
 function closeLbMoodPicker(){
   lbMoodPicker.classList.remove('show');
   lbPickedMoods=new Set();
 }
-
 lbMoodBtn.onclick=e=>{
   e.stopPropagation();
   lbMoodPicker.classList.contains('show')?closeLbMoodPicker():openLbMoodPicker();
 };
-
 document.getElementById('lbMoodConfirm').onclick=async e=>{
   e.stopPropagation();
   if(!lbPickedMoods.size){toast('Keine Mood ausgewählt');return;}
@@ -425,7 +422,6 @@ document.getElementById('lbMoodConfirm').onclick=async e=>{
   toast(`Mood → ${mood}`);
   closeLbMoodPicker();
 };
-
 document.addEventListener('click',e=>{
   if(lbMoodPicker.classList.contains('show')&&!e.target.closest('#lbMoodPicker')&&!e.target.closest('#lbMoodBtn')){
     closeLbMoodPicker();
@@ -450,6 +446,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){if(selMode)exitSelMode();else dropdown.classList.remove('show');}
 });
 
+// ── Menü ──────────────────────────────────────────────────
 document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();dropdown.classList.toggle('show')};
 document.addEventListener('click',e=>{
   if(!e.target.closest('#dropdown')&&!e.target.closest('#menuBtn'))dropdown.classList.remove('show');
@@ -459,6 +456,7 @@ document.getElementById('shuffleBtn').onclick=()=>renderGrid();
 document.getElementById('uploadBtn').onclick=()=>{fileInput.click();dropdown.classList.remove('show')};
 fileInput.onchange=e=>upload(e.target.files);
 
+// ── Delete Mode ───────────────────────────────────────────
 document.getElementById('pickDeleteBtn').onclick=()=>{
   dropdown.classList.remove('show');
   selMode='delete';selectedIds.clear();
@@ -483,6 +481,7 @@ document.getElementById('pickDeleteBtn').onclick=()=>{
   document.body.appendChild(btn);
 };
 
+// ── Editor ────────────────────────────────────────────────
 function openEditor(id){
   editId=id;
   const it=items.find(x=>x.id===id);if(!it)return;
@@ -507,6 +506,7 @@ document.getElementById('saveTagsBtn').onclick=()=>{
   sbUpdate(it);renderGrid();toast('Tags gespeichert');
 };
 
+// ── Upload ────────────────────────────────────────────────
 async function upload(files){
   const arr=Array.from(files);
   for(let i=0;i<arr.length;i++){
@@ -525,6 +525,7 @@ async function upload(files){
   prog(100);toast('Fertig ✓');fileInput.value='';
 }
 
+// ── Supabase ──────────────────────────────────────────────
 async function loadItems(){
   const {data,error}=await sb.from('moodboard_items').select('*').order('created_at',{ascending:false});
   if(error){toast('Ladefehler: '+error.message);gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>';return}
@@ -539,6 +540,7 @@ async function sbDeleteMany(ids){
   await sb.from('moodboard_items').delete().in('id',ids);
 }
 
+// ── Mood Verwaltung ───────────────────────────────────────
 document.getElementById('addMoodBtn').onclick=()=>{
   const v=document.getElementById('newMood').value.trim();
   if(!v||moods.includes(v))return;moods.push(v);currentMood=v;
