@@ -12,13 +12,11 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overflow:hidden}
 button,input{font:inherit}
-
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border)}
 .board-title{background:transparent;border:0;color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;cursor:pointer;opacity:.9;user-select:none;padding:4px 0}
 .board-title:hover{opacity:1}
 .menubtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);transition:.15s}
 .menubtn:hover{background:rgba(255,255,255,.13)}
-
 .dropdown{position:fixed;top:58px;right:14px;z-index:40;width:290px;display:none;padding:10px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);max-height:calc(100vh - 80px);overflow-y:auto}
 .dropdown.show{display:block}
 .dd-section{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:8px 8px 4px}
@@ -29,20 +27,16 @@ button,input{font:inherit}
 .dd-input-row{display:flex;gap:6px;padding:4px 2px 6px}
 .dd-input-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:8px 10px;outline:none;font-size:12px}
 .dd-input-row button{border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:12px;white-space:nowrap}
-
 .mood-chips{display:flex;flex-wrap:wrap;gap:5px;padding:4px 2px 8px}
 .mchip{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;transition:.12s}
 .mchip.active{background:#fff;color:#111;border-color:#fff}
-
 .tag-chips{display:flex;flex-wrap:wrap;gap:5px;padding:4px 2px 8px}
 .tchip{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;transition:.12s}
 .tchip.active{background:#fff;color:#111;border-color:#fff}
 .editor-wrap{display:none}
 .editor-wrap.show{display:block}
-
 .shufflebtn{position:fixed;bottom:20px;right:20px;z-index:30;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:19px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:.15s}
 .shufflebtn:hover{background:rgba(255,255,255,.13)}
-
 .gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer}
@@ -54,8 +48,6 @@ button,input{font:inherit}
 .selcheck.visible{opacity:1;pointer-events:auto}
 .cell-mood-badge{position:absolute;bottom:6px;left:6px;z-index:2;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:999px;font-size:10px;color:#fff;padding:2px 8px;pointer-events:none;display:none}
 .cell-mood-badge.show{display:block}
-
-/* Action Bar */
 .action-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;padding:14px 16px 24px;background:linear-gradient(to top,rgba(0,0,0,.95) 70%,transparent);display:none;flex-direction:column;gap:10px}
 .action-bar.show{display:flex}
 .action-bar-title{font-size:11px;opacity:.5;text-transform:uppercase;letter-spacing:.08em}
@@ -72,8 +64,6 @@ button,input{font:inherit}
 .ab-act.remove{background:rgba(255,60,60,.15);color:#ff6b6b;border-color:rgba(255,60,60,.3)}
 .ab-act.remove:hover{background:rgba(255,60,60,.25)}
 .ab-count{font-size:12px;opacity:.5}
-
-/* Lightbox */
 .lightbox{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);touch-action:pan-y}
 .lightbox.show{display:flex}
 .lb-inner{position:relative;max-width:92vw;max-height:92vh;user-select:none}
@@ -83,13 +73,9 @@ button,input{font:inherit}
 .lb-arrow:hover{background:rgba(255,255,255,.18)}
 .lb-arrow.prev{left:14px}
 .lb-arrow.next{right:14px}
-
-/* Lightbox Mood Button */
 .lb-mood-btn{position:fixed;bottom:28px;right:20px;z-index:90;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:none;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.15s}
 .lb-mood-btn:hover{background:rgba(255,255,255,.18)}
-.lightbox.show ~ .lb-mood-btn,.lb-mood-btn.show{display:grid}
-
-/* Lightbox Mood Picker */
+.lb-mood-btn.show{display:grid}
 .lb-mood-picker{position:fixed;bottom:88px;right:14px;z-index:91;display:none;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 12px 40px rgba(0,0,0,.6);min-width:180px}
 .lb-mood-picker.show{display:flex}
 .lb-mood-picker-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:0 2px 4px}
@@ -100,7 +86,6 @@ button,input{font:inherit}
 .lb-mood-confirm{width:100%;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#111;margin-top:2px;transition:.15s}
 .lb-mood-confirm:hover{background:#ddd}
 .lb-current-mood{font-size:11px;opacity:.4;padding:0 2px}
-
 .progress{position:fixed;top:0;left:0;height:2px;background:#fff;z-index:100;width:0;transition:width .25s}
 .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:102;background:rgba(0,0,0,.85);border:1px solid var(--border);color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;white-space:nowrap}
 .toast.show{opacity:1}
@@ -120,24 +105,20 @@ button,input{font:inherit}
   <div class="dd-section">Filter</div>
   <div class="mood-chips" id="moodChips"></div>
   <div class="dd-divider"></div>
-
   <div class="dd-section">Aktionen</div>
   <button class="dd-btn" id="uploadBtn"><span class="icon">＋</span> Bilder / Videos hochladen</button>
   <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
   <button class="dd-btn" id="pickDeleteBtn"><span class="icon">🗑</span> Bilder löschen</button>
   <div class="dd-divider"></div>
-
   <div class="dd-section">Moods</div>
   <button class="dd-btn" id="assignMoodBtn"><span class="icon">🏷</span> Moods zuweisen / ändern</button>
   <button class="dd-btn" id="removeMoodBtn"><span class="icon">✕</span> Moods entfernen</button>
   <div class="dd-divider"></div>
-
   <div class="dd-section">Moods verwalten</div>
   <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood hinzufügen"><button id="addMoodBtn">Add</button></div>
   <div class="dd-input-row"><input id="renameMood" placeholder="Aktuelle umbenennen"><button id="renameMoodBtn">Rename</button></div>
   <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn">Delete</button></div>
   <div class="dd-divider"></div>
-
   <div class="editor-wrap" id="editorWrap">
     <div class="dd-section">Editor — <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
     <div class="tag-chips" id="tagChips"></div>
@@ -149,7 +130,6 @@ button,input{font:inherit}
   </div>
 </div>
 
-<!-- Action Bar (grid selection modes) -->
 <div class="action-bar" id="actionBar">
   <div style="display:flex;align-items:center;justify-content:space-between">
     <span class="action-bar-title" id="actionBarTitle">Mood zuweisen</span>
@@ -171,7 +151,6 @@ button,input{font:inherit}
   </div>
 </div>
 
-<!-- Lightbox -->
 <div class="lightbox" id="lightbox">
   <button class="lb-arrow prev" id="lbPrev">‹</button>
   <div class="lb-inner" id="lbInner">
@@ -180,10 +159,8 @@ button,input{font:inherit}
   <button class="lb-arrow next" id="lbNext">›</button>
 </div>
 
-<!-- Lightbox floating mood button (außerhalb lightbox div, damit z-index stimmt) -->
-<button class="lb-mood-btn" id="lbMoodBtn" title="Mood setzen">🏷</button>
+<button class="lb-mood-btn" id="lbMoodBtn">🏷</button>
 
-<!-- Lightbox mood picker popup -->
 <div class="lb-mood-picker" id="lbMoodPicker">
   <div class="lb-mood-picker-title">Mood setzen</div>
   <div class="lb-current-mood" id="lbCurrentMood"></div>
@@ -212,7 +189,7 @@ let lbIndex = 0;
 let selMode = null;
 let selectedIds = new Set();
 let assignMoods = new Set();
-let lbPickedMood = null;
+let lbPickedMoods = new Set();
 
 const gridEl         = document.getElementById('grid');
 const gridWrap       = document.getElementById('gridWrap');
@@ -253,7 +230,6 @@ function compress(file,maxPx=MAX_PX,q=0.88){
   });
 }
 
-// ── Mood Filter Chips ─────────────────────────────────────
 function renderMoodChips(){
   document.getElementById('moodChips').innerHTML=moods.map(m=>
     `<button class="mchip ${m===currentMood?'active':''}" data-m="${m}">${m}</button>`
@@ -264,7 +240,6 @@ function renderMoodChips(){
   });
 }
 
-// ── Grid ──────────────────────────────────────────────────
 function renderGrid(){
   let arr=items.filter(i=>currentMood==='All'||i.mood===currentMood);
   arr=[...arr].sort(()=>Math.random()-.5);
@@ -277,12 +252,10 @@ function renderGrid(){
         ?`<video src="${it.media_url}" muted loop playsinline loading="lazy"></video>`
         :`<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
     </div>`).join('');
-
   const obs=new IntersectionObserver(es=>es.forEach(e=>{
     const v=e.target.querySelector('video');if(!v)return;
     e.isIntersecting?v.play().catch(()=>{}):(v.pause(),v.currentTime=0);
   }),{threshold:0.3});
-
   gridEl.querySelectorAll('.cell').forEach(c=>{
     obs.observe(c);
     const chk=c.querySelector('.selcheck');
@@ -320,7 +293,6 @@ function updateDimming(){
   });
 }
 
-// ── Selection Modes ───────────────────────────────────────
 function enterSelMode(mode){
   selMode=mode;selectedIds.clear();assignMoods.clear();
   dropdown.classList.remove('show');
@@ -355,8 +327,7 @@ document.getElementById('abConfirm').onclick=async()=>{
   const ids=[...selectedIds];
   ids.forEach(id=>{const it=items.find(x=>x.id===id);if(it)it.mood=mood;});
   await Promise.all(ids.map(id=>sbUpdate(items.find(x=>x.id===id))));
-  toast(`${ids.length} Bilder → ${mood}`);
-  exitSelMode();
+  toast(`${ids.length} Bilder → ${mood}`);exitSelMode();
 };
 document.getElementById('abRemove').onclick=async()=>{
   if(!selectedIds.size){toast('Nichts ausgewählt');return;}
@@ -408,24 +379,33 @@ function closeLb(){
 // ── Lightbox Mood Picker ──────────────────────────────────
 function openLbMoodPicker(){
   const it=currentItems[lbIndex];if(!it)return;
-  lbPickedMood=it.mood||null;
-  lbCurrentMood.textContent=it.mood?`Aktuell: ${it.mood}`:'Noch keine Mood';
+  lbPickedMoods=new Set(it.mood&&it.mood!=='All'?[it.mood]:[]);
+  lbCurrentMood.textContent=it.mood&&it.mood!=='All'?`Aktuell: ${it.mood}`:'Noch keine Mood';
+  renderLbMoodTiles();
+  lbMoodPicker.classList.add('show');
+}
+
+function renderLbMoodTiles(){
   lbMoodTiles.innerHTML=moods.filter(m=>m!=='All').map(m=>
-    `<button class="lb-mood-tile ${it.mood===m?'sel':''}" data-m="${m}">${m}</button>`
+    `<button class="lb-mood-tile ${lbPickedMoods.has(m)?'sel':''}" data-m="${m}">${m}</button>`
   ).join('');
   lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(b=>{
     b.onclick=e=>{
       e.stopPropagation();
-      lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(x=>x.classList.remove('sel'));
-      b.classList.add('sel');
-      lbPickedMood=b.dataset.m;
+      if(lbPickedMoods.has(b.dataset.m)){
+        lbPickedMoods.delete(b.dataset.m);
+        b.classList.remove('sel');
+      } else {
+        lbPickedMoods.add(b.dataset.m);
+        b.classList.add('sel');
+      }
     };
   });
-  lbMoodPicker.classList.add('show');
 }
+
 function closeLbMoodPicker(){
   lbMoodPicker.classList.remove('show');
-  lbPickedMood=null;
+  lbPickedMoods=new Set();
 }
 
 lbMoodBtn.onclick=e=>{
@@ -435,17 +415,17 @@ lbMoodBtn.onclick=e=>{
 
 document.getElementById('lbMoodConfirm').onclick=async e=>{
   e.stopPropagation();
-  if(!lbPickedMood){toast('Keine Mood ausgewählt');return;}
+  if(!lbPickedMoods.size){toast('Keine Mood ausgewählt');return;}
+  const mood=[...lbPickedMoods][0];
   const it=currentItems[lbIndex];if(!it)return;
-  it.mood=lbPickedMood;
+  it.mood=mood;
   const orig=items.find(x=>x.id===it.id);
-  if(orig)orig.mood=lbPickedMood;
+  if(orig)orig.mood=mood;
   await sbUpdate(it);
-  toast(`Mood → ${lbPickedMood}`);
+  toast(`Mood → ${mood}`);
   closeLbMoodPicker();
 };
 
-// Picker schließen bei Klick außerhalb
 document.addEventListener('click',e=>{
   if(lbMoodPicker.classList.contains('show')&&!e.target.closest('#lbMoodPicker')&&!e.target.closest('#lbMoodBtn')){
     closeLbMoodPicker();
@@ -470,7 +450,6 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){if(selMode)exitSelMode();else dropdown.classList.remove('show');}
 });
 
-// ── Menü ──────────────────────────────────────────────────
 document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();dropdown.classList.toggle('show')};
 document.addEventListener('click',e=>{
   if(!e.target.closest('#dropdown')&&!e.target.closest('#menuBtn'))dropdown.classList.remove('show');
@@ -480,7 +459,6 @@ document.getElementById('shuffleBtn').onclick=()=>renderGrid();
 document.getElementById('uploadBtn').onclick=()=>{fileInput.click();dropdown.classList.remove('show')};
 fileInput.onchange=e=>upload(e.target.files);
 
-// ── Delete Mode ───────────────────────────────────────────
 document.getElementById('pickDeleteBtn').onclick=()=>{
   dropdown.classList.remove('show');
   selMode='delete';selectedIds.clear();
@@ -505,7 +483,6 @@ document.getElementById('pickDeleteBtn').onclick=()=>{
   document.body.appendChild(btn);
 };
 
-// ── Editor ────────────────────────────────────────────────
 function openEditor(id){
   editId=id;
   const it=items.find(x=>x.id===id);if(!it)return;
@@ -530,7 +507,6 @@ document.getElementById('saveTagsBtn').onclick=()=>{
   sbUpdate(it);renderGrid();toast('Tags gespeichert');
 };
 
-// ── Upload ────────────────────────────────────────────────
 async function upload(files){
   const arr=Array.from(files);
   for(let i=0;i<arr.length;i++){
@@ -549,7 +525,6 @@ async function upload(files){
   prog(100);toast('Fertig ✓');fileInput.value='';
 }
 
-// ── Supabase ──────────────────────────────────────────────
 async function loadItems(){
   const {data,error}=await sb.from('moodboard_items').select('*').order('created_at',{ascending:false});
   if(error){toast('Ladefehler: '+error.message);gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>';return}
@@ -564,7 +539,6 @@ async function sbDeleteMany(ids){
   await sb.from('moodboard_items').delete().in('id',ids);
 }
 
-// ── Mood Verwaltung ───────────────────────────────────────
 document.getElementById('addMoodBtn').onclick=()=>{
   const v=document.getElementById('newMood').value.trim();
   if(!v||moods.includes(v))return;moods.push(v);currentMood=v;
