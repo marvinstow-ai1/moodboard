@@ -12,12 +12,16 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overflow:hidden}
 button,input{font:inherit}
+
+/* Topbar */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border)}
 .board-title{background:transparent;border:0;color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;cursor:pointer;opacity:.9;user-select:none;padding:4px 0}
 .board-title:hover{opacity:1}
 .menubtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);transition:.15s}
 .menubtn:hover{background:rgba(255,255,255,.13)}
-.dropdown{position:fixed;top:58px;right:14px;z-index:40;width:280px;display:none;padding:10px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
+
+/* Dropdown */
+.dropdown{position:fixed;top:58px;right:14px;z-index:40;width:290px;display:none;padding:10px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);max-height:calc(100vh - 80px);overflow-y:auto}
 .dropdown.show{display:block}
 .dd-section{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:8px 8px 4px}
 .dd-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
@@ -27,21 +31,60 @@ button,input{font:inherit}
 .dd-input-row{display:flex;gap:6px;padding:4px 2px 6px}
 .dd-input-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:8px 10px;outline:none;font-size:12px}
 .dd-input-row button{border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:12px;white-space:nowrap}
+
+/* Mood chips (filter) */
 .mood-chips{display:flex;flex-wrap:wrap;gap:5px;padding:4px 2px 8px}
 .mchip{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;transition:.12s}
 .mchip.active{background:#fff;color:#111;border-color:#fff}
+
+/* Tag/mood assign chips */
 .tag-chips{display:flex;flex-wrap:wrap;gap:5px;padding:4px 2px 8px}
 .tchip{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;transition:.12s}
 .tchip.active{background:#fff;color:#111;border-color:#fff}
+
 .editor-wrap{display:none}
 .editor-wrap.show{display:block}
+
+/* Shuffle btn */
 .shufflebtn{position:fixed;bottom:20px;right:20px;z-index:30;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:19px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:.15s}
 .shufflebtn:hover{background:rgba(255,255,255,.13)}
+
+/* Grid */
 .gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:.3s}
 .cell:hover img,.cell:hover video{transform:scale(1.04)}
+.cell.sel-highlight{outline:2px solid #fff;outline-offset:-2px}
+.cell.mood-dim{opacity:.35;transition:opacity .2s}
+
+/* Selection checkbox */
+.selcheck{position:absolute;top:8px;left:8px;z-index:2;width:20px;height:20px;accent-color:#fff;opacity:0;pointer-events:none;cursor:pointer}
+.selcheck.visible{opacity:1;pointer-events:auto}
+
+/* Mood badge on cell */
+.cell-mood-badge{position:absolute;bottom:6px;left:6px;z-index:2;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:999px;font-size:10px;color:#fff;padding:2px 8px;pointer-events:none;display:none}
+.cell-mood-badge.show{display:block}
+
+/* Bottom action bar (assign mode) */
+.action-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;padding:14px 16px 24px;background:linear-gradient(to top,rgba(0,0,0,.95) 70%,transparent);display:none;flex-direction:column;gap:10px}
+.action-bar.show{display:flex}
+.action-bar-title{font-size:11px;opacity:.5;text-transform:uppercase;letter-spacing:.08em}
+.action-bar-moods{display:flex;flex-wrap:wrap;gap:6px}
+.ab-chip{border:1px solid var(--border);background:rgba(255,255,255,.07);color:#fff;border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer;transition:.15s;font-weight:500}
+.ab-chip:hover{background:rgba(255,255,255,.15)}
+.ab-chip.sel{background:#fff;color:#111;border-color:#fff}
+.action-bar-actions{display:flex;gap:8px}
+.ab-act{flex:1;border:1px solid var(--border);border-radius:12px;padding:10px;font-size:13px;cursor:pointer;font-weight:600;transition:.15s}
+.ab-act.confirm{background:#fff;color:#111;border-color:#fff}
+.ab-act.confirm:hover{background:#ddd}
+.ab-act.cancel{background:rgba(255,255,255,.06);color:#fff}
+.ab-act.cancel:hover{background:rgba(255,255,255,.12)}
+.ab-act.remove{background:rgba(255,60,60,.15);color:#ff6b6b;border-color:rgba(255,60,60,.3)}
+.ab-act.remove:hover{background:rgba(255,60,60,.25)}
+.ab-count{font-size:12px;opacity:.5}
+
+/* Lightbox */
 .lightbox{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);touch-action:pan-y}
 .lightbox.show{display:flex}
 .lb-inner{position:relative;max-width:92vw;max-height:92vh;user-select:none}
@@ -51,6 +94,7 @@ button,input{font:inherit}
 .lb-arrow:hover{background:rgba(255,255,255,.18)}
 .lb-arrow.prev{left:14px}
 .lb-arrow.next{right:14px}
+
 .progress{position:fixed;top:0;left:0;height:2px;background:#fff;z-index:100;width:0;transition:width .25s}
 .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:100;background:rgba(0,0,0,.85);border:1px solid var(--border);color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;white-space:nowrap}
 .toast.show{opacity:1}
@@ -66,18 +110,35 @@ button,input{font:inherit}
   <button class="menubtn" id="menuBtn">☰</button>
 </div>
 
+<!-- DROPDOWN -->
 <div class="dropdown" id="dropdown">
-  <div class="dd-section">Mood</div>
+
+  <!-- FILTER -->
+  <div class="dd-section">Filter</div>
   <div class="mood-chips" id="moodChips"></div>
   <div class="dd-divider"></div>
 
+  <!-- AKTIONEN -->
   <div class="dd-section">Aktionen</div>
   <button class="dd-btn" id="uploadBtn"><span class="icon">＋</span> Bilder / Videos hochladen</button>
   <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
-  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">🗑</span> Bilder löschen auswählen</button>
-
+  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">🗑</span> Bilder löschen</button>
   <div class="dd-divider"></div>
 
+  <!-- MOODS -->
+  <div class="dd-section">Moods</div>
+  <button class="dd-btn" id="assignMoodBtn"><span class="icon">🏷</span> Moods zuweisen / ändern</button>
+  <button class="dd-btn" id="removeMoodBtn"><span class="icon">✕</span> Moods entfernen</button>
+  <div class="dd-divider"></div>
+
+  <!-- MOODS VERWALTEN -->
+  <div class="dd-section">Moods verwalten</div>
+  <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood hinzufügen"><button id="addMoodBtn">Add</button></div>
+  <div class="dd-input-row"><input id="renameMood" placeholder="Aktuelle umbenennen"><button id="renameMoodBtn">Rename</button></div>
+  <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn">Delete</button></div>
+  <div class="dd-divider"></div>
+
+  <!-- EDITOR (Rechtsklick) -->
   <div class="editor-wrap" id="editorWrap">
     <div class="dd-section">Editor — <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
     <div class="tag-chips" id="tagChips"></div>
@@ -88,17 +149,27 @@ button,input{font:inherit}
     <div class="dd-divider"></div>
   </div>
 
-  <div class="dd-section">Mood verwalten</div>
-  <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood"><button id="addMoodBtn">Add</button></div>
-  <div class="dd-input-row"><input id="renameMood" placeholder="Aktuelle umbenennen"><button id="renameMoodBtn">Rename</button></div>
-  <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn">Delete</button></div>
+</div>
+
+<!-- BOTTOM ACTION BAR -->
+<div class="action-bar" id="actionBar">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <span class="action-bar-title" id="actionBarTitle">Mood zuweisen</span>
+    <span class="ab-count" id="actionBarCount">0 ausgewählt</span>
+  </div>
+  <div class="action-bar-moods" id="actionBarMoods"></div>
+  <div class="action-bar-actions">
+    <button class="ab-act cancel" id="abCancel">Abbrechen</button>
+    <button class="ab-act remove hidden" id="abRemove">Mood entfernen</button>
+    <button class="ab-act confirm hidden" id="abConfirm">Zuweisen</button>
+  </div>
 </div>
 
 <button class="shufflebtn" id="shuffleBtn">⇄</button>
 
 <div class="gridwrap" id="gridWrap">
   <div class="grid" id="grid">
-    <div id="bootMsg" style="padding:24px;color:#fff;opacity:.75">Lade Moodboard…</div>
+    <div id="bootMsg" style="padding:24px;color:#fff;opacity:.75">Lade…</div>
   </div>
 </div>
 
@@ -123,22 +194,30 @@ const MAX_PX = 2400;
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 let items = [];
-let currentItems = []; // aktuell angezeigte (nach mood + shuffle)
+let currentItems = [];
 let moods = ['All','Summer','Winter','Cozy','Dark'];
 let currentMood = localStorage.getItem('mb_mood') || 'All';
 let editId = null;
-let lbIndex = 0; // aktueller Lightbox-Index in currentItems
+let lbIndex = 0;
 
-const gridEl = document.getElementById('grid');
-const gridWrap = document.getElementById('gridWrap');
-const dropdown = document.getElementById('dropdown');
-const lightbox = document.getElementById('lightbox');
-const lbInner = document.getElementById('lbInner');
+// Selection mode: 'delete' | 'assign' | 'remove' | null
+let selMode = null;
+let selectedIds = new Set();
+let assignMoods = new Set(); // moods to assign in assign mode
+
+const gridEl    = document.getElementById('grid');
+const gridWrap  = document.getElementById('gridWrap');
+const dropdown  = document.getElementById('dropdown');
+const lightbox  = document.getElementById('lightbox');
+const lbInner   = document.getElementById('lbInner');
 const fileInput = document.getElementById('fileInput');
 const progressBar = document.getElementById('progress');
-const toastEl = document.getElementById('toast');
-const editorWrap = document.getElementById('editorWrap');
-const shuffleBtn = document.getElementById('shuffleBtn');
+const toastEl   = document.getElementById('toast');
+const editorWrap= document.getElementById('editorWrap');
+const actionBar = document.getElementById('actionBar');
+const actionBarMoods = document.getElementById('actionBarMoods');
+const actionBarCount = document.getElementById('actionBarCount');
+const actionBarTitle = document.getElementById('actionBarTitle');
 
 function toast(t){ toastEl.textContent=t; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1600) }
 function isVid(n){ return /[.](mp4|webm|mov|m4v)$/i.test(n||'') }
@@ -161,6 +240,7 @@ function compress(file,maxPx=MAX_PX,q=0.88){
   });
 }
 
+// ── Mood Filter Chips ────────────────────────────────────
 function renderMoodChips(){
   document.getElementById('moodChips').innerHTML=moods.map(m=>
     `<button class="mchip ${m===currentMood?'active':''}" data-m="${m}">${m}</button>`
@@ -171,40 +251,145 @@ function renderMoodChips(){
   });
 }
 
-function isDeleteMode(){
-  const boxes=gridEl.querySelectorAll('.delcheck');
-  return boxes.length>0&&[...boxes][0].style.pointerEvents==='auto';
-}
-
+// ── Grid ─────────────────────────────────────────────────
 function renderGrid(){
   let arr=items.filter(i=>currentMood==='All'||i.mood===currentMood);
   arr=[...arr].sort(()=>Math.random()-.5);
   currentItems=arr;
   gridEl.innerHTML=arr.map(it=>`
     <div class="cell" data-id="${it.id}">
-      <input class="delcheck" type="checkbox" data-del="${it.id}" style="position:absolute;top:8px;left:8px;z-index:2;width:18px;height:18px;accent-color:#fff;opacity:0;pointer-events:none">
+      <input class="selcheck" type="checkbox" data-id="${it.id}">
+      <span class="cell-mood-badge" data-id="${it.id}">${it.mood||''}</span>
       ${it.media_type==='video'
         ?`<video src="${it.media_url}" muted loop playsinline loading="lazy"></video>`
         :`<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
     </div>`).join('');
+
   const obs=new IntersectionObserver(es=>es.forEach(e=>{
     const v=e.target.querySelector('video');if(!v)return;
     e.isIntersecting?v.play().catch(()=>{}):(v.pause(),v.currentTime=0);
   }),{threshold:0.3});
+
   gridEl.querySelectorAll('.cell').forEach(c=>{
     obs.observe(c);
+    const chk=c.querySelector('.selcheck');
+
     c.onclick=()=>{
-      const chk=c.querySelector('.delcheck');
-      if(chk&&chk.style.pointerEvents==='auto'){chk.checked=!chk.checked;return;}
+      if(selMode){
+        chk.checked=!chk.checked;
+        const id=c.dataset.id;
+        chk.checked?selectedIds.add(id):selectedIds.delete(id);
+        c.classList.toggle('sel-highlight',chk.checked);
+        updateActionBarCount();
+        // highlight/dim in assign mode wenn mood gewählt
+        if(selMode==='assign') updateDimming();
+        return;
+      }
       const idx=currentItems.findIndex(x=>x.id===c.dataset.id);
       openLightbox(idx);
     };
     c.oncontextmenu=e=>{
       e.preventDefault();
-      if(!isDeleteMode()) openEditor(c.dataset.id);
+      if(!selMode) openEditor(c.dataset.id);
     };
+    // show badge in assign/remove mode
+    if(selMode==='assign'||selMode==='remove'){
+      c.querySelector('.cell-mood-badge').classList.add('show');
+    }
+    if(selMode){
+      chk.classList.add('visible');
+      if(selectedIds.has(c.dataset.id)){
+        chk.checked=true;
+        c.classList.add('sel-highlight');
+      }
+    }
   });
 }
+
+function updateActionBarCount(){
+  actionBarCount.textContent=selectedIds.size+' ausgewählt';
+}
+
+function updateDimming(){
+  if(assignMoods.size===0){
+    gridEl.querySelectorAll('.cell').forEach(c=>c.classList.remove('mood-dim'));
+    return;
+  }
+  gridEl.querySelectorAll('.cell').forEach(c=>{
+    const it=items.find(x=>x.id===c.dataset.id);
+    if(!it)return;
+    // dim cells that already have one of the selected moods (so user sees what's new)
+    c.classList.toggle('mood-dim',assignMoods.has(it.mood)&&!selectedIds.has(it.id));
+  });
+}
+
+// ── Selection Modes ──────────────────────────────────────
+function enterSelMode(mode){
+  selMode=mode;
+  selectedIds.clear();
+  assignMoods.clear();
+  dropdown.classList.remove('show');
+
+  actionBarTitle.textContent = mode==='assign'?'Mood zuweisen / ändern'
+    : mode==='remove'?'Moods entfernen'
+    : 'Bilder löschen';
+
+  // action bar buttons
+  document.getElementById('abConfirm').classList.toggle('hidden', mode!=='assign');
+  document.getElementById('abRemove').classList.toggle('hidden', mode!=='remove');
+
+  // mood chips in action bar
+  if(mode==='assign'){
+    actionBarMoods.innerHTML=moods.filter(m=>m!=='All').map(m=>
+      `<button class="ab-chip" data-m="${m}">${m}</button>`
+    ).join('');
+    actionBarMoods.querySelectorAll('.ab-chip').forEach(b=>b.onclick=()=>{
+      b.classList.toggle('sel');
+      b.classList.contains('sel')?assignMoods.add(b.dataset.m):assignMoods.delete(b.dataset.m);
+      updateDimming();
+    });
+  } else {
+    actionBarMoods.innerHTML=''; // keine Chip-Auswahl nötig beim Entfernen
+  }
+
+  actionBar.classList.add('show');
+  renderGrid();
+  updateActionBarCount();
+}
+
+function exitSelMode(){
+  selMode=null;
+  selectedIds.clear();
+  assignMoods.clear();
+  actionBar.classList.remove('show');
+  renderGrid();
+}
+
+document.getElementById('abCancel').onclick=exitSelMode;
+
+document.getElementById('abConfirm').onclick=async()=>{
+  if(!selectedIds.size){toast('Nichts ausgewählt');return;}
+  if(!assignMoods.size){toast('Keine Mood ausgewählt');return;}
+  // Wenn mehrere Moods: ersten nehmen (UX: single primary mood)
+  const mood=[...assignMoods][0];
+  const ids=[...selectedIds];
+  ids.forEach(id=>{const it=items.find(x=>x.id===id);if(it)it.mood=mood;});
+  await Promise.all(ids.map(id=>sbUpdate(items.find(x=>x.id===id))));
+  toast(`${ids.length} Bilder → ${mood}`);
+  exitSelMode();
+};
+
+document.getElementById('abRemove').onclick=async()=>{
+  if(!selectedIds.size){toast('Nichts ausgewählt');return;}
+  const ids=[...selectedIds];
+  ids.forEach(id=>{const it=items.find(x=>x.id===id);if(it)it.mood='All';});
+  await Promise.all(ids.map(id=>sbUpdate(items.find(x=>x.id===id))));
+  toast(`${ids.length} Moods entfernt`);
+  exitSelMode();
+};
+
+document.getElementById('assignMoodBtn').onclick=()=>enterSelMode('assign');
+document.getElementById('removeMoodBtn').onclick=()=>enterSelMode('remove');
 
 // ── Lightbox ─────────────────────────────────────────────
 function openLightbox(idx){
@@ -229,28 +414,21 @@ function lbNavigate(dir){
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
   openLightbox(next);
 }
-
 document.getElementById('lbPrev').onclick=e=>{e.stopPropagation();lbNavigate(-1)};
 document.getElementById('lbNext').onclick=e=>{e.stopPropagation();lbNavigate(1)};
 document.getElementById('lbClose').onclick=closeLb;
 lightbox.onclick=e=>{if(e.target===lightbox)closeLb()};
 function closeLb(){lightbox.classList.remove('show');lbInner.querySelectorAll('video').forEach(v=>v.pause())}
 
-// Swipe-Unterstützung im Lightbox
 let touchStartX=0,touchStartY=0;
-lightbox.addEventListener('touchstart',e=>{
-  touchStartX=e.touches[0].clientX;
-  touchStartY=e.touches[0].clientY;
-},{passive:true});
+lightbox.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;},{passive:true});
 lightbox.addEventListener('touchend',e=>{
   const dx=e.changedTouches[0].clientX-touchStartX;
   const dy=e.changedTouches[0].clientY-touchStartY;
-  if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40){
-    lbNavigate(dx<0?1:-1);
-  }
+  if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40)lbNavigate(dx<0?1:-1);
 },{passive:true});
 
-// Tastatur-Navigation
+// ── Keyboard ─────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   if(lightbox.classList.contains('show')){
     if(e.key==='ArrowLeft')lbNavigate(-1);
@@ -258,23 +436,61 @@ document.addEventListener('keydown',e=>{
     else if(e.key==='Escape')closeLb();
     return;
   }
-  if(e.key==='Escape'){dropdown.classList.remove('show')}
+  if(e.key==='Escape'){
+    if(selMode)exitSelMode();
+    else dropdown.classList.remove('show');
+  }
 });
 
-// ── Menü & Uploads ────────────────────────────────────────
+// ── Menü ─────────────────────────────────────────────────
 document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();dropdown.classList.toggle('show')};
 document.addEventListener('click',e=>{
   if(!e.target.closest('#dropdown')&&!e.target.closest('#menuBtn'))dropdown.classList.remove('show');
 });
-
-// Titel-Klick → Shuffle (kein Toast)
 document.getElementById('boardTitle').onclick=()=>renderGrid();
-
-shuffleBtn.onclick=()=>renderGrid();
-
+document.getElementById('shuffleBtn').onclick=()=>renderGrid();
 document.getElementById('uploadBtn').onclick=()=>{fileInput.click();dropdown.classList.remove('show')};
 fileInput.onchange=e=>upload(e.target.files);
 
+// ── Delete Mode ───────────────────────────────────────────
+document.getElementById('pickDeleteBtn').onclick=()=>{
+  dropdown.classList.remove('show');
+  selMode='delete';
+  selectedIds.clear();
+  actionBarTitle.textContent='Bilder löschen';
+  document.getElementById('abConfirm').classList.add('hidden');
+  document.getElementById('abRemove').classList.add('hidden');
+  actionBarMoods.innerHTML='';
+  actionBar.classList.add('show');
+  renderGrid();
+  updateActionBarCount();
+
+  // floating confirm delete btn
+  document.getElementById('deleteFloatingBtn')?.remove();
+  const btn=document.createElement('button');
+  btn.id='deleteFloatingBtn';
+  btn.textContent='🗑';
+  btn.style.cssText='position:fixed;left:20px;bottom:100px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,60,60,.2);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)';
+  btn.onclick=async()=>{
+    if(!selectedIds.size){toast('Nichts ausgewählt');return;}
+    if(!confirm(selectedIds.size+' Bilder löschen?'))return;
+    await sbDeleteMany([...selectedIds]);
+    items=items.filter(i=>!selectedIds.has(i.id));
+    toast('Gelöscht');
+    btn.remove();
+    exitSelMode();
+  };
+  document.body.appendChild(btn);
+};
+
+// override abCancel to also remove floating btn
+const origAbCancel=document.getElementById('abCancel');
+origAbCancel.onclick=()=>{
+  document.getElementById('deleteFloatingBtn')?.remove();
+  exitSelMode();
+};
+
+// ── Editor (Rechtsklick) ──────────────────────────────────
 function openEditor(id){
   editId=id;
   const it=items.find(x=>x.id===id);if(!it)return;
@@ -300,6 +516,7 @@ document.getElementById('saveTagsBtn').onclick=()=>{
   sbUpdate(it);renderGrid();toast('Tags gespeichert');
 };
 
+// ── Upload ────────────────────────────────────────────────
 async function upload(files){
   const arr=Array.from(files);
   for(let i=0;i<arr.length;i++){
@@ -310,7 +527,7 @@ async function upload(files){
     const ext=cf.name.split('.').pop().toLowerCase();
     const path=`${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}.${ext}`;
     const {error:e1}=await sb.storage.from(BUCKET).upload(path,cf,{upsert:false,contentType:cf.type});
-    if(e1){toast('Upload-Fehler: '+e1.message);console.error(e1);continue}
+    if(e1){toast('Upload-Fehler: '+e1.message);continue}
     const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
     const item={
       title:f.name.replace(/[.][^.]+$/,''),
@@ -319,19 +536,21 @@ async function upload(files){
       media_type:isVid(f.name)?'video':'image',favorite:false
     };
     const {data:ins,error:e2}=await sb.from('moodboard_items').insert(item).select().single();
-    if(e2){toast('DB-Fehler: '+e2.message);console.error(e2);continue}
+    if(e2){toast('DB-Fehler: '+e2.message);continue}
     items.unshift({...item,id:ins.id});renderGrid();
   }
   prog(100);toast('Fertig ✓');fileInput.value='';
 }
 
+// ── Supabase ──────────────────────────────────────────────
 async function loadItems(){
   const {data,error}=await sb.from('moodboard_items').select('*').order('created_at',{ascending:false});
-  if(error){toast('Ladefehler: '+error.message);console.error(error);document.getElementById('grid').innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>';return}
+  if(error){toast('Ladefehler: '+error.message);gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>';return}
   items=data||[];renderGrid();
-  const bm=document.getElementById('bootMsg');if(bm)bm.remove();
+  document.getElementById('bootMsg')?.remove();
 }
 async function sbUpdate(item){
+  if(!item)return;
   await sb.from('moodboard_items').update({
     title:item.title||'',mood:item.mood,tags:item.tags||[],
     media_url:item.media_url,media_type:item.media_type,favorite:false
@@ -342,17 +561,22 @@ async function sbDeleteMany(ids){
   await sb.from('moodboard_items').delete().in('id',ids);
 }
 
+// ── Mood Verwaltung ───────────────────────────────────────
 document.getElementById('addMoodBtn').onclick=()=>{
   const v=document.getElementById('newMood').value.trim();
-  if(!v||moods.includes(v))return;moods.push(v);currentMood=v;
-  document.getElementById('newMood').value='';renderMoodChips();renderGrid();toast('Mood hinzugefügt');
+  if(!v||moods.includes(v))return;
+  moods.push(v);currentMood=v;
+  document.getElementById('newMood').value='';
+  renderMoodChips();renderGrid();toast('Mood hinzugefügt');
 };
 document.getElementById('renameMoodBtn').onclick=()=>{
   const v=document.getElementById('renameMood').value.trim();
   if(!v||currentMood==='All'||moods.includes(v))return;
-  const old=currentMood;moods=moods.map(m=>m===old?v:m);
+  const old=currentMood;
+  moods=moods.map(m=>m===old?v:m);
   items=items.map(i=>({...i,mood:i.mood===old?v:i.mood}));
-  currentMood=v;document.getElementById('renameMood').value='';
+  currentMood=v;
+  document.getElementById('renameMood').value='';
   items.forEach(sbUpdate);renderMoodChips();renderGrid();toast('Mood umbenannt');
 };
 document.getElementById('deleteMoodBtn').onclick=()=>{
@@ -365,34 +589,7 @@ document.getElementById('deleteMoodBtn').onclick=()=>{
   items.forEach(sbUpdate);renderMoodChips();renderGrid();toast('Mood gelöscht');
 };
 
-document.getElementById('pickDeleteBtn').onclick=()=>{
-  dropdown.classList.remove('show');
-  const boxes=[...gridEl.querySelectorAll('.delcheck')];
-  const active=boxes.some(b=>b.style.pointerEvents==='auto');
-  boxes.forEach(b=>{
-    b.style.opacity=active?'0':'1';
-    b.style.pointerEvents=active?'none':'auto';
-    b.checked=false;
-  });
-  document.getElementById('deleteFloatingBtn')?.remove();
-  if(!active){
-    const btn=document.createElement('button');
-    btn.id='deleteFloatingBtn';
-    btn.textContent='🗑';
-    btn.style.cssText='position:fixed;left:20px;bottom:20px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)';
-    btn.onclick=async()=>{
-      const ids=[...gridEl.querySelectorAll('.delcheck:checked')].map(b=>b.dataset.del);
-      if(!ids.length){toast('Nichts ausgewählt');return;}
-      if(!confirm(ids.length+' Bilder löschen?'))return;
-      await sbDeleteMany(ids);
-      items=items.filter(i=>!ids.includes(i.id));
-      renderGrid();toast('Ausgewählt gelöscht');btn.remove();
-    };
-    document.body.appendChild(btn);
-  }
-  toast(active?'Löschmodus aus':'Wähle Bilder aus');
-};
-
+// ── Drag & Drop ───────────────────────────────────────────
 gridWrap.addEventListener('dragover',e=>{e.preventDefault();gridWrap.classList.add('dragover')});
 gridWrap.addEventListener('dragleave',()=>gridWrap.classList.remove('dragover'));
 gridWrap.addEventListener('drop',e=>{e.preventDefault();gridWrap.classList.remove('dragover');upload(e.dataTransfer.files)});
