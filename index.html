@@ -36,6 +36,8 @@ button,input{font:inherit}
 .dd-input-row{display:flex;gap:6px;padding:4px 2px 6px}
 .dd-input-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:10px;outline:none;font-size:14px}
 .dd-input-row button{border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:10px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
+.mgmt-section{display:none;padding:10px;background:rgba(255,255,255,.03);border-radius:12px;margin:5px 0}
+.mgmt-section.show{display:block}
 .mood-chips{display:flex;flex-wrap:wrap;gap:5px;padding:4px 2px 8px}
 .mchip{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;transition:.12s}
 .mchip.active{background:#fff;color:#111;border-color:#fff}
@@ -128,20 +130,23 @@ button,input{font:inherit}
   <div class="dd-section">Moods</div>
   <button class="dd-btn" id="assignMoodBtn"><span class="icon">&#127991;</span> Moods zuweisen / ändern</button>
   <button class="dd-btn" id="removeMoodBtn"><span class="icon">&#x2715;</span> Moods entfernen</button>
-  <div class="dd-divider"></div>
-  <div class="dd-section">Moods verwalten</div>
-  <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood" inputmode="text"><button id="addMoodBtn">Add</button></div>
-  <div class="dd-input-row"><input id="renameMood" placeholder="Aktuelle umbenennen" inputmode="text"><button id="renameMoodBtn">Rename</button></div>
-  <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen" inputmode="text"><button id="deleteMoodBtn">Delete</button></div>
+  <button class="dd-btn" id="mgmtToggleBtn"><span class="icon">⚙</span> Moods verwalten</button>
+  <div id="mgmtSection" class="mgmt-section">
+    <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood"><button id="addMoodBtn">Add</button></div>
+    <div class="dd-input-row" id="renameArea" style="display:none">
+       <input id="oldMoodName" placeholder="Alt"><input id="newMoodName" placeholder="Neu"><button id="renameMoodBtn" style="background:#fff;color:#000">Go</button>
+    </div>
+    <div class="dd-btn" id="showRenameBtn">Umbenennen</div>
+    <div class="dd-input-row"><input id="deleteMood" placeholder="Name"><button id="deleteMoodBtn" style="color:#ff6b6b">Löschen</button></div>
+  </div>
   <div class="dd-divider"></div>
   <div class="editor-wrap" id="editorWrap">
-    <div class="dd-section">Editor — <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
+    <div class="dd-section">Editor &mdash; <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
     <div class="tag-chips" id="tagChips"></div>
     <div class="dd-input-row">
       <input id="tagInput" placeholder="Tags, kommagetrennt" inputmode="text">
       <button id="saveTagsBtn">Save</button>
     </div>
-    <div class="dd-divider"></div>
   </div>
 </div>
 
@@ -158,11 +163,15 @@ button,input{font:inherit}
   <div class="dd-section">Moods</div>
   <button class="dd-btn" id="assignMoodBtnSheet"><span class="icon">&#127991;</span> Moods zuweisen / ändern</button>
   <button class="dd-btn" id="removeMoodBtnSheet"><span class="icon">&#x2715;</span> Moods entfernen</button>
-  <div class="dd-divider"></div>
-  <div class="dd-section">Moods verwalten</div>
-  <div class="dd-input-row"><input id="newMoodSheet" placeholder="Neue Mood" inputmode="text"><button id="addMoodBtnSheet">Add</button></div>
-  <div class="dd-input-row"><input id="renameMoodSheet" placeholder="Aktuelle umbenennen" inputmode="text"><button id="renameMoodBtnSheet">Rename</button></div>
-  <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Mood löschen" inputmode="text"><button id="deleteMoodBtnSheet">Delete</button></div>
+  <button class="dd-btn" id="mgmtToggleBtnSheet"><span class="icon">⚙</span> Moods verwalten</button>
+  <div id="mgmtSectionSheet" class="mgmt-section">
+    <div class="dd-input-row"><input id="newMoodSheet" placeholder="Neue Mood"><button id="addMoodBtnSheet">Add</button></div>
+    <div class="dd-input-row" id="renameAreaSheet" style="display:none">
+       <input id="oldMoodNameSheet" placeholder="Alt"><input id="newMoodNameSheet" placeholder="Neu"><button id="renameMoodBtnSheet" style="background:#fff;color:#000">Go</button>
+    </div>
+    <div class="dd-btn" id="showRenameBtnSheet">Umbenennen</div>
+    <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Name"><button id="deleteMoodBtnSheet" style="color:#ff6b6b">Löschen</button></div>
+  </div>
 </div>
 
 <div class="action-bar" id="actionBar">
@@ -211,7 +220,6 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = 'https://bnwcbxjgsmmvmtvqblrr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJud2NieGpnc21tdm10dnFibHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjAyMDQsImV4cCI6MjA5MjE5NjIwNH0.Lo0lAnOoyFhMpq7YwO3pw2vMccSsJc8Xbk7Teck5QmE';
 const BUCKET = 'moodboard';
-const MAX_PX = 2400;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const state = {
@@ -226,32 +234,39 @@ let selectedIds=new Set(), assignMoods=new Set(), lbPickedMoods=new Set();
 let _observer = null;
 
 const $ = id => document.getElementById(id);
-const gridEl        = $('grid');
-const gridWrap      = $('gridWrap');
-const dropdown      = $('dropdown');
-const bottomSheet   = $('bottomSheet');
-const sheetOverlay  = $('sheetOverlay');
-const lightbox      = $('lightbox');
-const lbInner       = $('lbInner');
-const fileInput     = $('fileInput');
-const progressBar   = $('progress');
-const toastEl       = $('toast');
-const editorWrap    = $('editorWrap');
-const actionBar     = $('actionBar');
-const actionBarMoods= $('actionBarMoods');
-const actionBarCount= $('actionBarCount');
-const actionBarTitle= $('actionBarTitle');
-const lbMoodBtn     = $('lbMoodBtn');
-const lbMuteBtn     = $('lbMuteBtn');
-const lbMoodPicker  = $('lbMoodPicker');
-const lbMoodTiles   = $('lbMoodTiles');
-const lbCurrentMood = $('lbCurrentMood');
 
-const isMobile = () => window.innerWidth <= 600;
+// ── Bind Mood Management ──────────────────────────────────
+function bindMgmt(suffix){
+  const g = k => $(k + (suffix||''));
+  g('mgmtToggleBtn').onclick = () => g('mgmtSection').classList.toggle('show');
+  g('showRenameBtn').onclick = () => g('renameArea').style.display = 'flex';
+  
+  g('addMoodBtn').onclick = () => {
+    const v=g('newMood').value.trim(); if(!v||S().moods.includes(v)) return;
+    S().moods.push(v); S().currentMood=v; g('newMood').value=''; renderMoodChips(); renderGrid();
+  };
+  g('renameMoodBtn').onclick = () => {
+    const old=g('oldMoodName').value.trim(); const v=g('newMoodName').value.trim();
+    if(!old||!v||!S().moods.includes(old)) return;
+    S().moods = S().moods.map(m=>m===old?v:m);
+    S().items.forEach(it => { if(it.mood===old) { it.mood=v; sbUpdate(it); }});
+    S().currentMood=v; g('oldMoodName').value=''; g('newMoodName').value=''; g('renameArea').style.display='none';
+    renderMoodChips(); renderGrid();
+  };
+  g('deleteMoodBtn').onclick = () => {
+    const v=g('deleteMood').value.trim(); if(!v||!S().moods.includes(v)) return;
+    S().moods=S().moods.filter(m=>m!==v);
+    S().items.forEach(it => { if(it.mood===v) { it.mood=null; sbUpdate(it); }});
+    if(S().currentMood===v) S().currentMood='All';
+    g('deleteMood').value=''; renderMoodChips(); renderGrid();
+  };
+}
+bindMgmt(''); bindMgmt('Sheet');
+
+// ── Logic shared... (rest same) ─────────────────────────
 function toast(t){ toastEl.textContent=t; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1600); }
-function isVid(n){ return /\\.(mp4|webm|mov|m4v)$/i.test(n||''); }
+function isVid(n){ return /\.(mp4|webm|mov|m4v)$/i.test(n||''); }
 function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600); }
-
 function compress(file, maxPx=MAX_PX, q=0.88){
   return new Promise(res=>{
     if(isVid(file.name)){ res(file); return; }
@@ -268,26 +283,14 @@ function compress(file, maxPx=MAX_PX, q=0.88){
     img.src=url;
   });
 }
-
 function openMenu(){
-  if(isMobile()){
-    renderMoodChipsSheet();
-    bottomSheet.classList.add('show');
-    sheetOverlay.classList.add('show');
-  } else {
-    dropdown.classList.toggle('show');
-  }
+  if(window.innerWidth <= 600){ renderMoodChipsSheet(); bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); }
+  else dropdown.classList.toggle('show');
 }
-function closeMenu(){
-  dropdown.classList.remove('show');
-  bottomSheet.classList.remove('show');
-  sheetOverlay.classList.remove('show');
-}
+function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); }
 $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
 sheetOverlay.onclick = closeMenu;
-document.addEventListener('click', e => {
-  if(!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show');
-});
+document.addEventListener('click', e => { if(!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show'); });
 
 function switchPage(page){
   currentPage = page;
@@ -346,24 +349,12 @@ function renderGrid(){
     _observer.observe(c);
     const chk = c.querySelector('.selcheck');
     c.onclick = () => {
-      if(selMode){
-        chk.checked = !chk.checked;
-        const id = c.dataset.id;
-        chk.checked ? selectedIds.add(id) : selectedIds.delete(id);
-        c.classList.toggle('sel-highlight', chk.checked);
-        updateActionBarCount();
-        if(selMode==='assign') updateDimming();
-        return;
-      }
-      const idx = S().currentItems.findIndex(x => x.id===c.dataset.id);
-      openLightbox(idx);
+      if(selMode){ chk.checked = !chk.checked; const id = c.dataset.id; chk.checked ? selectedIds.add(id) : selectedIds.delete(id); c.classList.toggle('sel-highlight', chk.checked); updateActionBarCount(); if(selMode==='assign') updateDimming(); return; }
+      const idx = S().currentItems.findIndex(x => x.id===c.dataset.id); openLightbox(idx);
     };
     c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
     if(selMode==='assign'||selMode==='remove') c.querySelector('.cell-mood-badge').classList.add('show');
-    if(selMode){
-      chk.classList.add('visible');
-      if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); }
-    }
+    if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
   });
 }
 
@@ -390,8 +381,7 @@ function enterSelMode(mode){
       updateDimming();
     });
   } else { actionBarMoods.innerHTML=''; }
-  actionBar.classList.add('show');
-  renderGrid(); updateActionBarCount();
+  actionBar.classList.add('show'); renderGrid(); updateActionBarCount();
 }
 function exitSelMode(){
   selMode=null; selectedIds.clear(); assignMoods.clear();
@@ -520,7 +510,7 @@ async function upload(files){
   for(let i=0; i<arr.length; i++){
     prog(Math.round(i/arr.length*90)); toast(`Upload ${i+1}/${arr.length}…`);
     const f=arr[i]; const cf=await compress(f);
-    const ext=cf.name.split('.').pop().toLowerCase();
+    const ext=f.name.split('.').pop().toLowerCase();
     const path=`${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}.${ext}`;
     const {error:e1} = await sb.storage.from(BUCKET).upload(path, cf, {upsert:false, contentType:cf.type});
     if(e1){ toast('Upload-Fehler: '+e1.message); continue; }
@@ -591,38 +581,6 @@ async function sbDeleteMany(ids){
   if(!ids.length) return;
   await sb.from(S().table).delete().in('id',ids);
 }
-
-function bindMoodMgmt(suffix){
-  const g = k => $(k+suffix);
-  g('addMoodBtn').onclick = () => {
-    const v=g('newMood').value.trim(); if(!v||S().moods.includes(v)) return;
-    S().moods.push(v); S().currentMood=v; g('newMood').value='';
-    renderMoodChips(); renderMoodChipsSheet(); renderGrid(); toast('Mood hinzugefügt'); closeMenu();
-  };
-  g('renameMoodBtn').onclick = () => {
-    const v=g('renameMood').value.trim();
-    if(!v||S().currentMood==='All'||S().moods.includes(v)) return;
-    const old=S().currentMood;
-    S().moods=S().moods.map(m=>m===old?v:m);
-    S().items=S().items.map(it=>({...it, mood:it.mood===old?v:it.mood}));
-    S().currentMood=v; g('renameMood').value='';
-    S().items.forEach(sbUpdate); renderMoodChips(); renderMoodChipsSheet(); renderGrid(); toast('Mood umbenannt');
-  };
-  g('deleteMoodBtn').onclick = () => {
-    const v=g('deleteMood').value.trim(); if(!v||v==='All'||!S().moods.includes(v)) return;
-    S().moods=S().moods.filter(m=>m!==v);
-    S().items=S().items.map(it=>({...it, mood:it.mood===v?null:it.mood}));
-    if(S().currentMood===v) S().currentMood='All';
-    g('deleteMood').value='';
-    S().items.forEach(sbUpdate); renderMoodChips(); renderMoodChipsSheet(); renderGrid(); toast('Mood gelöscht'); closeMenu();
-  };
-}
-bindMoodMgmt('');
-bindMoodMgmt('Sheet');
-
-gridWrap.addEventListener('dragover', e=>{ e.preventDefault(); gridWrap.classList.add('dragover'); });
-gridWrap.addEventListener('dragleave', ()=>gridWrap.classList.remove('dragover'));
-gridWrap.addEventListener('drop', e=>{ e.preventDefault(); gridWrap.classList.remove('dragover'); upload(e.dataTransfer.files); });
 
 renderMoodChips();
 loadItems();
