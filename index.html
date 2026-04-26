@@ -134,7 +134,7 @@ button,input{font:inherit}
   <div id="mgmtSection" class="mgmt-section">
     <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood"><button id="addMoodBtn">Add</button></div>
     <div class="dd-input-row" id="renameArea" style="display:none">
-       <input id="oldMoodName" placeholder="Alt"><input id="newMoodName" placeholder="Neu"><button id="renameMoodBtn" style="background:#fff;color:#000">Go</button>
+      <input id="oldMoodName" placeholder="Alt"><input id="newMoodName" placeholder="Neu"><button id="renameMoodBtn" style="background:#fff;color:#000">Go</button>
     </div>
     <div class="dd-btn" id="showRenameBtn">Umbenennen</div>
     <div class="dd-input-row"><input id="deleteMood" placeholder="Name"><button id="deleteMoodBtn" style="color:#ff6b6b">Löschen</button></div>
@@ -167,7 +167,7 @@ button,input{font:inherit}
   <div id="mgmtSectionSheet" class="mgmt-section">
     <div class="dd-input-row"><input id="newMoodSheet" placeholder="Neue Mood"><button id="addMoodBtnSheet">Add</button></div>
     <div class="dd-input-row" id="renameAreaSheet" style="display:none">
-       <input id="oldMoodNameSheet" placeholder="Alt"><input id="newMoodNameSheet" placeholder="Neu"><button id="renameMoodBtnSheet" style="background:#fff;color:#000">Go</button>
+      <input id="oldMoodNameSheet" placeholder="Alt"><input id="newMoodNameSheet" placeholder="Neu"><button id="renameMoodBtnSheet" style="background:#fff;color:#000">Go</button>
     </div>
     <div class="dd-btn" id="showRenameBtnSheet">Umbenennen</div>
     <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Name"><button id="deleteMoodBtnSheet" style="color:#ff6b6b">Löschen</button></div>
@@ -235,12 +235,34 @@ let _observer = null;
 
 const $ = id => document.getElementById(id);
 
-// ── Bind Mood Management ──────────────────────────────────
+// ── DOM refs ─────────────────────────────────────────────
+const gridEl         = $('grid');
+const gridWrap       = $('gridWrap');
+const dropdown       = $('dropdown');
+const bottomSheet    = $('bottomSheet');
+const sheetOverlay   = $('sheetOverlay');
+const lightbox       = $('lightbox');
+const lbInner        = $('lbInner');
+const fileInput      = $('fileInput');
+const progressBar    = $('progress');
+const toastEl        = $('toast');
+const editorWrap     = $('editorWrap');
+const actionBar      = $('actionBar');
+const actionBarMoods = $('actionBarMoods');
+const actionBarCount = $('actionBarCount');
+const actionBarTitle = $('actionBarTitle');
+const lbMoodBtn      = $('lbMoodBtn');
+const lbMuteBtn      = $('lbMuteBtn');
+const lbMoodPicker   = $('lbMoodPicker');
+const lbMoodTiles    = $('lbMoodTiles');
+const lbCurrentMood  = $('lbCurrentMood');
+const MAX_PX         = 2400;
+
+// ── Mood Management ───────────────────────────────────────
 function bindMgmt(suffix){
   const g = k => $(k + (suffix||''));
   g('mgmtToggleBtn').onclick = () => g('mgmtSection').classList.toggle('show');
   g('showRenameBtn').onclick = () => g('renameArea').style.display = 'flex';
-  
   g('addMoodBtn').onclick = () => {
     const v=g('newMood').value.trim(); if(!v||S().moods.includes(v)) return;
     S().moods.push(v); S().currentMood=v; g('newMood').value=''; renderMoodChips(); renderGrid();
@@ -263,11 +285,11 @@ function bindMgmt(suffix){
 }
 bindMgmt(''); bindMgmt('Sheet');
 
-// ── Logic shared... (rest same) ─────────────────────────
+// ── Helpers ───────────────────────────────────────────────
 function toast(t){ toastEl.textContent=t; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1600); }
 function isVid(n){ return /\.(mp4|webm|mov|m4v)$/i.test(n||''); }
 function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600); }
-function compress(file, maxPx=MAX_PX, q=0.88){
+function compress(file,maxPx=MAX_PX,q=0.88){
   return new Promise(res=>{
     if(isVid(file.name)){ res(file); return; }
     const img=new Image(), url=URL.createObjectURL(file);
@@ -275,7 +297,7 @@ function compress(file, maxPx=MAX_PX, q=0.88){
       URL.revokeObjectURL(url);
       let w=img.width, h=img.height;
       if(w<=maxPx && h<=maxPx){ res(file); return; }
-      const r=Math.min(maxPx/w, maxPx/h); w=Math.round(w*r); h=Math.round(h*r);
+      const r=Math.min(maxPx/w,maxPx/h); w=Math.round(w*r); h=Math.round(h*r);
       const c=document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
       c.toBlob(b=>res(new File([b],file.name,{type:'image/jpeg'})),'image/jpeg',q);
@@ -283,8 +305,10 @@ function compress(file, maxPx=MAX_PX, q=0.88){
     img.src=url;
   });
 }
+
+// ── Menu ──────────────────────────────────────────────────
 function openMenu(){
-  if(window.innerWidth <= 600){ renderMoodChipsSheet(); bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); }
+  if(window.innerWidth<=600){ renderMoodChipsSheet(); bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); }
   else dropdown.classList.toggle('show');
 }
 function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); }
@@ -292,134 +316,124 @@ $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
 sheetOverlay.onclick = closeMenu;
 document.addEventListener('click', e => { if(!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show'); });
 
+// ── Navigation ────────────────────────────────────────────
 function switchPage(page){
-  currentPage = page;
-  exitSelMode(); closeLb(); closeMenu();
+  currentPage=page; exitSelMode(); closeLb(); closeMenu();
   editorWrap.classList.remove('show');
   $('navPersonal').classList.toggle('active', page==='personal');
   renderMoodChips(); renderGrid();
   if(!S().items.length) loadItems();
 }
 $('boardTitle').onclick = () => { if(currentPage!=='moodboard') switchPage('moodboard'); else renderGrid(); };
-$('navPersonal').onclick = () => { if(currentPage!=='personal') switchPage('personal'); else renderGrid(); };
+$('navPersonal').onclick  = () => { if(currentPage!=='personal') switchPage('personal'); else renderGrid(); };
 
+// ── Mood Chips ────────────────────────────────────────────
 function renderMoodChips(){
   $('moodChips').innerHTML = S().moods.map(m =>
-    `<button class="mchip ${m===S().currentMood?'active':''}" data-m="${m}">${m}</button>`
-  ).join('');
+    `<button class="mchip ${m===S().currentMood?'active':''}" data-m="${m}">${m}</button>`).join('');
   document.querySelectorAll('#moodChips .mchip').forEach(b => b.onclick = () => {
-    S().currentMood = b.dataset.m;
+    S().currentMood=b.dataset.m;
     localStorage.setItem(currentPage==='moodboard'?'mb_mood':'pb_mood', b.dataset.m);
     renderMoodChips(); renderMoodChipsSheet(); renderGrid();
   });
 }
 function renderMoodChipsSheet(){
   $('moodChipsSheet').innerHTML = S().moods.map(m =>
-    `<button class="mchip ${m===S().currentMood?'active':''}" data-m="${m}">${m}</button>`
-  ).join('');
+    `<button class="mchip ${m===S().currentMood?'active':''}" data-m="${m}">${m}</button>`).join('');
   document.querySelectorAll('#moodChipsSheet .mchip').forEach(b => b.onclick = () => {
-    S().currentMood = b.dataset.m;
+    S().currentMood=b.dataset.m;
     localStorage.setItem(currentPage==='moodboard'?'mb_mood':'pb_mood', b.dataset.m);
     renderMoodChips(); renderMoodChipsSheet(); renderGrid(); closeMenu();
   });
 }
 
+// ── Grid ──────────────────────────────────────────────────
 function renderGrid(){
-  const s = S();
-  let arr = s.items.filter(i => s.currentMood==='All' || i.mood===s.currentMood);
-  arr = [...arr].sort(() => Math.random()-.5);
-  s.currentItems = arr;
+  const s=S();
+  let arr=s.items.filter(i=>s.currentMood==='All'||i.mood===s.currentMood);
+  arr=[...arr].sort(()=>Math.random()-.5);
+  s.currentItems=arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
-  gridEl.innerHTML = arr.map(it => `
+  gridEl.innerHTML=arr.map(it=>`
     <div class="cell" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
       <span class="cell-mood-badge">${it.mood||''}</span>
       ${it.media_type==='video'
-        ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
-        : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
+        ?`<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
+        :`<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
     </div>`).join('');
-
-  _observer = new IntersectionObserver(entries => entries.forEach(e => {
-    const v = e.target.querySelector('video'); if(!v) return;
-    if(e.isIntersecting){ v.muted=true; v.play().catch(()=>{}); }
-    else { v.pause(); v.currentTime=0; }
-  }), { threshold:0.25, rootMargin:'100px' });
-
-  gridEl.querySelectorAll('.cell').forEach(c => {
+  _observer=new IntersectionObserver(entries=>entries.forEach(e=>{
+    const v=e.target.querySelector('video'); if(!v) return;
+    if(e.isIntersecting){ v.muted=true; v.play().catch(()=>{}); } else { v.pause(); v.currentTime=0; }
+  }),{threshold:0.25,rootMargin:'100px'});
+  gridEl.querySelectorAll('.cell').forEach(c=>{
     _observer.observe(c);
-    const chk = c.querySelector('.selcheck');
-    c.onclick = () => {
-      if(selMode){ chk.checked = !chk.checked; const id = c.dataset.id; chk.checked ? selectedIds.add(id) : selectedIds.delete(id); c.classList.toggle('sel-highlight', chk.checked); updateActionBarCount(); if(selMode==='assign') updateDimming(); return; }
-      const idx = S().currentItems.findIndex(x => x.id===c.dataset.id); openLightbox(idx);
+    const chk=c.querySelector('.selcheck');
+    c.onclick=()=>{
+      if(selMode){ chk.checked=!chk.checked; const id=c.dataset.id; chk.checked?selectedIds.add(id):selectedIds.delete(id); c.classList.toggle('sel-highlight',chk.checked); updateActionBarCount(); if(selMode==='assign') updateDimming(); return; }
+      openLightbox(S().currentItems.findIndex(x=>x.id===c.dataset.id));
     };
-    c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
+    c.oncontextmenu=e=>{ e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
     if(selMode==='assign'||selMode==='remove') c.querySelector('.cell-mood-badge').classList.add('show');
     if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
   });
 }
-
-function updateActionBarCount(){ actionBarCount.textContent = selectedIds.size + ' ausgewählt'; }
+function updateActionBarCount(){ actionBarCount.textContent=selectedIds.size+' ausgewählt'; }
 function updateDimming(){
   if(!assignMoods.size){ gridEl.querySelectorAll('.cell').forEach(c=>c.classList.remove('mood-dim')); return; }
-  gridEl.querySelectorAll('.cell').forEach(c => {
-    const it = S().items.find(x=>x.id===c.dataset.id); if(!it) return;
-    c.classList.toggle('mood-dim', assignMoods.has(it.mood) && !selectedIds.has(it.id));
+  gridEl.querySelectorAll('.cell').forEach(c=>{
+    const it=S().items.find(x=>x.id===c.dataset.id); if(!it) return;
+    c.classList.toggle('mood-dim', assignMoods.has(it.mood)&&!selectedIds.has(it.id));
   });
 }
 
+// ── Selection Mode ────────────────────────────────────────
 function enterSelMode(mode){
   selMode=mode; selectedIds.clear(); assignMoods.clear(); closeMenu();
-  actionBarTitle.textContent = mode==='assign' ? 'Mood zuweisen / ändern' : mode==='remove' ? 'Moods entfernen' : 'Bilder löschen';
-  $('abConfirm').classList.toggle('hidden', mode!=='assign');
-  $('abRemove').classList.toggle('hidden', mode!=='remove');
+  actionBarTitle.textContent=mode==='assign'?'Mood zuweisen / ändern':mode==='remove'?'Moods entfernen':'Bilder löschen';
+  $('abConfirm').classList.toggle('hidden',mode!=='assign');
+  $('abRemove').classList.toggle('hidden',mode!=='remove');
   if(mode==='assign'){
-    actionBarMoods.innerHTML = S().moods.filter(m=>m!=='All').map(m =>
-      `<button class="ab-chip" data-m="${m}">${m}</button>`).join('');
-    actionBarMoods.querySelectorAll('.ab-chip').forEach(b => b.onclick = () => {
-      b.classList.toggle('sel');
-      b.classList.contains('sel') ? assignMoods.add(b.dataset.m) : assignMoods.delete(b.dataset.m);
-      updateDimming();
-    });
+    actionBarMoods.innerHTML=S().moods.filter(m=>m!=='All').map(m=>`<button class="ab-chip" data-m="${m}">${m}</button>`).join('');
+    actionBarMoods.querySelectorAll('.ab-chip').forEach(b=>b.onclick=()=>{ b.classList.toggle('sel'); b.classList.contains('sel')?assignMoods.add(b.dataset.m):assignMoods.delete(b.dataset.m); updateDimming(); });
   } else { actionBarMoods.innerHTML=''; }
   actionBar.classList.add('show'); renderGrid(); updateActionBarCount();
 }
-function exitSelMode(){
-  selMode=null; selectedIds.clear(); assignMoods.clear();
-  actionBar.classList.remove('show'); renderGrid();
-}
-$('abCancel').onclick = () => { $('deleteFloatingBtn')?.remove(); exitSelMode(); };
-$('abConfirm').onclick = async () => {
+function exitSelMode(){ selMode=null; selectedIds.clear(); assignMoods.clear(); actionBar.classList.remove('show'); renderGrid(); }
+$('abCancel').onclick=()=>{ $('deleteFloatingBtn')?.remove(); exitSelMode(); };
+$('abConfirm').onclick=async()=>{
   if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
   if(!assignMoods.size){ toast('Keine Mood ausgewählt'); return; }
-  const mood = [...assignMoods][0];
-  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.mood=mood; });
-  await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x=>x.id===id))));
+  const mood=[...assignMoods][0];
+  [...selectedIds].forEach(id=>{ const it=S().items.find(x=>x.id===id); if(it) it.mood=mood; });
+  await Promise.all([...selectedIds].map(id=>sbUpdate(S().items.find(x=>x.id===id))));
   toast(`${selectedIds.size} Bilder → ${mood}`); exitSelMode();
 };
-$('abRemove').onclick = async () => {
+$('abRemove').onclick=async()=>{
   if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
-  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.mood=null; });
-  await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x=>x.id===id))));
+  [...selectedIds].forEach(id=>{ const it=S().items.find(x=>x.id===id); if(it) it.mood=null; });
+  await Promise.all([...selectedIds].map(id=>sbUpdate(S().items.find(x=>x.id===id))));
   toast(`${selectedIds.size} Moods entfernt`); exitSelMode();
 };
-$('assignMoodBtn').onclick = () => enterSelMode('assign');
-$('removeMoodBtn').onclick = () => enterSelMode('remove');
-$('assignMoodBtnSheet').onclick = () => enterSelMode('assign');
-$('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
+$('assignMoodBtn').onclick=()=>enterSelMode('assign');
+$('removeMoodBtn').onclick=()=>enterSelMode('remove');
+$('assignMoodBtnSheet').onclick=()=>enterSelMode('assign');
+$('removeMoodBtnSheet').onclick=()=>enterSelMode('remove');
 
+// ── Lightbox ──────────────────────────────────────────────
 function openLightbox(idx){
-  if(idx<0 || idx>=S().currentItems.length) return;
-  lbIndex = idx;
-  const it = S().currentItems[idx];
+  if(idx<0||idx>=S().currentItems.length) return;
+  lbIndex=idx;
+  const it=S().currentItems[idx];
   lbInner.querySelectorAll('img,video').forEach(e=>e.remove());
   lbMuteBtn.classList.remove('show');
   if(it.media_type==='video'){
-    const v = document.createElement('video');
+    const v=document.createElement('video');
     v.src=it.media_url; v.controls=true; v.autoplay=true; v.muted=false; v.loop=true;
     lbInner.appendChild(v);
     lbIsMuted=false; lbMuteBtn.innerHTML='🔊'; lbMuteBtn.classList.add('show');
   } else {
-    const img = document.createElement('img');
+    const img=document.createElement('img');
     img.src=it.media_url; img.style.pointerEvents='none';
     lbInner.appendChild(img);
   }
@@ -427,57 +441,46 @@ function openLightbox(idx){
   closeLbMoodPicker(); updateLbArrows();
 }
 function updateLbArrows(){
-  $('lbPrev').style.opacity = lbIndex>0 ? '1' : '0.2';
-  $('lbNext').style.opacity = lbIndex<S().currentItems.length-1 ? '1' : '0.2';
+  $('lbPrev').style.opacity=lbIndex>0?'1':'0.2';
+  $('lbNext').style.opacity=lbIndex<S().currentItems.length-1?'1':'0.2';
 }
 function lbNavigate(dir){
   const next=lbIndex+dir;
-  if(next<0 || next>=S().currentItems.length) return;
+  if(next<0||next>=S().currentItems.length) return;
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
   closeLbMoodPicker(); openLightbox(next);
 }
-$('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1); };
-$('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1); };
-lightbox.onclick = e => {
+$('lbPrev').onclick=e=>{ e.stopPropagation(); lbNavigate(-1); };
+$('lbNext').onclick=e=>{ e.stopPropagation(); lbNavigate(1); };
+lightbox.onclick=e=>{
   if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); return; }
-  if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMoodBtn') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
+  if(!e.target.closest('.lb-arrow')&&!e.target.closest('#lbMoodBtn')&&!e.target.closest('#lbMuteBtn')&&!e.target.closest('video')) closeLb();
 };
 function closeLb(){
   lightbox.classList.remove('show'); lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show');
   closeLbMoodPicker(); lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
-lbMuteBtn.onclick = e => {
-  e.stopPropagation();
-  const v = lbInner.querySelector('video'); if(!v) return;
-  lbIsMuted = !lbIsMuted; v.muted = lbIsMuted;
-  lbMuteBtn.innerHTML = lbIsMuted ? '🔇' : '🔊';
-};
+lbMuteBtn.onclick=e=>{ e.stopPropagation(); const v=lbInner.querySelector('video'); if(!v) return; lbIsMuted=!lbIsMuted; v.muted=lbIsMuted; lbMuteBtn.innerHTML=lbIsMuted?'🔇':'🔊'; };
 
-let txS=0, tyS=0;
-lightbox.addEventListener('touchstart', e=>{ txS=e.touches[0].clientX; tyS=e.touches[0].clientY; }, {passive:true});
-lightbox.addEventListener('touchend', e=>{
-  const dx=e.changedTouches[0].clientX-txS, dy=e.changedTouches[0].clientY-tyS;
-  if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>40) lbNavigate(dx<0?1:-1);
-}, {passive:true});
+let txS=0,tyS=0;
+lightbox.addEventListener('touchstart',e=>{ txS=e.touches[0].clientX; tyS=e.touches[0].clientY; },{passive:true});
+lightbox.addEventListener('touchend',e=>{ const dx=e.changedTouches[0].clientX-txS,dy=e.changedTouches[0].clientY-tyS; if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40) lbNavigate(dx<0?1:-1); },{passive:true});
 
+// ── Lightbox Mood Picker ──────────────────────────────────
 function openLbMoodPicker(){
   const it=S().currentItems[lbIndex]; if(!it) return;
-  lbPickedMoods = new Set(it.mood && it.mood!=='All' ? [it.mood] : []);
-  lbCurrentMood.textContent = it.mood && it.mood!=='All' ? 'Aktuell: '+it.mood : 'Noch keine Mood';
+  lbPickedMoods=new Set(it.mood&&it.mood!=='All'?[it.mood]:[]);
+  lbCurrentMood.textContent=it.mood&&it.mood!=='All'?'Aktuell: '+it.mood:'Noch keine Mood';
   renderLbMoodTiles(); lbMoodPicker.classList.add('show');
 }
 function renderLbMoodTiles(){
-  lbMoodTiles.innerHTML = S().moods.filter(m=>m!=='All').map(m =>
+  lbMoodTiles.innerHTML=S().moods.filter(m=>m!=='All').map(m=>
     `<button class="lb-mood-tile ${lbPickedMoods.has(m)?'sel':''}" data-m="${m}">${m}</button>`).join('');
-  lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(b => b.onclick = e => {
-    e.stopPropagation();
-    lbPickedMoods.has(b.dataset.m) ? lbPickedMoods.delete(b.dataset.m) : lbPickedMoods.add(b.dataset.m);
-    b.classList.toggle('sel', lbPickedMoods.has(b.dataset.m));
-  });
+  lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(b=>b.onclick=e=>{ e.stopPropagation(); lbPickedMoods.has(b.dataset.m)?lbPickedMoods.delete(b.dataset.m):lbPickedMoods.add(b.dataset.m); b.classList.toggle('sel',lbPickedMoods.has(b.dataset.m)); });
 }
 function closeLbMoodPicker(){ lbMoodPicker.classList.remove('show'); lbPickedMoods=new Set(); }
-lbMoodBtn.onclick = e => { e.stopPropagation(); lbMoodPicker.classList.contains('show') ? closeLbMoodPicker() : openLbMoodPicker(); };
-$('lbMoodConfirm').onclick = async e => {
+lbMoodBtn.onclick=e=>{ e.stopPropagation(); lbMoodPicker.classList.contains('show')?closeLbMoodPicker():openLbMoodPicker(); };
+$('lbMoodConfirm').onclick=async e=>{
   e.stopPropagation();
   if(!lbPickedMoods.size){ toast('Keine Mood ausgewählt'); return; }
   const mood=[...lbPickedMoods][0];
@@ -486,11 +489,10 @@ $('lbMoodConfirm').onclick = async e => {
   const orig=S().items.find(x=>x.id===it.id); if(orig) orig.mood=mood;
   await sbUpdate(it); toast('Mood → '+mood); closeLbMoodPicker();
 };
-document.addEventListener('click', e => {
-  if(lbMoodPicker.classList.contains('show') && !e.target.closest('#lbMoodPicker') && !e.target.closest('#lbMoodBtn')) closeLbMoodPicker();
-});
+document.addEventListener('click',e=>{ if(lbMoodPicker.classList.contains('show')&&!e.target.closest('#lbMoodPicker')&&!e.target.closest('#lbMoodBtn')) closeLbMoodPicker(); });
 
-document.addEventListener('keydown', e => {
+// ── Keyboard ──────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
   if(lightbox.classList.contains('show')){
     if(e.key==='ArrowLeft') lbNavigate(-1);
     else if(e.key==='ArrowRight') lbNavigate(1);
@@ -500,29 +502,30 @@ document.addEventListener('keydown', e => {
   if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
 });
 
-$('shuffleBtn').onclick = () => renderGrid();
-$('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
-$('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
-fileInput.onchange = e => upload(e.target.files);
-
+// ── Upload ────────────────────────────────────────────────
+$('shuffleBtn').onclick=()=>renderGrid();
+$('uploadBtn').onclick=()=>{ fileInput.click(); closeMenu(); };
+$('uploadBtnSheet').onclick=()=>{ fileInput.click(); closeMenu(); };
+fileInput.onchange=e=>upload(e.target.files);
 async function upload(files){
-  const arr = Array.from(files);
-  for(let i=0; i<arr.length; i++){
+  const arr=Array.from(files);
+  for(let i=0;i<arr.length;i++){
     prog(Math.round(i/arr.length*90)); toast(`Upload ${i+1}/${arr.length}…`);
     const f=arr[i]; const cf=await compress(f);
     const ext=f.name.split('.').pop().toLowerCase();
     const path=`${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}.${ext}`;
-    const {error:e1} = await sb.storage.from(BUCKET).upload(path, cf, {upsert:false, contentType:cf.type});
+    const {error:e1}=await sb.storage.from(BUCKET).upload(path,cf,{upsert:false,contentType:cf.type});
     if(e1){ toast('Upload-Fehler: '+e1.message); continue; }
-    const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
-    const item = { title:f.name.replace(/\.[^.]+$/,''), mood:null, tags:[], media_url:pub.publicUrl, media_type:isVid(f.name)?'video':'image', favorite:false };
-    const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
+    const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
+    const item={title:f.name.replace(/\.[^.]+$/,''),mood:null,tags:[],media_url:pub.publicUrl,media_type:isVid(f.name)?'video':'image',favorite:false};
+    const {data:ins,error:e2}=await sb.from(S().table).insert(item).select().single();
     if(e2){ toast('DB-Fehler: '+e2.message); continue; }
-    S().items.unshift({...item, id:ins.id}); renderGrid();
+    S().items.unshift({...item,id:ins.id}); renderGrid();
   }
   prog(100); toast('Fertig ✓'); fileInput.value='';
 }
 
+// ── Delete Mode ───────────────────────────────────────────
 function startDeleteMode(){
   closeMenu(); selMode='delete'; selectedIds.clear();
   actionBarTitle.textContent='Bilder löschen';
@@ -530,44 +533,46 @@ function startDeleteMode(){
   actionBarMoods.innerHTML='';
   actionBar.classList.add('show'); renderGrid(); updateActionBarCount();
   $('deleteFloatingBtn')?.remove();
-  const btn = document.createElement('button');
+  const btn=document.createElement('button');
   btn.id='deleteFloatingBtn'; btn.innerHTML='🗑';
   btn.style.cssText='position:fixed;left:20px;bottom:100px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,60,60,.2);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)';
-  btn.onclick = async () => {
+  btn.onclick=async()=>{
     if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
     if(!confirm(selectedIds.size+' Bilder löschen?')) return;
     await sbDeleteMany([...selectedIds]);
-    S().items = S().items.filter(i=>!selectedIds.has(i.id));
+    S().items=S().items.filter(i=>!selectedIds.has(i.id));
     toast('Gelöscht'); btn.remove(); exitSelMode();
   };
   document.body.appendChild(btn);
 }
-$('pickDeleteBtn').onclick = startDeleteMode;
-$('pickDeleteBtnSheet').onclick = startDeleteMode;
+$('pickDeleteBtn').onclick=startDeleteMode;
+$('pickDeleteBtnSheet').onclick=startDeleteMode;
 
+// ── Editor ────────────────────────────────────────────────
 function openEditor(id){
   editId=id; const it=S().items.find(x=>x.id===id); if(!it) return;
-  $('editorTitle').textContent = it.title||'Item';
-  $('tagInput').value = (it.tags||[]).join(', ');
+  $('editorTitle').textContent=it.title||'Item';
+  $('tagInput').value=(it.tags||[]).join(', ');
   editorWrap.classList.add('show'); renderTagChips(); dropdown.classList.add('show');
 }
 function renderTagChips(){
-  const it = S().items.find(x=>x.id===editId);
-  $('tagChips').innerHTML = S().moods.filter(m=>m!=='All').map(m =>
+  const it=S().items.find(x=>x.id===editId);
+  $('tagChips').innerHTML=S().moods.filter(m=>m!=='All').map(m=>
     `<button class="tchip ${it&&it.mood===m?'active':''}" data-m="${m}">${m}</button>`).join('');
-  document.querySelectorAll('.tchip').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tchip').forEach(b=>b.onclick=()=>{
     const it=S().items.find(x=>x.id===editId); if(!it) return;
     it.mood=b.dataset.m; sbUpdate(it); renderGrid(); renderTagChips();
   });
 }
-$('saveTagsBtn').onclick = () => {
+$('saveTagsBtn').onclick=()=>{
   const it=S().items.find(x=>x.id===editId); if(!it) return;
-  it.tags = $('tagInput').value.split(',').map(s=>s.trim()).filter(Boolean);
+  it.tags=$('tagInput').value.split(',').map(s=>s.trim()).filter(Boolean);
   sbUpdate(it); renderGrid(); toast('Tags gespeichert');
 };
 
+// ── Supabase ──────────────────────────────────────────────
 async function loadItems(){
-  const {data,error} = await sb.from(S().table)
+  const {data,error}=await sb.from(S().table)
     .select('id,title,mood,tags,media_url,media_type,favorite')
     .order('created_at',{ascending:false});
   if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
@@ -575,13 +580,19 @@ async function loadItems(){
 }
 async function sbUpdate(item){
   if(!item) return;
-  await sb.from(S().table).update({title:item.title||'', mood:item.mood||null, tags:item.tags||[], media_url:item.media_url, media_type:item.media_type, favorite:false}).eq('id',item.id);
+  await sb.from(S().table).update({title:item.title||'',mood:item.mood||null,tags:item.tags||[],media_url:item.media_url,media_type:item.media_type,favorite:false}).eq('id',item.id);
 }
 async function sbDeleteMany(ids){
   if(!ids.length) return;
   await sb.from(S().table).delete().in('id',ids);
 }
 
+// ── Drag & Drop ───────────────────────────────────────────
+gridWrap.addEventListener('dragover',e=>{ e.preventDefault(); gridWrap.classList.add('dragover'); });
+gridWrap.addEventListener('dragleave',()=>gridWrap.classList.remove('dragover'));
+gridWrap.addEventListener('drop',e=>{ e.preventDefault(); gridWrap.classList.remove('dragover'); upload(e.dataTransfer.files); });
+
+// ── Init ──────────────────────────────────────────────────
 renderMoodChips();
 loadItems();
 </script>
