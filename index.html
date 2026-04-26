@@ -141,7 +141,7 @@ button,input{font:inherit}
 .fp-grid-btn.sel{background:#fff;color:#111;border-color:#fff}
 
 /* ── Sprite Walker ─────────────────────────────────────── */
-/* topbar overflow removed to allow sprite canvas */
+/* topbar overflow:hidden removed */
 #spriteCanvas{
   position:fixed;
   left:0; top:0;
@@ -841,7 +841,7 @@ window.addEventListener('resize', () => applyGridCols(gridCols));
 
     if (walker && !walker.done) {
       // Move
-      walker.x += walker.speed * walker.dir * -1 * dt;
+      walker.x += walker.speed * walker.dir * dt;
 
       // Animate
       walker.ft += dt;
