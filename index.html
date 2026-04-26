@@ -1,10 +1,9 @@
-html = '''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Marvin\'s Place</title>
-<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.10/dist/dotlottie-wc.js" type="module"></script>
+<title>Marvin's Place</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -13,30 +12,22 @@ html = '''<!DOCTYPE html>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overflow:hidden}
 button,input{font:inherit}
-
-/* Topbar */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);gap:16px}
-.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-left{display:flex;align-items:center;gap:20px}
 .board-title{background:transparent;border:0;color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;cursor:pointer;opacity:.9;user-select:none;padding:4px 0}
 .board-title:hover{opacity:1}
-.nav-lottie-btn{background:transparent;border:0;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;transition:.15s;opacity:.5}
-.nav-lottie-btn:hover{opacity:.85;background:rgba(255,255,255,.06)}
-.nav-lottie-btn.active{opacity:1}
+.nav-link{background:transparent;border:0;color:#fff;font-size:14px;font-weight:500;cursor:pointer;opacity:.4;user-select:none;padding:4px 0;transition:.15s;letter-spacing:.02em}
+.nav-link:hover{opacity:.7}
+.nav-link.active{opacity:1}
 .menubtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);transition:.15s;flex-shrink:0}
 .menubtn:hover{background:rgba(255,255,255,.13)}
-
-/* Dropdown (desktop) */
 .dropdown{position:fixed;top:58px;right:14px;z-index:40;width:290px;display:none;padding:10px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);max-height:calc(100vh - 80px);overflow-y:auto}
 .dropdown.show{display:block}
-
-/* Bottom sheet (mobile) */
 .sheet-overlay{position:fixed;inset:0;z-index:38;background:rgba(0,0,0,.5);display:none;backdrop-filter:blur(4px)}
 .sheet-overlay.show{display:block}
 .bottom-sheet{position:fixed;bottom:0;left:0;right:0;z-index:39;background:var(--panel);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:16px 16px 40px;max-height:85vh;overflow-y:auto;display:none;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,1,.23,1)}
 .bottom-sheet.show{display:block;transform:translateY(0)}
 .sheet-handle{width:36px;height:4px;border-radius:999px;background:rgba(255,255,255,.2);margin:0 auto 16px}
-
-/* Shared dropdown/sheet styles */
 .dd-section{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:8px 8px 4px}
 .dd-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
 .dd-btn{width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px;border-radius:10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px}
@@ -45,7 +36,6 @@ button,input{font:inherit}
 .dd-input-row{display:flex;gap:6px;padding:4px 2px 6px}
 .dd-input-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:10px;outline:none;font-size:14px}
 .dd-input-row button{border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:10px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
-
 .mood-chips{display:flex;flex-wrap:wrap;gap:5px;padding:4px 2px 8px}
 .mchip{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;transition:.12s}
 .mchip.active{background:#fff;color:#111;border-color:#fff}
@@ -54,14 +44,10 @@ button,input{font:inherit}
 .tchip.active{background:#fff;color:#111;border-color:#fff}
 .editor-wrap{display:none}
 .editor-wrap.show{display:block}
-
-/* Shuffle btn */
 .shufflebtn{position:fixed;bottom:20px;right:20px;z-index:30;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:19px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:.15s}
 .shufflebtn:hover{background:rgba(255,255,255,.13)}
-
-/* Grid */
 .gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px;contain:layout}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
 .cell:hover img,.cell:hover video{transform:scale(1.04)}
@@ -71,8 +57,6 @@ button,input{font:inherit}
 .selcheck.visible{opacity:1;pointer-events:auto}
 .cell-mood-badge{position:absolute;bottom:6px;left:6px;z-index:2;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:999px;font-size:10px;color:#fff;padding:2px 8px;pointer-events:none;display:none}
 .cell-mood-badge.show{display:block}
-
-/* Action Bar */
 .action-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;padding:14px 16px 32px;background:linear-gradient(to top,rgba(0,0,0,.97) 70%,transparent);display:none;flex-direction:column;gap:10px}
 .action-bar.show{display:flex}
 .action-bar-title{font-size:11px;opacity:.5;text-transform:uppercase;letter-spacing:.08em}
@@ -87,9 +71,8 @@ button,input{font:inherit}
 .ab-act.cancel{background:rgba(255,255,255,.06);color:#fff}
 .ab-act.cancel:hover{background:rgba(255,255,255,.12)}
 .ab-act.remove{background:rgba(255,60,60,.15);color:#ff6b6b;border-color:rgba(255,60,60,.3)}
+.ab-act.remove:hover{background:rgba(255,60,60,.25)}
 .ab-count{font-size:12px;opacity:.5}
-
-/* Lightbox */
 .lightbox{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);touch-action:pan-y;cursor:pointer}
 .lightbox.show{display:flex}
 .lb-inner{position:relative;max-width:92vw;max-height:92vh;user-select:none;cursor:default}
@@ -99,15 +82,11 @@ button,input{font:inherit}
 .lb-arrow:hover{background:rgba(255,255,255,.18)}
 .lb-arrow.prev{left:14px}
 .lb-arrow.next{right:14px}
-
-/* Lightbox floating buttons */
 .lb-mood-btn,.lb-mute-btn{position:fixed;bottom:28px;z-index:90;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:none;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.15s}
 .lb-mood-btn{right:20px}
 .lb-mute-btn{right:76px}
 .lb-mood-btn:hover,.lb-mute-btn:hover{background:rgba(255,255,255,.18)}
 .lb-mood-btn.show,.lb-mute-btn.show{display:grid}
-
-/* Lightbox Mood Picker */
 .lb-mood-picker{position:fixed;bottom:88px;right:14px;z-index:91;display:none;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 12px 40px rgba(0,0,0,.6);min-width:180px}
 .lb-mood-picker.show{display:flex}
 .lb-mood-picker-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:0 2px 4px}
@@ -118,57 +97,45 @@ button,input{font:inherit}
 .lb-mood-confirm{width:100%;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#111;margin-top:2px;transition:.15s}
 .lb-mood-confirm:hover{background:#ddd}
 .lb-current-mood{font-size:11px;opacity:.4;padding:0 2px}
-
 .progress{position:fixed;top:0;left:0;height:2px;background:#fff;z-index:100;width:0;transition:width .25s}
 .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:102;background:rgba(0,0,0,.85);border:1px solid var(--border);color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;white-space:nowrap}
 .toast.show{opacity:1}
 .gridwrap.dragover::after{content:"Loslassen zum Hochladen";position:fixed;inset:52px 0 0 0;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(0,0,0,.5);border:2px dashed rgba(255,255,255,.3)}
 .hidden{display:none!important}
-
-@media(max-width:600px){
-  .grid{grid-template-columns:repeat(2,1fr)}
-  .lb-arrow{display:none}
-  .dropdown{display:none!important}
-}
-@media(min-width:601px){
-  .bottom-sheet,.sheet-overlay{display:none!important}
-}
+@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}.lb-arrow{display:none}.dropdown{display:none!important}}
+@media(min-width:601px){.bottom-sheet,.sheet-overlay{display:none!important}}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-left">
-    <span class="board-title" id="boardTitle">Marvin\'s Place</span>
-    <button class="nav-lottie-btn" id="navPersonal" title="Personal">
-      <dotlottie-wc src="https://lottie.host/8399dc07-c6cd-423f-8dc2-9d037a6ffa7b/fmS8Jwfu7e.json"
-        style="width:28px;height:28px" autoplay loop></dotlottie-wc>
-    </button>
+    <span class="board-title" id="boardTitle">Marvin's Place</span>
+    <button class="nav-link" id="navPersonal">Personal</button>
   </div>
   <button class="menubtn" id="menuBtn">&#9776;</button>
 </div>
 
-<!-- Desktop Dropdown -->
 <div class="dropdown" id="dropdown">
   <div class="dd-section">Filter</div>
   <div class="mood-chips" id="moodChips"></div>
   <div class="dd-divider"></div>
   <div class="dd-section">Aktionen</div>
-  <button class="dd-btn" id="uploadBtn"><span class="icon">&#xff0b;</span> Bilder / Videos hochladen</button>
+  <button class="dd-btn" id="uploadBtn"><span class="icon">+</span> Bilder / Videos hochladen</button>
   <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
-  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">&#128465;</span> Bilder l&#246;schen</button>
+  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">&#128465;</span> Bilder löschen</button>
   <div class="dd-divider"></div>
   <div class="dd-section">Moods</div>
-  <button class="dd-btn" id="assignMoodBtn"><span class="icon">&#127991;</span> Moods zuweisen / &#228;ndern</button>
+  <button class="dd-btn" id="assignMoodBtn"><span class="icon">&#127991;</span> Moods zuweisen / ändern</button>
   <button class="dd-btn" id="removeMoodBtn"><span class="icon">&#x2715;</span> Moods entfernen</button>
   <div class="dd-divider"></div>
   <div class="dd-section">Moods verwalten</div>
   <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood" inputmode="text"><button id="addMoodBtn">Add</button></div>
   <div class="dd-input-row"><input id="renameMood" placeholder="Aktuelle umbenennen" inputmode="text"><button id="renameMoodBtn">Rename</button></div>
-  <div class="dd-input-row"><input id="deleteMood" placeholder="Mood l&#246;schen" inputmode="text"><button id="deleteMoodBtn">Delete</button></div>
+  <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen" inputmode="text"><button id="deleteMoodBtn">Delete</button></div>
   <div class="dd-divider"></div>
   <div class="editor-wrap" id="editorWrap">
-    <div class="dd-section">Editor &#8212; <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
+    <div class="dd-section">Editor — <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
     <div class="tag-chips" id="tagChips"></div>
     <div class="dd-input-row">
       <input id="tagInput" placeholder="Tags, kommagetrennt" inputmode="text">
@@ -178,7 +145,6 @@ button,input{font:inherit}
   </div>
 </div>
 
-<!-- Mobile Bottom Sheet -->
 <div class="sheet-overlay" id="sheetOverlay"></div>
 <div class="bottom-sheet" id="bottomSheet">
   <div class="sheet-handle"></div>
@@ -186,24 +152,23 @@ button,input{font:inherit}
   <div class="mood-chips" id="moodChipsSheet"></div>
   <div class="dd-divider"></div>
   <div class="dd-section">Aktionen</div>
-  <button class="dd-btn" id="uploadBtnSheet"><span class="icon">&#xff0b;</span> Bilder / Videos hochladen</button>
-  <button class="dd-btn" id="pickDeleteBtnSheet"><span class="icon">&#128465;</span> Bilder l&#246;schen</button>
+  <button class="dd-btn" id="uploadBtnSheet"><span class="icon">+</span> Bilder / Videos hochladen</button>
+  <button class="dd-btn" id="pickDeleteBtnSheet"><span class="icon">&#128465;</span> Bilder löschen</button>
   <div class="dd-divider"></div>
   <div class="dd-section">Moods</div>
-  <button class="dd-btn" id="assignMoodBtnSheet"><span class="icon">&#127991;</span> Moods zuweisen / &#228;ndern</button>
+  <button class="dd-btn" id="assignMoodBtnSheet"><span class="icon">&#127991;</span> Moods zuweisen / ändern</button>
   <button class="dd-btn" id="removeMoodBtnSheet"><span class="icon">&#x2715;</span> Moods entfernen</button>
   <div class="dd-divider"></div>
   <div class="dd-section">Moods verwalten</div>
   <div class="dd-input-row"><input id="newMoodSheet" placeholder="Neue Mood" inputmode="text"><button id="addMoodBtnSheet">Add</button></div>
   <div class="dd-input-row"><input id="renameMoodSheet" placeholder="Aktuelle umbenennen" inputmode="text"><button id="renameMoodBtnSheet">Rename</button></div>
-  <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Mood l&#246;schen" inputmode="text"><button id="deleteMoodBtnSheet">Delete</button></div>
+  <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Mood löschen" inputmode="text"><button id="deleteMoodBtnSheet">Delete</button></div>
 </div>
 
-<!-- Action Bar -->
 <div class="action-bar" id="actionBar">
   <div style="display:flex;align-items:center;justify-content:space-between">
     <span class="action-bar-title" id="actionBarTitle">Mood zuweisen</span>
-    <span class="ab-count" id="actionBarCount">0 ausgew&#228;hlt</span>
+    <span class="ab-count" id="actionBarCount">0 ausgewählt</span>
   </div>
   <div class="action-bar-moods" id="actionBarMoods"></div>
   <div class="action-bar-actions">
@@ -217,11 +182,10 @@ button,input{font:inherit}
 
 <div class="gridwrap" id="gridWrap">
   <div class="grid" id="grid">
-    <div id="bootMsg" style="padding:24px;color:#fff;opacity:.75">Lade&#8230;</div>
+    <div id="bootMsg" style="padding:24px;color:#fff;opacity:.75">Lade&hellip;</div>
   </div>
 </div>
 
-<!-- Lightbox -->
 <div class="lightbox" id="lightbox">
   <button class="lb-arrow prev" id="lbPrev">&#8249;</button>
   <div class="lb-inner" id="lbInner"></div>
@@ -235,488 +199,433 @@ button,input{font:inherit}
   <div class="lb-mood-picker-title">Mood setzen</div>
   <div class="lb-current-mood" id="lbCurrentMood"></div>
   <div class="lb-mood-tiles" id="lbMoodTiles"></div>
-  <button class="lb-mood-confirm" id="lbMoodConfirm">Best&#228;tigen</button>
+  <button class="lb-mood-confirm" id="lbMoodConfirm">Bestätigen</button>
 </div>
 
 <div class="progress" id="progress"></div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { createClient } from \'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm\';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = \'https://bnwcbxjgsmmvmtvqblrr.supabase.co\';
-const SUPABASE_KEY = \'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJud2NieGpnc21tdm10dnFibHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjAyMDQsImV4cCI6MjA5MjE5NjIwNH0.Lo0lAnOoyFhMpq7YwO3pw2vMccSsJc8Xbk7Teck5QmE\';
-const BUCKET = \'moodboard\';
+const SUPABASE_URL = 'https://bnwcbxjgsmmvmtvqblrr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJud2NieGpnc21tdm10dnFibHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjAyMDQsImV4cCI6MjA5MjE5NjIwNH0.Lo0lAnOoyFhMpq7YwO3pw2vMccSsJc8Xbk7Teck5QmE';
+const BUCKET = 'moodboard';
 const MAX_PX = 2400;
-
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const state = {
-  moodboard:{ items:[], currentItems:[], moods:[\'All\',\'Summer\',\'Winter\',\'Cozy\',\'Dark\'], currentMood:localStorage.getItem(\'mb_mood\')||\'All\', table:\'moodboard_items\' },
-  personal:{ items:[], currentItems:[], moods:[\'All\',\'Work\',\'Family\',\'Travel\',\'Misc\'], currentMood:localStorage.getItem(\'pb_mood\')||\'All\', table:\'personal_items\' }
+  moodboard: { items:[], currentItems:[], moods:['All','Summer','Winter','Cozy','Dark'], currentMood: localStorage.getItem('mb_mood')||'All', table:'moodboard_items' },
+  personal:  { items:[], currentItems:[], moods:['All','Work','Family','Travel','Misc'],  currentMood: localStorage.getItem('pb_mood')||'All', table:'personal_items' }
 };
-let currentPage=\'moodboard\';
-function S(){ return state[currentPage]; }
+let currentPage = 'moodboard';
+const S = () => state[currentPage];
 
-let editId=null,lbIndex=0,selMode=null;
-let selectedIds=new Set(),assignMoods=new Set(),lbPickedMoods=new Set();
-let lbIsMuted=false;
+let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
+let selectedIds=new Set(), assignMoods=new Set(), lbPickedMoods=new Set();
+let _observer = null;
 
-const gridEl=document.getElementById(\'grid\');
-const gridWrap=document.getElementById(\'gridWrap\');
-const dropdown=document.getElementById(\'dropdown\');
-const bottomSheet=document.getElementById(\'bottomSheet\');
-const sheetOverlay=document.getElementById(\'sheetOverlay\');
-const lightbox=document.getElementById(\'lightbox\');
-const lbInner=document.getElementById(\'lbInner\');
-const fileInput=document.getElementById(\'fileInput\');
-const progressBar=document.getElementById(\'progress\');
-const toastEl=document.getElementById(\'toast\');
-const editorWrap=document.getElementById(\'editorWrap\');
-const actionBar=document.getElementById(\'actionBar\');
-const actionBarMoods=document.getElementById(\'actionBarMoods\');
-const actionBarCount=document.getElementById(\'actionBarCount\');
-const actionBarTitle=document.getElementById(\'actionBarTitle\');
-const lbMoodBtn=document.getElementById(\'lbMoodBtn\');
-const lbMuteBtn=document.getElementById(\'lbMuteBtn\');
-const lbMoodPicker=document.getElementById(\'lbMoodPicker\');
-const lbMoodTiles=document.getElementById(\'lbMoodTiles\');
-const lbCurrentMood=document.getElementById(\'lbCurrentMood\');
+const $ = id => document.getElementById(id);
+const gridEl        = $('grid');
+const gridWrap      = $('gridWrap');
+const dropdown      = $('dropdown');
+const bottomSheet   = $('bottomSheet');
+const sheetOverlay  = $('sheetOverlay');
+const lightbox      = $('lightbox');
+const lbInner       = $('lbInner');
+const fileInput     = $('fileInput');
+const progressBar   = $('progress');
+const toastEl       = $('toast');
+const editorWrap    = $('editorWrap');
+const actionBar     = $('actionBar');
+const actionBarMoods= $('actionBarMoods');
+const actionBarCount= $('actionBarCount');
+const actionBarTitle= $('actionBarTitle');
+const lbMoodBtn     = $('lbMoodBtn');
+const lbMuteBtn     = $('lbMuteBtn');
+const lbMoodPicker  = $('lbMoodPicker');
+const lbMoodTiles   = $('lbMoodTiles');
+const lbCurrentMood = $('lbCurrentMood');
 
-const isMobile=()=>window.innerWidth<=600;
+const isMobile = () => window.innerWidth <= 600;
+function toast(t){ toastEl.textContent=t; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1600); }
+function isVid(n){ return /\\.(mp4|webm|mov|m4v)$/i.test(n||''); }
+function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600); }
 
-function toast(t){ toastEl.textContent=t; toastEl.classList.add(\'show\'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove(\'show\'),1600) }
-function isVid(n){ return /[.](mp4|webm|mov|m4v)$/i.test(n||\'\')}
-function prog(p){ progressBar.style.width=p+\'%\'; if(p>=100)setTimeout(()=>progressBar.style.width=\'0\',600) }
-
-function compress(file,maxPx=MAX_PX,q=0.88){
+function compress(file, maxPx=MAX_PX, q=0.88){
   return new Promise(res=>{
-    if(isVid(file.name)){res(file);return}
-    const img=new Image(),url=URL.createObjectURL(file);
+    if(isVid(file.name)){ res(file); return; }
+    const img=new Image(), url=URL.createObjectURL(file);
     img.onload=()=>{
       URL.revokeObjectURL(url);
-      let w=img.width,h=img.height;
-      if(w<=maxPx&&h<=maxPx){res(file);return}
-      const r=Math.min(maxPx/w,maxPx/h);w=Math.round(w*r);h=Math.round(h*r);
-      const c=document.createElement(\'canvas\');c.width=w;c.height=h;
-      c.getContext(\'2d\').drawImage(img,0,0,w,h);
-      c.toBlob(b=>res(new File([b],file.name,{type:\'image/jpeg\'})),\'image/jpeg\',q);
+      let w=img.width, h=img.height;
+      if(w<=maxPx && h<=maxPx){ res(file); return; }
+      const r=Math.min(maxPx/w, maxPx/h); w=Math.round(w*r); h=Math.round(h*r);
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      c.toBlob(b=>res(new File([b],file.name,{type:'image/jpeg'})),'image/jpeg',q);
     };
     img.src=url;
   });
 }
 
-// ── Menu open/close ───────────────────────────────────────
 function openMenu(){
   if(isMobile()){
     renderMoodChipsSheet();
-    bottomSheet.classList.add(\'show\');
-    sheetOverlay.classList.add(\'show\');
+    bottomSheet.classList.add('show');
+    sheetOverlay.classList.add('show');
   } else {
-    dropdown.classList.toggle(\'show\');
+    dropdown.classList.toggle('show');
   }
 }
 function closeMenu(){
-  dropdown.classList.remove(\'show\');
-  bottomSheet.classList.remove(\'show\');
-  sheetOverlay.classList.remove(\'show\');
+  dropdown.classList.remove('show');
+  bottomSheet.classList.remove('show');
+  sheetOverlay.classList.remove('show');
 }
-
-document.getElementById(\'menuBtn\').onclick=e=>{e.stopPropagation();openMenu()};
-sheetOverlay.onclick=closeMenu;
-document.addEventListener(\'click\',e=>{
-  if(!e.target.closest(\'#dropdown\')&&!e.target.closest(\'#menuBtn\'))dropdown.classList.remove(\'show\');
+$('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
+sheetOverlay.onclick = closeMenu;
+document.addEventListener('click', e => {
+  if(!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show');
 });
 
-// ── Navigation ────────────────────────────────────────────
 function switchPage(page){
-  currentPage=page;
-  exitSelMode();closeLb();closeMenu();
-  editorWrap.classList.remove(\'show\');
-  document.getElementById(\'navPersonal\').classList.toggle(\'active\',page===\'personal\');
-  renderMoodChips();renderGrid();
-  if(!S().items.length)loadItems();
+  currentPage = page;
+  exitSelMode(); closeLb(); closeMenu();
+  editorWrap.classList.remove('show');
+  $('navPersonal').classList.toggle('active', page==='personal');
+  renderMoodChips(); renderGrid();
+  if(!S().items.length) loadItems();
 }
-document.getElementById(\'boardTitle\').onclick=()=>{ if(currentPage!==\'moodboard\')switchPage(\'moodboard\'); else renderGrid(); };
-document.getElementById(\'navPersonal\').onclick=()=>{ if(currentPage!==\'personal\')switchPage(\'personal\'); else renderGrid(); };
+$('boardTitle').onclick = () => { if(currentPage!=='moodboard') switchPage('moodboard'); else renderGrid(); };
+$('navPersonal').onclick = () => { if(currentPage!=='personal') switchPage('personal'); else renderGrid(); };
 
-// ── Mood Filter Chips (desktop) ───────────────────────────
 function renderMoodChips(){
-  document.getElementById(\'moodChips\').innerHTML=S().moods.map(m=>
-    `<button class="mchip ${m===S().currentMood?\'active\':\'\'}" data-m="${m}">${m}</button>`
-  ).join(\'\');
-  document.querySelectorAll(\'#moodChips .mchip\').forEach(b=>b.onclick=()=>{
-    S().currentMood=b.dataset.m;
-    localStorage.setItem(currentPage===\'moodboard\'?\'mb_mood\':\'pb_mood\',b.dataset.m);
-    renderMoodChips();renderMoodChipsSheet();renderGrid();
+  $('moodChips').innerHTML = S().moods.map(m =>
+    `<button class="mchip ${m===S().currentMood?'active':''}" data-m="${m}">${m}</button>`
+  ).join('');
+  document.querySelectorAll('#moodChips .mchip').forEach(b => b.onclick = () => {
+    S().currentMood = b.dataset.m;
+    localStorage.setItem(currentPage==='moodboard'?'mb_mood':'pb_mood', b.dataset.m);
+    renderMoodChips(); renderMoodChipsSheet(); renderGrid();
   });
 }
-
-// ── Mood Filter Chips (sheet) ─────────────────────────────
 function renderMoodChipsSheet(){
-  document.getElementById(\'moodChipsSheet\').innerHTML=S().moods.map(m=>
-    `<button class="mchip ${m===S().currentMood?\'active\':\'\'}" data-m="${m}">${m}</button>`
-  ).join(\'\');
-  document.querySelectorAll(\'#moodChipsSheet .mchip\').forEach(b=>b.onclick=()=>{
-    S().currentMood=b.dataset.m;
-    localStorage.setItem(currentPage===\'moodboard\'?\'mb_mood\':\'pb_mood\',b.dataset.m);
-    renderMoodChips();renderMoodChipsSheet();renderGrid();closeMenu();
+  $('moodChipsSheet').innerHTML = S().moods.map(m =>
+    `<button class="mchip ${m===S().currentMood?'active':''}" data-m="${m}">${m}</button>`
+  ).join('');
+  document.querySelectorAll('#moodChipsSheet .mchip').forEach(b => b.onclick = () => {
+    S().currentMood = b.dataset.m;
+    localStorage.setItem(currentPage==='moodboard'?'mb_mood':'pb_mood', b.dataset.m);
+    renderMoodChips(); renderMoodChipsSheet(); renderGrid(); closeMenu();
   });
 }
 
-// ── Grid ──────────────────────────────────────────────────
-let _observer=null;
 function renderGrid(){
-  const s=S();
-  let arr=s.items.filter(i=>s.currentMood===\'All\'||i.mood===s.currentMood);
-  arr=[...arr].sort(()=>Math.random()-.5);
-  s.currentItems=arr;
-
-  if(_observer){_observer.disconnect();_observer=null;}
-
-  gridEl.innerHTML=arr.map(it=>`
+  const s = S();
+  let arr = s.items.filter(i => s.currentMood==='All' || i.mood===s.currentMood);
+  arr = [...arr].sort(() => Math.random()-.5);
+  s.currentItems = arr;
+  if(_observer){ _observer.disconnect(); _observer=null; }
+  gridEl.innerHTML = arr.map(it => `
     <div class="cell" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
-      <span class="cell-mood-badge" data-id="${it.id}">${it.mood||\'\'}</span>
-      ${it.media_type===\'video\'
-        ?`<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
-        :`<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
-    </div>`).join(\'\');
+      <span class="cell-mood-badge">${it.mood||''}</span>
+      ${it.media_type==='video'
+        ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
+        : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
+    </div>`).join('');
 
-  _observer=new IntersectionObserver(es=>es.forEach(e=>{
-    const v=e.target.querySelector(\'video\');if(!v)return;
-    if(e.isIntersecting){v.muted=true;v.play().catch(()=>{})}
-    else{v.pause();v.currentTime=0;}
-  }),{threshold:0.25,rootMargin:\'100px\'});
+  _observer = new IntersectionObserver(entries => entries.forEach(e => {
+    const v = e.target.querySelector('video'); if(!v) return;
+    if(e.isIntersecting){ v.muted=true; v.play().catch(()=>{}); }
+    else { v.pause(); v.currentTime=0; }
+  }), { threshold:0.25, rootMargin:'100px' });
 
-  gridEl.querySelectorAll(\'.cell\').forEach(c=>{
+  gridEl.querySelectorAll('.cell').forEach(c => {
     _observer.observe(c);
-    const chk=c.querySelector(\'.selcheck\');
-    c.onclick=()=>{
+    const chk = c.querySelector('.selcheck');
+    c.onclick = () => {
       if(selMode){
-        chk.checked=!chk.checked;
-        const id=c.dataset.id;
-        chk.checked?selectedIds.add(id):selectedIds.delete(id);
-        c.classList.toggle(\'sel-highlight\',chk.checked);
+        chk.checked = !chk.checked;
+        const id = c.dataset.id;
+        chk.checked ? selectedIds.add(id) : selectedIds.delete(id);
+        c.classList.toggle('sel-highlight', chk.checked);
         updateActionBarCount();
-        if(selMode===\'assign\')updateDimming();
+        if(selMode==='assign') updateDimming();
         return;
       }
-      const idx=S().currentItems.findIndex(x=>x.id===c.dataset.id);
+      const idx = S().currentItems.findIndex(x => x.id===c.dataset.id);
       openLightbox(idx);
     };
-    c.oncontextmenu=e=>{e.preventDefault();if(!selMode)openEditor(c.dataset.id)};
-    if(selMode===\'assign\'||selMode===\'remove\') c.querySelector(\'.cell-mood-badge\').classList.add(\'show\');
+    c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
+    if(selMode==='assign'||selMode==='remove') c.querySelector('.cell-mood-badge').classList.add('show');
     if(selMode){
-      chk.classList.add(\'visible\');
-      if(selectedIds.has(c.dataset.id)){chk.checked=true;c.classList.add(\'sel-highlight\');}
+      chk.classList.add('visible');
+      if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); }
     }
   });
 }
 
-function updateActionBarCount(){ actionBarCount.textContent=selectedIds.size+\' ausgew\\u00e4hlt\'; }
+function updateActionBarCount(){ actionBarCount.textContent = selectedIds.size + ' ausgewählt'; }
 function updateDimming(){
-  if(!assignMoods.size){gridEl.querySelectorAll(\'.cell\').forEach(c=>c.classList.remove(\'mood-dim\'));return;}
-  gridEl.querySelectorAll(\'.cell\').forEach(c=>{
-    const it=S().items.find(x=>x.id===c.dataset.id);if(!it)return;
-    c.classList.toggle(\'mood-dim\',assignMoods.has(it.mood)&&!selectedIds.has(it.id));
+  if(!assignMoods.size){ gridEl.querySelectorAll('.cell').forEach(c=>c.classList.remove('mood-dim')); return; }
+  gridEl.querySelectorAll('.cell').forEach(c => {
+    const it = S().items.find(x=>x.id===c.dataset.id); if(!it) return;
+    c.classList.toggle('mood-dim', assignMoods.has(it.mood) && !selectedIds.has(it.id));
   });
 }
 
-// ── Selection Modes ───────────────────────────────────────
 function enterSelMode(mode){
-  selMode=mode;selectedIds.clear();assignMoods.clear();closeMenu();
-  actionBarTitle.textContent=mode===\'assign\'?\'Mood zuweisen / \\u00e4ndern\':mode===\'remove\'?\'Moods entfernen\':\'Bilder l\\u00f6schen\';
-  document.getElementById(\'abConfirm\').classList.toggle(\'hidden\',mode!==\'assign\');
-  document.getElementById(\'abRemove\').classList.toggle(\'hidden\',mode!==\'remove\');
-  if(mode===\'assign\'){
-    actionBarMoods.innerHTML=S().moods.filter(m=>m!==\'All\').map(m=>
-      `<button class="ab-chip" data-m="${m}">${m}</button>`).join(\'\');
-    actionBarMoods.querySelectorAll(\'.ab-chip\').forEach(b=>b.onclick=()=>{
-      b.classList.toggle(\'sel\');
-      b.classList.contains(\'sel\')?assignMoods.add(b.dataset.m):assignMoods.delete(b.dataset.m);
+  selMode=mode; selectedIds.clear(); assignMoods.clear(); closeMenu();
+  actionBarTitle.textContent = mode==='assign' ? 'Mood zuweisen / ändern' : mode==='remove' ? 'Moods entfernen' : 'Bilder löschen';
+  $('abConfirm').classList.toggle('hidden', mode!=='assign');
+  $('abRemove').classList.toggle('hidden', mode!=='remove');
+  if(mode==='assign'){
+    actionBarMoods.innerHTML = S().moods.filter(m=>m!=='All').map(m =>
+      `<button class="ab-chip" data-m="${m}">${m}</button>`).join('');
+    actionBarMoods.querySelectorAll('.ab-chip').forEach(b => b.onclick = () => {
+      b.classList.toggle('sel');
+      b.classList.contains('sel') ? assignMoods.add(b.dataset.m) : assignMoods.delete(b.dataset.m);
       updateDimming();
     });
-  } else { actionBarMoods.innerHTML=\'\'; }
-  actionBar.classList.add(\'show\');
-  renderGrid();updateActionBarCount();
+  } else { actionBarMoods.innerHTML=''; }
+  actionBar.classList.add('show');
+  renderGrid(); updateActionBarCount();
 }
 function exitSelMode(){
-  selMode=null;selectedIds.clear();assignMoods.clear();
-  actionBar.classList.remove(\'show\');renderGrid();
+  selMode=null; selectedIds.clear(); assignMoods.clear();
+  actionBar.classList.remove('show'); renderGrid();
 }
-
-document.getElementById(\'abCancel\').onclick=()=>{document.getElementById(\'deleteFloatingBtn\')?.remove();exitSelMode()};
-document.getElementById(\'abConfirm\').onclick=async()=>{
-  if(!selectedIds.size){toast(\'Nichts ausgew\\u00e4hlt\');return;}
-  if(!assignMoods.size){toast(\'Keine Mood ausgew\\u00e4hlt\');return;}
-  const mood=[...assignMoods][0];const ids=[...selectedIds];
-  ids.forEach(id=>{const it=S().items.find(x=>x.id===id);if(it)it.mood=mood;});
-  await Promise.all(ids.map(id=>sbUpdate(S().items.find(x=>x.id===id))));
-  toast(`${ids.length} Bilder \\u2192 ${mood}`);exitSelMode();
+$('abCancel').onclick = () => { $('deleteFloatingBtn')?.remove(); exitSelMode(); };
+$('abConfirm').onclick = async () => {
+  if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
+  if(!assignMoods.size){ toast('Keine Mood ausgewählt'); return; }
+  const mood = [...assignMoods][0];
+  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.mood=mood; });
+  await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x=>x.id===id))));
+  toast(`${selectedIds.size} Bilder → ${mood}`); exitSelMode();
 };
-document.getElementById(\'abRemove\').onclick=async()=>{
-  if(!selectedIds.size){toast(\'Nichts ausgew\\u00e4hlt\');return;}
-  const ids=[...selectedIds];
-  ids.forEach(id=>{const it=S().items.find(x=>x.id===id);if(it)it.mood=null;});
-  await Promise.all(ids.map(id=>sbUpdate(S().items.find(x=>x.id===id))));
-  toast(`${ids.length} Moods entfernt`);exitSelMode();
+$('abRemove').onclick = async () => {
+  if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
+  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.mood=null; });
+  await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x=>x.id===id))));
+  toast(`${selectedIds.size} Moods entfernt`); exitSelMode();
 };
+$('assignMoodBtn').onclick = () => enterSelMode('assign');
+$('removeMoodBtn').onclick = () => enterSelMode('remove');
+$('assignMoodBtnSheet').onclick = () => enterSelMode('assign');
+$('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
 
-// desktop
-document.getElementById(\'assignMoodBtn\').onclick=()=>enterSelMode(\'assign\');
-document.getElementById(\'removeMoodBtn\').onclick=()=>enterSelMode(\'remove\');
-// sheet
-document.getElementById(\'assignMoodBtnSheet\').onclick=()=>enterSelMode(\'assign\');
-document.getElementById(\'removeMoodBtnSheet\').onclick=()=>enterSelMode(\'remove\');
-
-// ── Lightbox ──────────────────────────────────────────────
 function openLightbox(idx){
-  if(idx<0||idx>=S().currentItems.length)return;
-  lbIndex=idx;
-  const it=S().currentItems[idx];
-  lbInner.querySelectorAll(\'img,video\').forEach(e=>e.remove());
-  lbMuteBtn.classList.remove(\'show\');
-  if(it.media_type===\'video\'){
-    const v=document.createElement(\'video\');
-    v.src=it.media_url;v.controls=true;v.autoplay=true;v.muted=false;v.loop=true;
+  if(idx<0 || idx>=S().currentItems.length) return;
+  lbIndex = idx;
+  const it = S().currentItems[idx];
+  lbInner.querySelectorAll('img,video').forEach(e=>e.remove());
+  lbMuteBtn.classList.remove('show');
+  if(it.media_type==='video'){
+    const v = document.createElement('video');
+    v.src=it.media_url; v.controls=true; v.autoplay=true; v.muted=false; v.loop=true;
     lbInner.appendChild(v);
-    lbIsMuted=false;
-    lbMuteBtn.textContent=\'\\uD83D\\uDD0A\';
-    lbMuteBtn.classList.add(\'show\');
+    lbIsMuted=false; lbMuteBtn.innerHTML='🔊'; lbMuteBtn.classList.add('show');
   } else {
-    const img=document.createElement(\'img\');
-    img.src=it.media_url;img.style.pointerEvents=\'none\';
+    const img = document.createElement('img');
+    img.src=it.media_url; img.style.pointerEvents='none';
     lbInner.appendChild(img);
   }
-  lightbox.classList.add(\'show\');
-  lbMoodBtn.classList.add(\'show\');
-  closeLbMoodPicker();updateLbArrows();
+  lightbox.classList.add('show'); lbMoodBtn.classList.add('show');
+  closeLbMoodPicker(); updateLbArrows();
 }
 function updateLbArrows(){
-  document.getElementById(\'lbPrev\').style.opacity=lbIndex>0?\'1\':\'0.2\';
-  document.getElementById(\'lbNext\').style.opacity=lbIndex<S().currentItems.length-1?\'1\':\'0.2\';
+  $('lbPrev').style.opacity = lbIndex>0 ? '1' : '0.2';
+  $('lbNext').style.opacity = lbIndex<S().currentItems.length-1 ? '1' : '0.2';
 }
 function lbNavigate(dir){
   const next=lbIndex+dir;
-  if(next<0||next>=S().currentItems.length)return;
-  lbInner.querySelectorAll(\'video\').forEach(v=>v.pause());
-  closeLbMoodPicker();openLightbox(next);
+  if(next<0 || next>=S().currentItems.length) return;
+  lbInner.querySelectorAll('video').forEach(v=>v.pause());
+  closeLbMoodPicker(); openLightbox(next);
 }
-document.getElementById(\'lbPrev\').onclick=e=>{e.stopPropagation();lbNavigate(-1)};
-document.getElementById(\'lbNext\').onclick=e=>{e.stopPropagation();lbNavigate(1)};
-
-lightbox.onclick=e=>{
-  if(lbMoodPicker.classList.contains(\'show\')){closeLbMoodPicker();return;}
-  if(!e.target.closest(\'.lb-arrow\')&&!e.target.closest(\'#lbMoodBtn\')&&!e.target.closest(\'#lbMuteBtn\')&&!e.target.closest(\'video\')){
-    closeLb();
-  }
+$('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1); };
+$('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1); };
+lightbox.onclick = e => {
+  if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); return; }
+  if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMoodBtn') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
 };
 function closeLb(){
-  lightbox.classList.remove(\'show\');
-  lbMoodBtn.classList.remove(\'show\');
-  lbMuteBtn.classList.remove(\'show\');
-  closeLbMoodPicker();
-  lbInner.querySelectorAll(\'video\').forEach(v=>v.pause());
+  lightbox.classList.remove('show'); lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show');
+  closeLbMoodPicker(); lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
-
-// Mute toggle
-lbMuteBtn.onclick=e=>{
+lbMuteBtn.onclick = e => {
   e.stopPropagation();
-  const v=lbInner.querySelector(\'video\');if(!v)return;
-  lbIsMuted=!lbIsMuted;
-  v.muted=lbIsMuted;
-  lbMuteBtn.textContent=lbIsMuted?\'\\uD83D\\uDD07\':\'\\uD83D\\uDD0A\';
+  const v = lbInner.querySelector('video'); if(!v) return;
+  lbIsMuted = !lbIsMuted; v.muted = lbIsMuted;
+  lbMuteBtn.innerHTML = lbIsMuted ? '🔇' : '🔊';
 };
 
-// Swipe
-let txS=0,tyS=0;
-lightbox.addEventListener(\'touchstart\',e=>{txS=e.touches[0].clientX;tyS=e.touches[0].clientY;},{passive:true});
-lightbox.addEventListener(\'touchend\',e=>{
-  const dx=e.changedTouches[0].clientX-txS,dy=e.changedTouches[0].clientY-tyS;
-  if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40)lbNavigate(dx<0?1:-1);
-},{passive:true});
+let txS=0, tyS=0;
+lightbox.addEventListener('touchstart', e=>{ txS=e.touches[0].clientX; tyS=e.touches[0].clientY; }, {passive:true});
+lightbox.addEventListener('touchend', e=>{
+  const dx=e.changedTouches[0].clientX-txS, dy=e.changedTouches[0].clientY-tyS;
+  if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>40) lbNavigate(dx<0?1:-1);
+}, {passive:true});
 
-// ── Lightbox Mood Picker ──────────────────────────────────
 function openLbMoodPicker(){
-  const it=S().currentItems[lbIndex];if(!it)return;
-  lbPickedMoods=new Set(it.mood&&it.mood!==\'All\'?[it.mood]:[]);
-  lbCurrentMood.textContent=it.mood&&it.mood!==\'All\'?`Aktuell: ${it.mood}`:`Noch keine Mood`;
-  renderLbMoodTiles();lbMoodPicker.classList.add(\'show\');
+  const it=S().currentItems[lbIndex]; if(!it) return;
+  lbPickedMoods = new Set(it.mood && it.mood!=='All' ? [it.mood] : []);
+  lbCurrentMood.textContent = it.mood && it.mood!=='All' ? 'Aktuell: '+it.mood : 'Noch keine Mood';
+  renderLbMoodTiles(); lbMoodPicker.classList.add('show');
 }
 function renderLbMoodTiles(){
-  lbMoodTiles.innerHTML=S().moods.filter(m=>m!==\'All\').map(m=>
-    `<button class="lb-mood-tile ${lbPickedMoods.has(m)?\'sel\':\'\'}" data-m="${m}">${m}</button>`).join(\'\');
-  lbMoodTiles.querySelectorAll(\'.lb-mood-tile\').forEach(b=>{
-    b.onclick=e=>{
-      e.stopPropagation();
-      lbPickedMoods.has(b.dataset.m)?lbPickedMoods.delete(b.dataset.m):lbPickedMoods.add(b.dataset.m);
-      b.classList.toggle(\'sel\',lbPickedMoods.has(b.dataset.m));
-    };
+  lbMoodTiles.innerHTML = S().moods.filter(m=>m!=='All').map(m =>
+    `<button class="lb-mood-tile ${lbPickedMoods.has(m)?'sel':''}" data-m="${m}">${m}</button>`).join('');
+  lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    lbPickedMoods.has(b.dataset.m) ? lbPickedMoods.delete(b.dataset.m) : lbPickedMoods.add(b.dataset.m);
+    b.classList.toggle('sel', lbPickedMoods.has(b.dataset.m));
   });
 }
-function closeLbMoodPicker(){ lbMoodPicker.classList.remove(\'show\');lbPickedMoods=new Set(); }
-lbMoodBtn.onclick=e=>{ e.stopPropagation(); lbMoodPicker.classList.contains(\'show\')?closeLbMoodPicker():openLbMoodPicker(); };
-document.getElementById(\'lbMoodConfirm\').onclick=async e=>{
+function closeLbMoodPicker(){ lbMoodPicker.classList.remove('show'); lbPickedMoods=new Set(); }
+lbMoodBtn.onclick = e => { e.stopPropagation(); lbMoodPicker.classList.contains('show') ? closeLbMoodPicker() : openLbMoodPicker(); };
+$('lbMoodConfirm').onclick = async e => {
   e.stopPropagation();
-  if(!lbPickedMoods.size){toast(\'Keine Mood ausgew\\u00e4hlt\');return;}
+  if(!lbPickedMoods.size){ toast('Keine Mood ausgewählt'); return; }
   const mood=[...lbPickedMoods][0];
-  const it=S().currentItems[lbIndex];if(!it)return;
+  const it=S().currentItems[lbIndex]; if(!it) return;
   it.mood=mood;
-  const orig=S().items.find(x=>x.id===it.id);if(orig)orig.mood=mood;
-  await sbUpdate(it);toast(`Mood \\u2192 ${mood}`);closeLbMoodPicker();
+  const orig=S().items.find(x=>x.id===it.id); if(orig) orig.mood=mood;
+  await sbUpdate(it); toast('Mood → '+mood); closeLbMoodPicker();
 };
-document.addEventListener(\'click\',e=>{
-  if(lbMoodPicker.classList.contains(\'show\')&&!e.target.closest(\'#lbMoodPicker\')&&!e.target.closest(\'#lbMoodBtn\'))closeLbMoodPicker();
+document.addEventListener('click', e => {
+  if(lbMoodPicker.classList.contains('show') && !e.target.closest('#lbMoodPicker') && !e.target.closest('#lbMoodBtn')) closeLbMoodPicker();
 });
 
-// ── Keyboard ──────────────────────────────────────────────
-document.addEventListener(\'keydown\',e=>{
-  if(lightbox.classList.contains(\'show\')){
-    if(e.key===\'ArrowLeft\')lbNavigate(-1);
-    else if(e.key===\'ArrowRight\')lbNavigate(1);
-    else if(e.key===\'Escape\'){ if(lbMoodPicker.classList.contains(\'show\'))closeLbMoodPicker(); else closeLb(); }
+document.addEventListener('keydown', e => {
+  if(lightbox.classList.contains('show')){
+    if(e.key==='ArrowLeft') lbNavigate(-1);
+    else if(e.key==='ArrowRight') lbNavigate(1);
+    else if(e.key==='Escape'){ if(lbMoodPicker.classList.contains('show')) closeLbMoodPicker(); else closeLb(); }
     return;
   }
-  if(e.key===\'Escape\'){ if(selMode)exitSelMode(); else closeMenu(); }
+  if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
 });
 
-// ── Upload ────────────────────────────────────────────────
-document.getElementById(\'shuffleBtn\').onclick=()=>renderGrid();
-document.getElementById(\'uploadBtn\').onclick=()=>{fileInput.click();closeMenu()};
-document.getElementById(\'uploadBtnSheet\').onclick=()=>{fileInput.click();closeMenu()};
-fileInput.onchange=e=>upload(e.target.files);
+$('shuffleBtn').onclick = () => renderGrid();
+$('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
+$('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
+fileInput.onchange = e => upload(e.target.files);
 
 async function upload(files){
-  const arr=Array.from(files);
-  for(let i=0;i<arr.length;i++){
-    prog(Math.round(i/arr.length*90));toast(`Upload ${i+1}/${arr.length}\\u2026`);
-    const f=arr[i];const cf=await compress(f);
-    const ext=cf.name.split(\'.\').pop().toLowerCase();
+  const arr = Array.from(files);
+  for(let i=0; i<arr.length; i++){
+    prog(Math.round(i/arr.length*90)); toast(`Upload ${i+1}/${arr.length}…`);
+    const f=arr[i]; const cf=await compress(f);
+    const ext=cf.name.split('.').pop().toLowerCase();
     const path=`${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}.${ext}`;
-    const {error:e1}=await sb.storage.from(BUCKET).upload(path,cf,{upsert:false,contentType:cf.type});
-    if(e1){toast(\'Upload-Fehler: \'+e1.message);continue}
-    const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(path);
-    const item={title:f.name.replace(/[.][^.]+$/,\'\'),mood:null,tags:[],media_url:pub.publicUrl,media_type:isVid(f.name)?\'video\':\'image\',favorite:false};
-    const {data:ins,error:e2}=await sb.from(S().table).insert(item).select().single();
-    if(e2){toast(\'DB-Fehler: \'+e2.message);continue}
-    S().items.unshift({...item,id:ins.id});renderGrid();
+    const {error:e1} = await sb.storage.from(BUCKET).upload(path, cf, {upsert:false, contentType:cf.type});
+    if(e1){ toast('Upload-Fehler: '+e1.message); continue; }
+    const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
+    const item = { title:f.name.replace(/\.[^.]+$/,''), mood:null, tags:[], media_url:pub.publicUrl, media_type:isVid(f.name)?'video':'image', favorite:false };
+    const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
+    if(e2){ toast('DB-Fehler: '+e2.message); continue; }
+    S().items.unshift({...item, id:ins.id}); renderGrid();
   }
-  prog(100);toast(\'Fertig \\u2713\');fileInput.value=\'\';
+  prog(100); toast('Fertig ✓'); fileInput.value='';
 }
 
-// ── Delete Mode ───────────────────────────────────────────
 function startDeleteMode(){
-  closeMenu();selMode=\'delete\';selectedIds.clear();
-  actionBarTitle.textContent=\'Bilder l\\u00f6schen\';
-  document.getElementById(\'abConfirm\').classList.add(\'hidden\');
-  document.getElementById(\'abRemove\').classList.add(\'hidden\');
-  actionBarMoods.innerHTML=\'\';
-  actionBar.classList.add(\'show\');renderGrid();updateActionBarCount();
-  document.getElementById(\'deleteFloatingBtn\')?.remove();
-  const btn=document.createElement(\'button\');
-  btn.id=\'deleteFloatingBtn\';btn.textContent=\'\\uD83D\\uDDD1\';
-  btn.style.cssText=\'position:fixed;left:20px;bottom:100px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,60,60,.2);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)\';
-  btn.onclick=async()=>{
-    if(!selectedIds.size){toast(\'Nichts ausgew\\u00e4hlt\');return;}
-    if(!confirm(selectedIds.size+\' Bilder l\\u00f6schen?\'))return;
+  closeMenu(); selMode='delete'; selectedIds.clear();
+  actionBarTitle.textContent='Bilder löschen';
+  $('abConfirm').classList.add('hidden'); $('abRemove').classList.add('hidden');
+  actionBarMoods.innerHTML='';
+  actionBar.classList.add('show'); renderGrid(); updateActionBarCount();
+  $('deleteFloatingBtn')?.remove();
+  const btn = document.createElement('button');
+  btn.id='deleteFloatingBtn'; btn.innerHTML='🗑';
+  btn.style.cssText='position:fixed;left:20px;bottom:100px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,60,60,.2);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)';
+  btn.onclick = async () => {
+    if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
+    if(!confirm(selectedIds.size+' Bilder löschen?')) return;
     await sbDeleteMany([...selectedIds]);
-    S().items=S().items.filter(i=>!selectedIds.has(i.id));
-    toast(\'Gel\\u00f6scht\');btn.remove();exitSelMode();
+    S().items = S().items.filter(i=>!selectedIds.has(i.id));
+    toast('Gelöscht'); btn.remove(); exitSelMode();
   };
   document.body.appendChild(btn);
 }
-document.getElementById(\'pickDeleteBtn\').onclick=startDeleteMode;
-document.getElementById(\'pickDeleteBtnSheet\').onclick=startDeleteMode;
+$('pickDeleteBtn').onclick = startDeleteMode;
+$('pickDeleteBtnSheet').onclick = startDeleteMode;
 
-// ── Editor ────────────────────────────────────────────────
 function openEditor(id){
-  editId=id;const it=S().items.find(x=>x.id===id);if(!it)return;
-  document.getElementById(\'editorTitle\').textContent=it.title||\'Item\';
-  document.getElementById(\'tagInput\').value=(it.tags||[]).join(\', \');
-  editorWrap.classList.add(\'show\');renderTagChips();dropdown.classList.add(\'show\');
+  editId=id; const it=S().items.find(x=>x.id===id); if(!it) return;
+  $('editorTitle').textContent = it.title||'Item';
+  $('tagInput').value = (it.tags||[]).join(', ');
+  editorWrap.classList.add('show'); renderTagChips(); dropdown.classList.add('show');
 }
 function renderTagChips(){
-  const it=S().items.find(x=>x.id===editId);
-  document.getElementById(\'tagChips\').innerHTML=S().moods.filter(m=>m!==\'All\').map(m=>
-    `<button class="tchip ${it&&it.mood===m?\'active\':\'\'}" data-m="${m}">${m}</button>`).join(\'\');
-  document.querySelectorAll(\'.tchip\').forEach(b=>b.onclick=()=>{
-    const it=S().items.find(x=>x.id===editId);if(!it)return;
-    it.mood=b.dataset.m;sbUpdate(it);renderGrid();renderTagChips();
+  const it = S().items.find(x=>x.id===editId);
+  $('tagChips').innerHTML = S().moods.filter(m=>m!=='All').map(m =>
+    `<button class="tchip ${it&&it.mood===m?'active':''}" data-m="${m}">${m}</button>`).join('');
+  document.querySelectorAll('.tchip').forEach(b => b.onclick = () => {
+    const it=S().items.find(x=>x.id===editId); if(!it) return;
+    it.mood=b.dataset.m; sbUpdate(it); renderGrid(); renderTagChips();
   });
 }
-document.getElementById(\'saveTagsBtn\').onclick=()=>{
-  const it=S().items.find(x=>x.id===editId);if(!it)return;
-  it.tags=document.getElementById(\'tagInput\').value.split(\',\').map(s=>s.trim()).filter(Boolean);
-  sbUpdate(it);renderGrid();toast(\'Tags gespeichert\');
+$('saveTagsBtn').onclick = () => {
+  const it=S().items.find(x=>x.id===editId); if(!it) return;
+  it.tags = $('tagInput').value.split(',').map(s=>s.trim()).filter(Boolean);
+  sbUpdate(it); renderGrid(); toast('Tags gespeichert');
 };
 
-// ── Supabase ──────────────────────────────────────────────
 async function loadItems(){
-  const {data,error}=await sb.from(S().table)
-    .select(\'id,title,mood,tags,media_url,media_type,favorite\')
-    .order(\'created_at\',{ascending:false});
-  if(error){toast(\'Ladefehler: \'+error.message);gridEl.innerHTML=\'<div style="padding:24px;color:#fff">Kein Datenzugriff</div>\';return}
-  S().items=data||[];renderGrid();document.getElementById(\'bootMsg\')?.remove();
+  const {data,error} = await sb.from(S().table)
+    .select('id,title,mood,tags,media_url,media_type,favorite')
+    .order('created_at',{ascending:false});
+  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
+  S().items=data||[]; renderGrid(); $('bootMsg')?.remove();
 }
 async function sbUpdate(item){
-  if(!item)return;
-  await sb.from(S().table).update({title:item.title||\'\',mood:item.mood||null,tags:item.tags||[],media_url:item.media_url,media_type:item.media_type,favorite:false}).eq(\'id\',item.id);
+  if(!item) return;
+  await sb.from(S().table).update({title:item.title||'', mood:item.mood||null, tags:item.tags||[], media_url:item.media_url, media_type:item.media_type, favorite:false}).eq('id',item.id);
 }
 async function sbDeleteMany(ids){
-  if(!ids.length)return;
-  await sb.from(S().table).delete().in(\'id\',ids);
+  if(!ids.length) return;
+  await sb.from(S().table).delete().in('id',ids);
 }
 
-// ── Mood Verwaltung (helper) ──────────────────────────────
-function getMoodInputs(suffix=\'\'){
-  return {
-    newVal:()=>document.getElementById(\'newMood\'+suffix).value.trim(),
-    clearNew:()=>{document.getElementById(\'newMood\'+suffix).value=\'\'},
-    renameVal:()=>document.getElementById(\'renameMood\'+suffix).value.trim(),
-    clearRename:()=>{document.getElementById(\'renameMood\'+suffix).value=\'\'},
-    deleteVal:()=>document.getElementById(\'deleteMood\'+suffix).value.trim(),
-    clearDelete:()=>{document.getElementById(\'deleteMood\'+suffix).value=\'\'},
+function bindMoodMgmt(suffix){
+  const g = k => $(k+suffix);
+  g('addMoodBtn').onclick = () => {
+    const v=g('newMood').value.trim(); if(!v||S().moods.includes(v)) return;
+    S().moods.push(v); S().currentMood=v; g('newMood').value='';
+    renderMoodChips(); renderMoodChipsSheet(); renderGrid(); toast('Mood hinzugefügt'); closeMenu();
   };
-}
-function bindMoodMgmt(suffix=\'\'){
-  document.getElementById(\'addMoodBtn\'+suffix).onclick=()=>{
-    const i=getMoodInputs(suffix);const v=i.newVal();
-    if(!v||S().moods.includes(v))return;
-    S().moods.push(v);S().currentMood=v;i.clearNew();
-    renderMoodChips();renderMoodChipsSheet();renderGrid();toast(\'Mood hinzugef\\u00fcgt\');closeMenu();
-  };
-  document.getElementById(\'renameMoodBtn\'+suffix).onclick=()=>{
-    const i=getMoodInputs(suffix);const v=i.renameVal();
-    if(!v||S().currentMood===\'All\'||S().moods.includes(v))return;
+  g('renameMoodBtn').onclick = () => {
+    const v=g('renameMood').value.trim();
+    if(!v||S().currentMood==='All'||S().moods.includes(v)) return;
     const old=S().currentMood;
     S().moods=S().moods.map(m=>m===old?v:m);
-    S().items=S().items.map(it=>({...it,mood:it.mood===old?v:it.mood}));
-    S().currentMood=v;i.clearRename();
-    S().items.forEach(sbUpdate);renderMoodChips();renderMoodChipsSheet();renderGrid();toast(\'Mood umbenannt\');
+    S().items=S().items.map(it=>({...it, mood:it.mood===old?v:it.mood}));
+    S().currentMood=v; g('renameMood').value='';
+    S().items.forEach(sbUpdate); renderMoodChips(); renderMoodChipsSheet(); renderGrid(); toast('Mood umbenannt');
   };
-  document.getElementById(\'deleteMoodBtn\'+suffix).onclick=()=>{
-    const i=getMoodInputs(suffix);const v=i.deleteVal();
-    if(!v||v===\'All\'||!S().moods.includes(v))return;
+  g('deleteMoodBtn').onclick = () => {
+    const v=g('deleteMood').value.trim(); if(!v||v==='All'||!S().moods.includes(v)) return;
     S().moods=S().moods.filter(m=>m!==v);
-    S().items=S().items.map(it=>({...it,mood:it.mood===v?null:it.mood}));
-    if(S().currentMood===v)S().currentMood=\'All\';
-    i.clearDelete();
-    S().items.forEach(sbUpdate);renderMoodChips();renderMoodChipsSheet();renderGrid();toast(\'Mood gel\\u00f6scht\');closeMenu();
+    S().items=S().items.map(it=>({...it, mood:it.mood===v?null:it.mood}));
+    if(S().currentMood===v) S().currentMood='All';
+    g('deleteMood').value='';
+    S().items.forEach(sbUpdate); renderMoodChips(); renderMoodChipsSheet(); renderGrid(); toast('Mood gelöscht'); closeMenu();
   };
 }
-bindMoodMgmt(\'\');
-bindMoodMgmt(\'Sheet\');
+bindMoodMgmt('');
+bindMoodMgmt('Sheet');
 
-// ── Drag & Drop ───────────────────────────────────────────
-gridWrap.addEventListener(\'dragover\',e=>{e.preventDefault();gridWrap.classList.add(\'dragover\')});
-gridWrap.addEventListener(\'dragleave\',()=>gridWrap.classList.remove(\'dragover\'));
-gridWrap.addEventListener(\'drop\',e=>{e.preventDefault();gridWrap.classList.remove(\'dragover\');upload(e.dataTransfer.files)});
+gridWrap.addEventListener('dragover', e=>{ e.preventDefault(); gridWrap.classList.add('dragover'); });
+gridWrap.addEventListener('dragleave', ()=>gridWrap.classList.remove('dragover'));
+gridWrap.addEventListener('drop', e=>{ e.preventDefault(); gridWrap.classList.remove('dragover'); upload(e.dataTransfer.files); });
 
-// ── Init ──────────────────────────────────────────────────
 renderMoodChips();
 loadItems();
 </script>
 </body>
-</html>'''
-
+</html>
