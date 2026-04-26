@@ -445,7 +445,7 @@ function compress(file, maxPx=MAX_PX, q=0.88){
   });
 }
 function openMenu(){
-  if(isMobile()){ renderMoodChipsSheet(); bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); }
+  if(window.innerWidth<=600){ bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); }
   else dropdown.classList.toggle('show');
 }
 function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); }
@@ -464,26 +464,8 @@ function switchPage(page){
 $('boardTitle').onclick = () => { if(currentPage!=='moodboard') switchPage('moodboard'); else renderGrid(); };
 $('navPersonal').onclick = () => { if(currentPage!=='personal') switchPage('personal'); else renderGrid(); };
 
-function renderMoodChips(){
-  $('moodChips').innerHTML = S().moods.map(m =>
-    `<button class="mchip ${m===S().currentMood?'active':''}" data-m="${m}">${m}</button>`
-  ).join('');
-  document.querySelectorAll('#moodChips .mchip').forEach(b => b.onclick = () => {
-    S().currentMood = b.dataset.m;
-    localStorage.setItem(currentPage==='moodboard'?'mb_mood':'pb_mood', b.dataset.m);
-    renderMoodChips(); renderMoodChipsSheet(); renderGrid();
-  });
-}
-function renderMoodChipsSheet(){
-  $('moodChipsSheet').innerHTML = S().moods.map(m =>
-    `<button class="mchip ${m===S().currentMood?'active':''}" data-m="${m}">${m}</button>`
-  ).join('');
-  document.querySelectorAll('#moodChipsSheet .mchip').forEach(b => b.onclick = () => {
-    S().currentMood = b.dataset.m;
-    localStorage.setItem(currentPage==='moodboard'?'mb_mood':'pb_mood', b.dataset.m);
-    renderMoodChips(); renderMoodChipsSheet(); renderGrid(); closeMenu();
-  });
-}
+function renderMoodChips(){}
+function renderMoodChipsSheet(){}
 
 function renderGrid(){
   const s = S();
