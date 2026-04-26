@@ -141,12 +141,12 @@ button,input{font:inherit}
 .fp-grid-btn.sel{background:#fff;color:#111;border-color:#fff}
 
 /* ── Sprite Walker ─────────────────────────────────────── */
-.topbar{ overflow: hidden; }
+/* topbar overflow removed to allow sprite canvas */
 #spriteCanvas{
   position:fixed;
   left:0; top:0;
   pointer-events:none;
-  z-index:6;
+  z-index:31;
   image-rendering:pixelated;
   image-rendering:crisp-edges;
   display:block;
