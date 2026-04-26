@@ -333,10 +333,13 @@ function saveFilterState(){
 // ── Apply grid cols ────────────────────────────────────────
 function applyGridCols(cols){
   gridCols = cols;
-  const minPx = cols === 1 ? '100%' : cols === 2 ? '160px' : cols === 3 ? '110px' : '80px';
-  document.getElementById('grid').style.gridTemplateColumns =
-    cols === 1 ? '1fr' : `repeat(${cols}, 1fr)`;
-  // update button states
+  // Only apply custom cols on mobile; desktop uses CSS auto-fill
+  if(window.innerWidth <= 600){
+    document.getElementById('grid').style.gridTemplateColumns =
+      cols === 1 ? '1fr' : `repeat(${cols}, 1fr)`;
+  } else {
+    document.getElementById('grid').style.gridTemplateColumns = '';
+  }
   document.querySelectorAll('.fp-grid-btn').forEach(b => {
     b.classList.toggle('sel', parseInt(b.dataset.cols) === cols);
   });
@@ -733,6 +736,7 @@ renderMoodChips();
 applyGridCols(gridCols);
 updateFilterBtnState();
 loadItems();
+window.addEventListener('resize', () => applyGridCols(gridCols));
 </script>
 </body>
 </html>
