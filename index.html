@@ -528,8 +528,19 @@ function switchPage(page){
 $('boardTitle').onclick = () => { if(currentPage!=='moodboard') switchPage('moodboard'); else renderGrid(); };
 $('navPersonal').onclick = () => { if(currentPage!=='personal') switchPage('personal'); else renderGrid(); };
 
-function renderMoodChips(){}
-function renderMoodChipsSheet(){}
+function renderMoodChips(){
+  const fpMoods = document.getElementById('fpMoods');
+  if(!fpMoods) return;
+  const moods = S().moods.filter(m => m !== 'All');
+  fpMoods.innerHTML = moods.map(m => `<button class="fp-chip${activeMoods.has(m) ? ' sel' : ''}" data-m="${m}">${moodIcon(m)}${m}</button>`).join('');
+  fpMoods.querySelectorAll('.fp-chip').forEach(b => b.onclick = () => {
+    const m = b.dataset.m;
+    activeMoods.has(m) ? activeMoods.delete(m) : activeMoods.add(m);
+    b.classList.toggle('sel');
+    updateFilterBtnState();
+  });
+}
+function renderMoodChipsSheet(){ renderMoodChips(); }
 
 function renderGrid(){
   const s = S();
@@ -584,7 +595,7 @@ function updateDimming(){
   if(!assignMoods.size){ gridEl.querySelectorAll('.cell').forEach(c=>c.classList.remove('mood-dim')); return; }
   gridEl.querySelectorAll('.cell').forEach(c => {
     const it = S().items.find(x=>x.id===c.dataset.id); if(!it) return;
-    c.classList.toggle('mood-dim', assignMoods.has(it.mood) && !selectedIds.has(it.id));
+    c.classList.toggle('mood-dim', Array.isArray(it.moods) && it.moods.some(m => assignMoods.has(m)) && !selectedIds.has(it.id));
   });
 }
 
@@ -657,7 +668,7 @@ $('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
     img.src=it.media_url; img.style.pointerEvents='none';
     lbInner.appendChild(img);
   }
-  lightbox.classList.add('show'); lbMoodBtn.classList.add('show');
+  lightbox.classList.add('show'); lbMoodBtn.classList.add('show'); renderLbMoodChips();
   closeLbMoodPicker();
     renderLbMoodChips(); updateLbArrows();
 }
@@ -680,7 +691,7 @@ lightbox.onclick = e => {
   if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMoodBtn') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
 };
 function closeLb(){
-  lightbox.classList.remove('show');
+  lightbox.classList.remove('show'); document.getElementById('lbMoodChips')?.classList.remove('show');
     document.getElementById('lbMoodChips').classList.remove('show'); lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show');
   closeLbMoodPicker();
     renderLbMoodChips(); lbInner.querySelectorAll('video').forEach(v=>v.pause());
