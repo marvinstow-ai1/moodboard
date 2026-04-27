@@ -151,6 +151,52 @@ button,input{font:inherit}
   image-rendering:crisp-edges;
   display:block;
 }
+
+/* ── Lightbox Mood Chips ──────────────────────────────── */
+#lbMoodChips {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 82;
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  max-width: 80vw;
+}
+#lbMoodChips.show { display: flex; }
+.lb-mood-chip {
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(16px);
+  pointer-events: none;
+  opacity: 0.55;
+  transition: .15s;
+}
+.lb-mood-chip.active {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.55);
+  opacity: 1;
+}
+
+/* ── Action Bar: already-set mood indicator ────────────── */
+.ab-chip.isset {
+  border-color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.1);
+}
+.ab-chip.isset::after {
+  content: ' ✓';
+  opacity: 0.6;
+  font-size: 11px;
+}
 </style>
 </head>
 <body>
@@ -260,6 +306,8 @@ button,input{font:inherit}
   <button class="lb-arrow prev" id="lbPrev">&#8249;</button>
   <div class="lb-inner" id="lbInner"></div>
   <button class="lb-arrow next" id="lbNext">&#8250;</button>
+<div id="lbMoodChips"></div>
+
 </div>
 
 <button class="lb-mute-btn" id="lbMuteBtn">&#128266;</button>
@@ -521,7 +569,18 @@ function renderGrid(){
   });
 }
 
-function updateActionBarCount(){ actionBarCount.textContent = selectedIds.size + ' ausgewählt'; }
+function updateActionBarCount(){
+    actionBarCount.textContent = selectedIds.size + ' ausgewählt';
+
+    document.querySelectorAll('.ab-chip').forEach(b => {
+      const m = b.dataset.m;
+      const anySet = [...selectedIds].some(id => {
+        const it = S.items.find(x => x.id === id);
+        return it && it.mood === m;
+      });
+      b.classList.toggle('isset', anySet);
+    });
+  }
 function updateDimming(){
   if(!assignMoods.size){ gridEl.querySelectorAll('.cell').forEach(c=>c.classList.remove('mood-dim')); return; }
   gridEl.querySelectorAll('.cell').forEach(c => {
@@ -570,7 +629,20 @@ $('removeMoodBtn').onclick = () => enterSelMode('remove');
 $('assignMoodBtnSheet').onclick = () => enterSelMode('assign');
 $('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
 
-function openLightbox(idx){
+
+  function renderLbMoodChips() {
+    const el = document.getElementById('lbMoodChips');
+    if (!el) return;
+    const it = S.currentItems[lbIndex];
+    const moods = S.moods.filter(m => m !== 'All');
+    if (!moods.length) { el.classList.remove('show'); return; }
+    el.innerHTML = moods.map(m =>
+      `<span class="lb-mood-chip${it && it.mood === m ? ' active' : ''}">${moodIcon(m)}${m}</span>`
+    ).join('');
+    el.classList.add('show');
+  }
+
+  function openLightbox(idx){
   if(idx<0 || idx>=S().currentItems.length) return;
   lbIndex = idx;
   const it = S().currentItems[idx];
@@ -587,7 +659,8 @@ function openLightbox(idx){
     lbInner.appendChild(img);
   }
   lightbox.classList.add('show'); lbMoodBtn.classList.add('show');
-  closeLbMoodPicker(); updateLbArrows();
+  closeLbMoodPicker();
+    renderLbMoodChips(); updateLbArrows();
 }
 function updateLbArrows(){
   $('lbPrev').style.opacity = lbIndex>0 ? '1' : '0.2';
@@ -597,17 +670,21 @@ function lbNavigate(dir){
   const next=lbIndex+dir;
   if(next<0 || next>=S().currentItems.length) return;
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
-  closeLbMoodPicker(); openLightbox(next);
+  closeLbMoodPicker();
+    renderLbMoodChips(); openLightbox(next);
 }
 $('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1); };
 $('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1); };
 lightbox.onclick = e => {
-  if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); return; }
+  if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker();
+    renderLbMoodChips(); return; }
   if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMoodBtn') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
 };
 function closeLb(){
-  lightbox.classList.remove('show'); lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show');
-  closeLbMoodPicker(); lbInner.querySelectorAll('video').forEach(v=>v.pause());
+  lightbox.classList.remove('show');
+    document.getElementById('lbMoodChips').classList.remove('show'); lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show');
+  closeLbMoodPicker();
+    renderLbMoodChips(); lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
 lbMuteBtn.onclick = e => {
   e.stopPropagation();
@@ -648,16 +725,19 @@ $('lbMoodConfirm').onclick = async e => {
   it.mood=mood;
   const orig=S().items.find(x=>x.id===it.id); if(orig) orig.mood=mood;
   await sbUpdate(it); toast('Mood → '+mood); closeLbMoodPicker();
+    renderLbMoodChips();
 };
 document.addEventListener('click', e => {
   if(lbMoodPicker.classList.contains('show') && !e.target.closest('#lbMoodPicker') && !e.target.closest('#lbMoodBtn')) closeLbMoodPicker();
+    renderLbMoodChips();
 });
 
 document.addEventListener('keydown', e => {
   if(lightbox.classList.contains('show')){
     if(e.key==='ArrowLeft') lbNavigate(-1);
     else if(e.key==='ArrowRight') lbNavigate(1);
-    else if(e.key==='Escape'){ if(lbMoodPicker.classList.contains('show')) closeLbMoodPicker(); else closeLb(); }
+    else if(e.key==='Escape'){ if(lbMoodPicker.classList.contains('show')) closeLbMoodPicker();
+    renderLbMoodChips(); else closeLb(); }
     return;
   }
   if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
