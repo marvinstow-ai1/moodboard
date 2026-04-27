@@ -63,8 +63,8 @@ button,input{font:inherit}
 .cell.mood-dim{opacity:.35;transition:opacity .2s}
 .selcheck{position:absolute;top:8px;left:8px;z-index:2;width:20px;height:20px;accent-color:#fff;opacity:0;pointer-events:none;cursor:pointer}
 .selcheck.visible{opacity:1;pointer-events:auto}
-.cell-mood-badge{position:absolute;bottom:6px;left:6px;z-index:2;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:999px;font-size:10px;color:#fff;padding:2px 8px;pointer-events:none;display:none}
-.cell-mood-badge.show{display:block}
+
+
 .action-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;padding:14px 16px 32px;background:linear-gradient(to top,rgba(0,0,0,.97) 70%,transparent);display:none;flex-direction:column;gap:10px}
 .action-bar.show{display:flex}
 .action-bar-title{font-size:11px;opacity:.5;text-transform:uppercase;letter-spacing:.08em}
@@ -481,7 +481,7 @@ function bindMgmt(suffix){
   g('deleteMoodBtn').onclick = () => {
     const v=g('deleteMood').value.trim(); if(!v||!S().moods.includes(v)) return;
     S().moods=S().moods.filter(m=>m!==v);
-    S().items.forEach(it => { if(it.mood===v) { it.mood=null; sbUpdate(it); }});
+    S().items.forEach(it => { if(it.mood===v) { it.moods=[]; sbUpdate(it); }});
     if(S().currentMood===v) S().currentMood='All';
     g('deleteMood').value=''; renderMoodChips(); renderGrid();
   };
@@ -535,7 +535,7 @@ function renderGrid(){
   const s = S();
   // Filter: if activeMoods has entries, show items matching ANY selected mood (OR)
   let arr = activeMoods.size > 0
-    ? s.items.filter(i => activeMoods.has(i.mood))
+    ? s.items.filter(i => (Array.isArray(i.moods) && i.moods.some(m => activeMoods.has(m))))
     : s.items;
   arr = [...arr].sort(() => Math.random()-.5);
   s.currentItems = arr;
@@ -543,7 +543,6 @@ function renderGrid(){
   gridEl.innerHTML = arr.map(it => `
     <div class="cell" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
-      <span class="cell-mood-badge">${it.mood||''}</span>
       ${it.media_type==='video'
         ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
         : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
@@ -576,7 +575,7 @@ function updateActionBarCount(){
       const m = b.dataset.m;
       const anySet = [...selectedIds].some(id => {
         const it = S.items.find(x => x.id === id);
-        return it && it.mood === m;
+        return it && Array.isArray(it.moods) && it.moods.includes(m);
       });
       b.classList.toggle('isset', anySet);
     });
@@ -614,13 +613,13 @@ $('abConfirm').onclick = async () => {
   if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
   if(!assignMoods.size){ toast('Keine Mood ausgewählt'); return; }
   const mood = [...assignMoods][0];
-  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.mood=mood; });
+  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.moods=[m]ood; });
   await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x=>x.id===id))));
   toast(`${selectedIds.size} Bilder → ${mood}`); exitSelMode();
 };
 $('abRemove').onclick = async () => {
   if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
-  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.mood=null; });
+  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.moods=[]; });
   await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x=>x.id===id))));
   toast(`${selectedIds.size} Moods entfernt`); exitSelMode();
 };
@@ -637,7 +636,7 @@ $('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
     const moods = S.moods.filter(m => m !== 'All');
     if (!moods.length) { el.classList.remove('show'); return; }
     el.innerHTML = moods.map(m =>
-      `<span class="lb-mood-chip${it && it.mood === m ? ' active' : ''}">${moodIcon(m)}${m}</span>`
+      `<span class="lb-mood-chip${it && Array.isArray(it.moods) && it.moods.includes(m) ? ' active' : ''}">${moodIcon(m)}${m}</span>`
     ).join('');
     el.classList.add('show');
   }
@@ -722,7 +721,7 @@ $('lbMoodConfirm').onclick = async e => {
   if(!lbPickedMoods.size){ toast('Keine Mood ausgewählt'); return; }
   const mood=[...lbPickedMoods][0];
   const it=S().currentItems[lbIndex]; if(!it) return;
-  it.mood=mood;
+  it.moods=[m]ood;
   const orig=S().items.find(x=>x.id===it.id); if(orig) orig.mood=mood;
   await sbUpdate(it); toast('Mood → '+mood); closeLbMoodPicker();
     renderLbMoodChips();
@@ -757,7 +756,7 @@ async function upload(files){
     const {error:e1} = await sb.storage.from(BUCKET).upload(path, cf, {upsert:false, contentType:cf.type});
     if(e1){ toast('Upload-Fehler: '+e1.message); continue; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
-    const item = { title:f.name.replace(/\.[^.]+$/,''), mood:null, tags:[], media_url:pub.publicUrl, media_type:isVid(f.name)?'video':'image', favorite:false };
+    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:[], tags:[], media_url:pub.publicUrl, media_type:isVid(f.name)?'video':'image', favorite:false };
     const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
     if(e2){ toast('DB-Fehler: '+e2.message); continue; }
     S().items.unshift({...item, id:ins.id}); renderGrid();
@@ -796,7 +795,7 @@ function openEditor(id){
 function renderTagChips(){
   const it = S().items.find(x=>x.id===editId);
   $('tagChips').innerHTML = S().moods.filter(m=>m!=='All').map(m =>
-    `<button class="tchip ${it&&it.mood===m?'active':''}" data-m="${m}">${m}</button>`).join('');
+    `<button class="tchip ${it&&Array.isArray(it.moods) && it.moods.includes(m)?'active':''}" data-m="${m}">${m}</button>`).join('');
   document.querySelectorAll('.tchip').forEach(b => b.onclick = () => {
     const it=S().items.find(x=>x.id===editId); if(!it) return;
     it.mood=b.dataset.m; sbUpdate(it); renderGrid(); renderTagChips();
@@ -810,14 +809,14 @@ $('saveTagsBtn').onclick = () => {
 
 async function loadItems(){
   const {data,error} = await sb.from(S().table)
-    .select('id,title,mood,tags,media_url,media_type,favorite')
+    .select('id,title,moods,tags,media_url,media_type,favorite')
     .order('created_at',{ascending:false});
   if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
   S().items=data||[]; renderGrid(); $('bootMsg')?.remove();
 }
 async function sbUpdate(item){
   if(!item) return;
-  await sb.from(S().table).update({title:item.title||'', mood:item.mood||null, tags:item.tags||[], media_url:item.media_url, media_type:item.media_type, favorite:false}).eq('id',item.id);
+  await sb.from(S().table).update({title:item.title||'', moods:item.moods||[], tags:item.tags||[], media_url:item.media_url, media_type:item.media_type, favorite:false}).eq('id',item.id);
 }
 async function sbDeleteMany(ids){
   if(!ids.length) return;
