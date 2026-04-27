@@ -736,8 +736,7 @@ document.addEventListener('keydown', e => {
   if(lightbox.classList.contains('show')){
     if(e.key==='ArrowLeft') lbNavigate(-1);
     else if(e.key==='ArrowRight') lbNavigate(1);
-    else if(e.key==='Escape'){ if(lbMoodPicker.classList.contains('show')) closeLbMoodPicker();
-    renderLbMoodChips(); else closeLb(); }
+    else if(e.key==='Escape'){ if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); renderLbMoodChips(); } else closeLb(); }
     return;
   }
   if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
