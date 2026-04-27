@@ -613,7 +613,7 @@ $('abConfirm').onclick = async () => {
   if(!selectedIds.size){ toast('Nichts ausgewählt'); return; }
   if(!assignMoods.size){ toast('Keine Mood ausgewählt'); return; }
   const mood = [...assignMoods][0];
-  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.moods=[m]ood; });
+  [...selectedIds].forEach(id => { const it=S().items.find(x=>x.id===id); if(it) it.moods=Array.from(new Set([...(Array.isArray(it.moods)?it.moods:[]), mood])); });
   await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x=>x.id===id))));
   toast(`${selectedIds.size} Bilder → ${mood}`); exitSelMode();
 };
@@ -721,7 +721,7 @@ $('lbMoodConfirm').onclick = async e => {
   if(!lbPickedMoods.size){ toast('Keine Mood ausgewählt'); return; }
   const mood=[...lbPickedMoods][0];
   const it=S().currentItems[lbIndex]; if(!it) return;
-  it.moods=[m]ood;
+  it.moods=Array.from(new Set([...(Array.isArray(it.moods)?it.moods:[]), mood]));
   const orig=S().items.find(x=>x.id===it.id); if(orig) orig.mood=mood;
   await sbUpdate(it); toast('Mood → '+mood); closeLbMoodPicker();
     renderLbMoodChips();
