@@ -105,8 +105,9 @@ button,input{font:inherit}
 .progress{position:fixed;top:0;left:0;height:2px;background:#fff;z-index:100;width:0;transition:width .25s}
 .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:102;background:rgba(0,0,0,.85);border:1px solid var(--border);color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;white-space:nowrap}
 .toast.show{opacity:1}
-.gridwrap.dragover::after{content:'Loslassen zum Hochladen';position:fixed;inset:52px 0 0 0;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(0,0,0,.5);border:2px dashed rgba(255,255,255,.3)}
+.gridwrap.dragover:after{content:'Loslassen zum Hochladen';position:fixed;inset:52px 0 0 0;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(0,0,0,.5);border:2px dashed rgba(255,255,255,.3)}
 .hidden{display:none!important}
+
 /* Filter Button */
 .filterbtn{position:fixed;bottom:20px;left:20px;z-index:30;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:19px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:.15s}
 .filterbtn:hover{background:rgba(255,255,255,.13)}
@@ -127,46 +128,76 @@ button,input{font:inherit}
 .fp-grid-btn{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:8px;width:34px;height:30px;cursor:pointer;font-size:11px;font-weight:600;transition:.12s;display:grid;place-items:center}
 .fp-grid-btn:hover{background:rgba(255,255,255,.1)}
 .fp-grid-btn.sel{background:#fff;color:#111;border-color:#fff}
+
 /* Spotify Mini Player */
-.spotify-kachel{position:fixed;bottom:78px;right:14px;z-index:31;width:260px;background:var(--panel);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(24px);box-shadow:0 8px 32px rgba(0,0,0,.5);overflow:hidden;border-left:3px solid #1DB954}
-.spotify-kachel iframe{display:block;width:100%;border:0}
+.spotify-kachel{
+  position:fixed;
+  bottom:12px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:31;
+  width:clamp(240px, 46vw, 380px);
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:14px;
+  backdrop-filter:blur(24px);
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  overflow:hidden;
+  border-left:3px solid #1DB954;
+}
+.spotify-kachel iframe{display:block;width:100%;border:0;height:64px}
 
 @media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}.lb-arrow{display:none}.dropdown{display:none!important}}
 @media(min-width:601px){.bottom-sheet,.sheet-overlay{display:none!important}}
 </style>
 </head>
 <body>
-
-<div class="topbar">
+  <div class="topbar">
   <div class="topbar-left">
     <span class="board-title" id="boardTitle">Marvins Place</span>
     <button class="nav-link" id="navPersonal">Personal</button>
   </div>
-  <button class="menubtn" id="menuBtn">&#9776;</button>
+  <button class="menubtn" id="menuBtn">☰</button>
 </div>
 
 <!-- Desktop Dropdown -->
 <div class="dropdown" id="dropdown">
   <div class="dd-section">Aktionen</div>
-  <button class="dd-btn" id="uploadBtn"><span class="icon">&#128247;</span> Bilder / Videos hochladen</button>
+  <button class="dd-btn" id="uploadBtn"><span class="icon">📷</span> Bilder / Videos hochladen</button>
   <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
-  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">&#128465;</span> Bilder löschen</button>
+  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">🗑</span> Bilder löschen</button>
+
   <div class="dd-divider"></div>
   <div class="dd-section">Moods</div>
-  <button class="dd-btn" id="assignMoodBtn"><span class="icon">&#127991;</span> Moods zuweisen / ändern</button>
-  <button class="dd-btn" id="removeMoodBtn"><span class="icon">&#10005;</span> Moods entfernen</button>
-  <button class="dd-btn" id="mgmtToggleBtn"><span class="icon">&#9881;</span> Moods verwalten</button>
+  <button class="dd-btn" id="assignMoodBtn"><span class="icon">🏷</span> Moods zuweisen / ändern</button>
+  <button class="dd-btn" id="removeMoodBtn"><span class="icon">✖</span> Moods entfernen</button>
+  <button class="dd-btn" id="mgmtToggleBtn"><span class="icon">⚙</span> Moods verwalten</button>
+
   <div id="mgmtSection" class="mgmt-section">
-    <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood"><button id="addMoodBtn">Add</button></div>
-    <div class="dd-input-row" id="renameArea" style="display:none"><input id="oldMoodName" placeholder="Alt"><input id="newMoodName" placeholder="Neu"><button id="renameMoodBtn" style="background:#fff;color:#000">Go</button></div>
+    <div class="dd-input-row">
+      <input id="newMood" placeholder="Neue Mood">
+      <button id="addMoodBtn">Add</button>
+    </div>
+    <div class="dd-input-row" id="renameArea" style="display:none">
+      <input id="oldMoodName" placeholder="Alt">
+      <input id="newMoodName" placeholder="Neu">
+      <button id="renameMoodBtn" style="background:#fff;color:#000">Go</button>
+    </div>
     <div class="dd-btn" id="showRenameBtn">Umbenennen</div>
-    <div class="dd-input-row"><input id="deleteMood" placeholder="Name"><button id="deleteMoodBtn" style="color:#ff6b6b">Löschen</button></div>
+    <div class="dd-input-row">
+      <input id="deleteMood" placeholder="Name">
+      <button id="deleteMoodBtn" style="color:#ff6b6b">Löschen</button>
+    </div>
   </div>
+
   <div class="dd-divider"></div>
   <div class="editor-wrap" id="editorWrap">
-    <div class="dd-section">Editor &mdash; <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
+    <div class="dd-section">Editor — <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
     <div class="tag-chips" id="tagChips"></div>
-    <div class="dd-input-row"><input id="tagInput" placeholder="Tags, kommagetrennt" inputmode="text"><button id="saveTagsBtn">Save</button></div>
+    <div class="dd-input-row">
+      <input id="tagInput" placeholder="Tags, komma-getrennt" inputmode="text">
+      <button id="saveTagsBtn">Save</button>
+    </div>
   </div>
 </div>
 
@@ -175,18 +206,30 @@ button,input{font:inherit}
 <div class="bottom-sheet" id="bottomSheet">
   <div class="sheet-handle"></div>
   <div class="dd-section">Aktionen</div>
-  <button class="dd-btn" id="uploadBtnSheet"><span class="icon">&#128247;</span> Bilder / Videos hochladen</button>
-  <button class="dd-btn" id="pickDeleteBtnSheet"><span class="icon">&#128465;</span> Bilder löschen</button>
+  <button class="dd-btn" id="uploadBtnSheet"><span class="icon">📷</span> Bilder / Videos hochladen</button>
+  <button class="dd-btn" id="pickDeleteBtnSheet"><span class="icon">🗑</span> Bilder löschen</button>
+
   <div class="dd-divider"></div>
   <div class="dd-section">Moods</div>
-  <button class="dd-btn" id="assignMoodBtnSheet"><span class="icon">&#127991;</span> Moods zuweisen / ändern</button>
-  <button class="dd-btn" id="removeMoodBtnSheet"><span class="icon">&#10005;</span> Moods entfernen</button>
-  <button class="dd-btn" id="mgmtToggleBtnSheet"><span class="icon">&#9881;</span> Moods verwalten</button>
+  <button class="dd-btn" id="assignMoodBtnSheet"><span class="icon">🏷</span> Moods zuweisen / ändern</button>
+  <button class="dd-btn" id="removeMoodBtnSheet"><span class="icon">✖</span> Moods entfernen</button>
+  <button class="dd-btn" id="mgmtToggleBtnSheet"><span class="icon">⚙</span> Moods verwalten</button>
+
   <div id="mgmtSectionSheet" class="mgmt-section">
-    <div class="dd-input-row"><input id="newMoodSheet" placeholder="Neue Mood"><button id="addMoodBtnSheet">Add</button></div>
-    <div class="dd-input-row" id="renameAreaSheet" style="display:none"><input id="oldMoodNameSheet" placeholder="Alt"><input id="newMoodNameSheet" placeholder="Neu"><button id="renameMoodBtnSheet" style="background:#fff;color:#000">Go</button></div>
+    <div class="dd-input-row">
+      <input id="newMoodSheet" placeholder="Neue Mood">
+      <button id="addMoodBtnSheet">Add</button>
+    </div>
+    <div class="dd-input-row" id="renameAreaSheet" style="display:none">
+      <input id="oldMoodNameSheet" placeholder="Alt">
+      <input id="newMoodNameSheet" placeholder="Neu">
+      <button id="renameMoodBtnSheet" style="background:#fff;color:#000">Go</button>
+    </div>
     <div class="dd-btn" id="showRenameBtnSheet">Umbenennen</div>
-    <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Name"><button id="deleteMoodBtnSheet" style="color:#ff6b6b">Löschen</button></div>
+    <div class="dd-input-row">
+      <input id="deleteMoodSheet" placeholder="Name">
+      <button id="deleteMoodBtnSheet" style="color:#ff6b6b">Löschen</button>
+    </div>
   </div>
 </div>
 
@@ -205,7 +248,7 @@ button,input{font:inherit}
 </div>
 
 <!-- Filter -->
-<button class="filterbtn" id="filterBtn">&#9881;</button>
+<button class="filterbtn" id="filterBtn">🙂</button>
 <div class="filter-popup" id="filterPopup">
   <div class="fp-section">Moods filtern</div>
   <div class="fp-moods" id="fpMoods"></div>
@@ -223,636 +266,599 @@ button,input{font:inherit}
 
 <!-- Spotify Mini Player -->
 <div class="spotify-kachel" id="spotifyKachel">
-  <iframe
-    src="<iframe data-testid="embed-iframe"  src="https://open.spotify.com/embed/playlist/2qURpmjeU1eFu9orvltb5I?utm_source=generator&theme=0"  height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>"
-    height="152"
+  <iframe src="https://open.spotify.com/embed/playlist/2qURpmjeU1eFu9orvltb5I?utm_source=generator&theme=0"
+    height="64" frameBorder="0" allowfullscreen=""
     allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-    loading="lazy">
-  </iframe>
+    loading="lazy"></iframe>
 </div>
 
-<button class="shufflebtn" id="shuffleBtn">&#x21C4;</button>
+<button class="shufflebtn" id="shuffleBtn">↻</button>
 
 <div class="gridwrap" id="gridWrap">
   <div class="grid" id="grid">
-    <div id="bootMsg" style="padding:24px;color:#fff;opacity:.75">Lade&hellip;</div>
+    <div id="bootMsg" style="padding:24px;color:#fff;opacity:.75">Lade…</div>
   </div>
 </div>
 
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox">
-  <button class="lb-arrow prev" id="lbPrev">&#8249;</button>
+  <button class="lb-arrow prev" id="lbPrev">‹</button>
   <div class="lb-inner" id="lbInner"></div>
-  <button class="lb-arrow next" id="lbNext">&#8250;</button>
-</div>
-<button class="lb-mute-btn" id="lbMuteBtn">&#128266;</button>
-<button class="lb-mood-btn" id="lbMoodBtn">&#127991;</button>
-<div class="lb-mood-picker" id="lbMoodPicker">
-  <div class="lb-mood-picker-title">Moods setzen</div>
-  <div class="lb-current-mood" id="lbCurrentMood"></div>
-  <div class="lb-mood-tiles" id="lbMoodTiles"></div>
-  <button class="lb-mood-confirm" id="lbMoodConfirm">Bestätigen</button>
+  <button class="lb-arrow next" id="lbNext">›</button>
+  <button class="lb-mute-btn" id="lbMuteBtn">🔇</button>
+  <button class="lb-mood-btn" id="lbMoodBtn">🏷</button>
+  <div class="lb-mood-picker" id="lbMoodPicker">
+    <div class="lb-mood-picker-title">Moods setzen</div>
+    <div class="lb-current-mood" id="lbCurrentMood"></div>
+    <div class="lb-mood-tiles" id="lbMoodTiles"></div>
+    <button class="lb-mood-confirm" id="lbMoodConfirm">Bestätigen</button>
+  </div>
 </div>
 
 <div class="progress" id="progress"></div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = 'https://bnwcbxjgsmmvmtvqblrr.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJud2NieGpnc21tdm10dnFibHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjAyMDQsImV4cCI6MjA5MjE5NjIwNH0.Lo0lAnOoyFhMpq7YwO3pw2vMccSsJc8Xbk7Teck5QmE'
-const BUCKET = 'moodboard'
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+const SUPABASE_URL = 'https://bnwcbxjgsmmvmtvqblrr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJud2NieGpnc21tdm10dnFibHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjAyMDQsImV4cCI6MjA5MjE5NjIwNH0.Lo0lAnOoyFhMpq7YwO3pw2vMccSsJc8Xbk7Teck5QmE';
+const BUCKET = 'moodboard';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ─── State ───────────────────────────────────────────────────────────────────
 const state = {
-  moodboard: {
-    items: [], currentItems: [],
-    moodsAll: ['All','Summer','Winter','Cozy','Dark'],
-    currentMood: localStorage.getItem('mb_mood') || 'All',
-    table: 'moodboarditems'
-  },
-  personal: {
-    items: [], currentItems: [],
-    moodsAll: ['All','Work','Family','Travel','Misc'],
-    currentMood: localStorage.getItem('pb_mood') || 'All',
-    table: 'personalitems'
-  }
+  moodboard: { items: [], currentItems: [], moodsAll: ['All','Summer','Winter','Cozy','Dark'], currentMood: localStorage.getItem('mbmood') || 'All', table: 'moodboard_items' },
+  personal: { items: [], currentItems: [], moodsAll: ['All','Work','Family','Travel','Misc'], currentMood: localStorage.getItem('pbmood') || 'All', table: 'personal_items' }
+};
+let currentPage = 'moodboard';
+let S = state[currentPage]; // FIX: Funktion statt einmalige Zuweisung
+let editId = null, lbIndex = 0, selMode = null, lbIsMuted = false;
+let selectedIds = new Set(), assignMoods = new Set(), lbPickedMoods = new Set();
+let observer = null;
+
+// DOM
+const $ = id => document.getElementById(id);
+const gridEl = $('grid'), gridWrap = $('gridWrap');
+const dropdown = $('dropdown'), bottomSheet = $('bottomSheet');
+const sheetOverlay = $('sheetOverlay'), lightbox = $('lightbox');
+const lbInner = $('lbInner'), fileInput = $('fileInput');
+const progressBar = $('progress'), toastEl = $('toast');
+const editorWrap = $('editorWrap'), actionBar = $('actionBar');
+const actionBarMoods = $('actionBarMoods'), actionBarCount = $('actionBarCount');
+const actionBarTitle = $('actionBarTitle');
+const lbMoodBtn = $('lbMoodBtn'), lbMuteBtn = $('lbMuteBtn');
+const lbMoodPicker = $('lbMoodPicker'), lbMoodTiles = $('lbMoodTiles');
+const lbCurrentMood = $('lbCurrentMood'), lbMoodConfirm = $('lbMoodConfirm');
+const abCancel = $('abCancel'), abConfirm = $('abConfirm'), abRemove = $('abRemove');
+const menuBtn = $('menuBtn'), navPersonal = $('navPersonal'), boardTitle = $('boardTitle');
+const filterBtn = $('filterBtn'), filterPopup = $('filterPopup');
+const shuffleBtn = $('shuffleBtn');
+const MAXPX = 2400;
+const MOODICONS = { All:'✨', Summer:'☀️', Winter:'❄️', Cozy:'☕', Dark:'🌑', Work:'💼', Family:'👨‍👩‍👧‍👦', Travel:'✈️', Misc:'🎲' };
+const moodIcon = m => MOODICONS[m] || '•';
+
+// Filter State
+let activeMoods = new Set(JSON.parse(localStorage.getItem('activeMoods') || '[]'));
+let gridCols = parseInt(localStorage.getItem('gridCols') || '2');
+
+function saveFilterState(){
+  localStorage.setItem('activeMoods', JSON.stringify([...activeMoods]));
+  localStorage.setItem('gridCols', String(gridCols));
+}
+function applyGridCols(cols){
+  gridCols = cols;
+  if (window.innerWidth <= 600) grid.style.gridTemplateColumns = cols === 1 ? '1fr' : `repeat(${cols}, 1fr)`;
+  else grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  document.querySelectorAll('.fp-grid-btn').forEach(b => b.classList.toggle('sel', parseInt(b.dataset.cols) === cols));
+  saveFilterState();
 }
 
-let currentPage = 'moodboard'
-const S = () => state[currentPage]   // ← FIX: Funktion statt einmalige Zuweisung
-
-let editId = null, lbIndex = 0, selMode = null, lbIsMuted = false
-let selectedIds = new Set(), assignMoods = new Set(), lbPickedMoods = new Set()
-let observer = null
-
-// ─── DOM ──────────────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id)
-const gridEl = $('grid'), gridWrap = $('gridWrap')
-const dropdown = $('dropdown'), bottomSheet = $('bottomSheet')
-const sheetOverlay = $('sheetOverlay'), lightbox = $('lightbox')
-const lbInner = $('lbInner'), fileInput = $('fileInput')
-const progressBar = $('progress'), toastEl = $('toast')
-const editorWrap = $('editorWrap'), actionBar = $('actionBar')
-const actionBarMoods = $('actionBarMoods'), actionBarCount = $('actionBarCount')
-const actionBarTitle = $('actionBarTitle')
-const lbMoodBtn = $('lbMoodBtn'), lbMuteBtn = $('lbMuteBtn')
-const lbMoodPicker = $('lbMoodPicker'), lbMoodTiles = $('lbMoodTiles')
-const lbCurrentMood = $('lbCurrentMood'), lbMoodConfirm = $('lbMoodConfirm')
-const abCancel = $('abCancel'), abConfirm = $('abConfirm'), abRemove = $('abRemove')
-const menuBtn = $('menuBtn'), navPersonal = $('navPersonal'), boardTitle = $('boardTitle')
-const filterBtn = $('filterBtn'), filterPopup = $('filterPopup')
-const shuffleBtn = $('shuffleBtn')
-
-const MAX_PX = 2400
-const MOOD_ICONS = { All:'🌐', Summer:'☀️', Winter:'❄️', Cozy:'🕯️', Dark:'🌑', Work:'💼', Family:'👨‍👩‍👧', Travel:'✈️', Misc:'📦' }
-const moodIcon = m => MOOD_ICONS[m] || '🏷️'
-
-// ─── Filter State ──────────────────────────────────────────────────────────────
-let activeMoods = new Set(JSON.parse(localStorage.getItem('activemoods') || '[]'))
-let gridCols = parseInt(localStorage.getItem('gridcols') || '2')
-
-function saveFilterState() {
-  localStorage.setItem('activemoods', JSON.stringify([...activeMoods]))
-  localStorage.setItem('gridcols', String(gridCols))
+// Filter Popup
+function renderFilterPopup(){
+  const moods = S.moodsAll.filter(m => m !== 'All');
+  const fpMoods = $('fpMoods');
+  fpMoods.innerHTML = moods.map(m => `<button class="fp-chip ${activeMoods.has(m) ? 'sel' : ''}" data-m="${m}"><span class="mood-icon">${moodIcon(m)}</span>${m}</button>`).join('');
+  fpMoods.querySelectorAll('.fp-chip').forEach(b => b.onclick = () => {
+    activeMoods.has(b.dataset.m) ? activeMoods.delete(b.dataset.m) : activeMoods.add(b.dataset.m);
+    b.classList.toggle('sel');
+    updateFilterBtnState();
+  });
+  document.querySelectorAll('.fp-grid-btn').forEach(b => b.classList.toggle('sel', parseInt(b.dataset.cols) === gridCols));
+  document.querySelectorAll('.fp-grid-btn').forEach(b => b.onclick = () => applyGridCols(parseInt(b.dataset.cols)));
 }
-
-function applyGridCols(cols) {
-  gridCols = cols
-  if (window.innerWidth <= 600) {
-    $('grid').style.gridTemplateColumns = cols === 1 ? '1fr' : `repeat(${cols}, 1fr)`
-  } else {
-    $('grid').style.gridTemplateColumns = ''
-  }
-  document.querySelectorAll('.fp-grid-btn').forEach(b =>
-    b.classList.toggle('sel', parseInt(b.dataset.cols) === cols))
-  saveFilterState()
+function updateFilterBtnState(){
+  filterBtn.classList.toggle('active', activeMoods.size > 0);
+  const first = [...activeMoods][0];
+  filterBtn.textContent = activeMoods.size > 0 ? moodIcon(first) : '🙂';
 }
-
-// ─── Filter Popup ──────────────────────────────────────────────────────────────
-function renderFilterPopup() {
-  const moods = S().moodsAll.filter(m => m !== 'All')
-  const fpMoods = $('fpMoods')
-  fpMoods.innerHTML = moods.map(m =>
-    `<button class="fp-chip ${activeMoods.has(m)?'sel':''}" data-m="${m}">
-      <span class="mood-icon">${moodIcon(m)}</span>${m}
-    </button>`).join('')
-  fpMoods.querySelectorAll('.fp-chip').forEach(b => {
-    b.onclick = () => {
-      activeMoods.has(b.dataset.m) ? activeMoods.delete(b.dataset.m) : activeMoods.add(b.dataset.m)
-      b.classList.toggle('sel', activeMoods.has(b.dataset.m))
-      updateFilterBtnState()
-    }
-  })
-  document.querySelectorAll('.fp-grid-btn').forEach(b => {
-    b.classList.toggle('sel', parseInt(b.dataset.cols) === gridCols)
-    b.onclick = () => applyGridCols(parseInt(b.dataset.cols))
-  })
-}
-
-function updateFilterBtnState() {
-  filterBtn.classList.toggle('active', activeMoods.size > 0)
-  const first = [...activeMoods][0]
-  filterBtn.textContent = activeMoods.size > 0 ? moodIcon(first) : '⚙️'
-}
-
 filterBtn.onclick = e => {
-  e.stopPropagation()
-  const open = filterPopup.classList.toggle('show')
-  if (open) renderFilterPopup()
-}
+  e.stopPropagation();
+  const open = !filterPopup.classList.contains('show');
+  filterPopup.classList.toggle('show');
+  if (open) renderFilterPopup();
+};
 document.addEventListener('click', e => {
-  if (!e.target.closest('#filterPopup') && !e.target.closest('#filterBtn'))
-    filterPopup.classList.remove('show')
-})
-$('fpGo').onclick = () => {
-  saveFilterState(); filterPopup.classList.remove('show')
-  renderGrid(); updateFilterBtnState()
-}
+  if (!e.target.closest('#filterPopup') && !e.target.closest('#filterBtn')) filterPopup.classList.remove('show');
+});
+fpGo.onclick = () => { saveFilterState(); filterPopup.classList.remove('show'); renderGrid(); };
+updateFilterBtnState();
 
-// ─── Mood Management ──────────────────────────────────────────────────────────
-function bindMgmt(suffix) {
-  const g = k => $(k + suffix)
-  g('mgmtToggleBtn').onclick = () => g('mgmtSection').classList.toggle('show')
-  g('showRenameBtn').onclick = () => g('renameArea').style.display = 'flex'
+// Mood Management
+function bindMgmt(suffix){
+  const g = k => $(k + suffix);
+  g('mgmtToggleBtn').onclick = () => g('mgmtSection').classList.toggle('show');
+  g('showRenameBtn').onclick = () => g('renameArea').style.display = 'flex';
   g('addMoodBtn').onclick = () => {
-    const v = g('newMood').value.trim()
-    if (!v || S().moodsAll.includes(v)) return
-    S().moodsAll.push(v); S().currentMood = v
-    g('newMood').value = ''; renderMoodChips(); renderGrid()
-  }
-  g('renameMoodBtn').onclick = () => {
-    const old = g('oldMoodName').value.trim(), v = g('newMoodName').value.trim()
-    if (!old || !v || !S().moodsAll.includes(old)) return
-    S().moodsAll = S().moodsAll.map(m => m === old ? v : m)
-    // Update items: replace in moods array
-    S().items.forEach(it => {
-      if (it.moods && it.moods.includes(old)) {
-        it.moods = it.moods.map(m => m === old ? v : m)
-        sbUpdate(it)
-      }
-    })
-    S().currentMood = v
-    g('oldMoodName').value = ''; g('newMoodName').value = ''
-    g('renameArea').style.display = 'none'
-    renderMoodChips(); renderGrid()
-  }
-  g('deleteMoodBtn').onclick = () => {
-    const v = g('deleteMood').value.trim()
-    if (!v || !S().moodsAll.includes(v)) return
-    S().moodsAll = S().moodsAll.filter(m => m !== v)
-    S().items.forEach(it => {
-      if (it.moods && it.moods.includes(v)) {
-        it.moods = it.moods.filter(m => m !== v)
-        sbUpdate(it)
-      }
-    })
-    if (S().currentMood === v) S().currentMood = 'All'
-    g('deleteMood').value = ''; renderMoodChips(); renderGrid()
-  }
+    const v = g('newMood').value.trim();
+    if (!v || S.moodsAll.includes(v)) return;
+    S.moodsAll.push(v); S.currentMood = v;
+    g('newMood').value = '';
+    renderMoodChips(); renderGrid();
+  };
+  g('renameMoodBtn').onclick = async () => {
+    const old = g('oldMoodName').value.trim(), v = g('newMoodName').value.trim();
+    if (!old || !v || !S.moodsAll.includes(old)) return;
+    S.moodsAll = S.moodsAll.map(m => m === old ? v : m);
+    S.items.forEach(it => { if (it.moods && it.moods.includes(old)) it.moods = it.moods.map(m => m === old ? v : m); sbUpdate(it); });
+    S.currentMood = v;
+    g('oldMoodName').value = g('newMoodName').value = '';
+    g('renameArea').style.display = 'none';
+    renderMoodChips(); renderGrid();
+  };
+  g('deleteMoodBtn').onclick = async () => {
+    const v = g('deleteMood').value.trim();
+    if (!v || !S.moodsAll.includes(v)) return;
+    S.moodsAll = S.moodsAll.filter(m => m !== v);
+    S.items.forEach(it => { if (it.moods && it.moods.includes(v)) it.moods = it.moods.filter(m => m !== v); sbUpdate(it); });
+    if (S.currentMood === v) S.currentMood = 'All';
+    g('deleteMood').value = '';
+    renderMoodChips(); renderGrid();
+  };
 }
-bindMgmt(''); bindMgmt('Sheet')
+bindMgmt('');
+bindMgmt('Sheet');
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function toast(t) {
-  toastEl.textContent = t; toastEl.classList.add('show')
-  clearTimeout(toast._t); toast._t = setTimeout(() => toastEl.classList.remove('show'), 1600)
-}
-const isVid = n => /\.(mp4|webm|mov|m4v)$/i.test(n)
-function prog(p) {
-  progressBar.style.width = p + '%'
-  if (p >= 100) setTimeout(() => progressBar.style.width = '0', 600)
-}
-function compress(file, maxPx = MAX_PX, q = 0.88) {
+// Helpers
+function toast(t){ toastEl.textContent = t; toastEl.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => toastEl.classList.remove('show'), 1600); }
+const isVid = n => /\.(mp4|webm|mov|m4v|avi)$/i.test(n);
+function prog(p){ progressBar.style.width = p + '%'; if (p >= 100) setTimeout(() => progressBar.style.width = '0', 600); }
+function compress(file, maxPx = MAXPX, q = .88){
   return new Promise(res => {
-    if (isVid(file.name)) { res(file); return }
-    const img = new Image(), url = URL.createObjectURL(file)
+    if (isVid(file.name)) return res(file);
+    const img = new Image(), url = URL.createObjectURL(file);
     img.onload = () => {
-      URL.revokeObjectURL(url)
-      let w = img.width, h = img.height
-      if (w <= maxPx && h <= maxPx) { res(file); return }
-      const r = Math.min(maxPx / w, maxPx / h)
-      w = Math.round(w * r); h = Math.round(h * r)
-      const c = document.createElement('canvas')
-      c.width = w; c.height = h
-      c.getContext('2d').drawImage(img, 0, 0, w, h)
-      c.toBlob(b => res(new File([b], file.name, { type: 'image/jpeg' })), 'image/jpeg', q)
-    }
-    img.src = url
-  })
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w <= maxPx && h <= maxPx) return res(file);
+      const r = Math.min(maxPx / w, maxPx / h);
+      w = Math.round(w * r); h = Math.round(h * r);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      c.toBlob(b => res(new File([b], file.name, { type: 'image/jpeg' })), 'image/jpeg', q);
+    };
+    img.src = url;
+  });
 }
 
-// ─── Menu ─────────────────────────────────────────────────────────────────────
-function openMenu() {
-  if (window.innerWidth <= 600) {
-    bottomSheet.classList.add('show'); sheetOverlay.classList.add('show')
-  } else { dropdown.classList.toggle('show') }
+// Menu
+function openMenu(){
+  if (window.innerWidth <= 600) { bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); }
+  else dropdown.classList.toggle('show');
 }
-function closeMenu() {
-  dropdown.classList.remove('show')
-  bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show')
-}
-menuBtn.onclick = e => { e.stopPropagation(); openMenu() }
-sheetOverlay.onclick = closeMenu
+function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); }
+menuBtn.onclick = e => { e.stopPropagation(); openMenu(); };
+sheetOverlay.onclick = closeMenu;
 document.addEventListener('click', e => {
-  if (!e.target.closest('#dropdown') && !e.target.closest('#menuBtn'))
-    dropdown.classList.remove('show')
-})
+  if (!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show');
+});
 
-// ─── Page Switch ── FIX: S() ist jetzt eine Funktion ─────────────────────────
-function switchPage(page) {
-  currentPage = page
-  exitSelMode(); closeLb(); closeMenu()
-  editorWrap.classList.remove('show')
-  navPersonal.classList.toggle('active', page === 'personal')
-  renderMoodChips()
-  renderGrid()
-  if (!S().items.length) loadItems()   // ← lädt jetzt korrekt die richtige Seite
+// Page Switch FIX: S ist jetzt eine Funktion
+function switchPage(page){
+  currentPage = page;
+  S = state[currentPage];
+  exitSelMode();
+  closeLb();
+  closeMenu();
+  editorWrap.classList.remove('show');
+  navPersonal.classList.toggle('active', page === 'personal');
+  renderMoodChips();
+  renderGrid();
+  if (!S.items.length) loadItems(); // lädt jetzt korrekt die richtige Seite
 }
-boardTitle.onclick = () => currentPage !== 'moodboard' ? switchPage('moodboard') : renderGrid()
-navPersonal.onclick = () => currentPage !== 'personal' ? switchPage('personal') : renderGrid()
+boardTitle.onclick = () => currentPage !== 'moodboard' ? switchPage('moodboard') : renderGrid();
+navPersonal.onclick = () => currentPage !== 'personal' ? switchPage('personal') : renderGrid();
 
-// ─── Mood Chips (Dropdown) ─────────────────────────────────────────────────────
-function renderMoodChips() {
-  // Desktop mood chips not shown in dropdown in this version (managed via filter popup)
+// Mood Chips Dropdown
+function renderMoodChips(){
+  // Desktop mood chips not shown in dropdown in this version; managed via filter popup
 }
-function renderMoodChipsSheet() {}
+function renderMoodChipsSheet(){}
 
-// ─── Grid ─────────────────────────────────────────────────────────────────────
-function renderGrid() {
-  const s = S()
+// Grid
+function renderGrid(){
+  const s = S;
   // Multi-Mood Filter: Bild matcht wenn EINER seiner Moods in activeMoods ist
-  let arr = activeMoods.size === 0
-    ? s.items
-    : s.items.filter(i => Array.isArray(i.moods) && i.moods.some(m => activeMoods.has(m)))
-  arr = [...arr].sort(() => Math.random() - .5)
-  s.currentItems = arr
+  let arr = activeMoods.size === 0 ? s.items : s.items.filter(i => Array.isArray(i.moods) && i.moods.some(m => activeMoods.has(m)));
+  arr = [...arr].sort(() => Math.random() - .5);
+  s.currentItems = arr;
 
-  if (observer) { observer.disconnect(); observer = null }
+  if (observer) observer.disconnect();
+  observer = null;
 
   gridEl.innerHTML = arr.map(it => {
-    const moodLabel = Array.isArray(it.moods) && it.moods.length
-      ? it.moods.join(', ') : ''
-    return `<div class="cell" data-id="${it.id}">
+    const moodLabel = Array.isArray(it.moods) && it.moods.length ? it.moods.join(', ') : '';
+    return `
+    <div class="cell" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
-      <span class="cell-mood-badge${moodLabel ? ' show' : ''}">${moodLabel}</span>
+      <span class="cell-mood-badge ${moodLabel ? 'show' : ''}">${moodLabel}</span>
       ${it.mediatype === 'video'
         ? `<video src="${it.mediaurl}" muted loop playsinline preload="none"></video>`
         : `<img src="${it.mediaurl}" loading="lazy" decoding="async" alt="">`}
-    </div>`
-  }).join('')
+    </div>`;
+  }).join('');
 
-  observer = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      const v = e.target.querySelector('video')
-      if (!v) return
-      e.isIntersecting ? v.play().catch(() => {}) : (v.pause(), v.currentTime = 0)
-    })
-  }, { threshold: 0.25, rootMargin: '100px' })
+  observer = new IntersectionObserver(entries => entries.forEach(e => {
+    const v = e.target.querySelector('video');
+    if (!v) return;
+    e.isIntersecting ? v.play().catch(() => {}) : (v.pause(), v.currentTime = 0);
+  }), { threshold: .25, rootMargin: '100px' });
 
-  applyGridCols(gridCols)
+  applyGridCols(gridCols);
+
   gridEl.querySelectorAll('.cell').forEach(c => {
-    observer.observe(c)
-    const chk = c.querySelector('.selcheck')
+    observer.observe(c);
+    const chk = c.querySelector('.selcheck');
     c.onclick = () => {
       if (selMode) {
-        chk.checked = !chk.checked
-        const id = c.dataset.id
-        chk.checked ? selectedIds.add(id) : selectedIds.delete(id)
-        c.classList.toggle('sel-highlight', chk.checked)
-        updateActionBarCount()
-        if (selMode === 'assign') updateDimming()
-        return
+        chk.checked = !chk.checked;
+        const id = c.dataset.id;
+        chk.checked ? selectedIds.add(id) : selectedIds.delete(id);
+        c.classList.toggle('sel-highlight', chk.checked);
+        updateActionBarCount();
+        if (selMode === 'assign') updateDimming();
+        return;
       }
-      const idx = S().currentItems.findIndex(x => x.id === c.dataset.id)
-      openLightbox(idx)
-    }
-    c.oncontextmenu = e => { e.preventDefault(); if (!selMode) openEditor(c.dataset.id) }
+      const idx = S.currentItems.findIndex(x => x.id === c.dataset.id);
+      openLightbox(idx);
+    };
+    c.oncontextmenu = e => { e.preventDefault(); if (!selMode) openEditor(c.dataset.id); };
     if (selMode) {
-      chk.classList.add('visible')
-      if (selectedIds.has(c.dataset.id)) { chk.checked = true; c.classList.add('sel-highlight') }
+      chk.classList.add('visible');
+      if (selectedIds.has(c.dataset.id)) { chk.checked = true; c.classList.add('sel-highlight'); }
+      if (selMode === 'assign' || selMode === 'remove') c.querySelector('.cell-mood-badge').classList.add('show');
     }
-    if (selMode === 'assign' || selMode === 'remove') c.querySelector('.cell-mood-badge').classList.add('show')
-  })
+  });
 }
-
-function updateActionBarCount() {
-  actionBarCount.textContent = `${selectedIds.size} ausgewählt`
-}
-
-function updateDimming() {
-  if (!assignMoods.size) {
-    gridEl.querySelectorAll('.cell').forEach(c => c.classList.remove('mood-dim'))
-    return
-  }
+  function updateActionBarCount(){ actionBarCount.textContent = `${selectedIds.size} ausgewählt`; }
+function updateDimming(){
+  if (!assignMoods.size) { gridEl.querySelectorAll('.cell').forEach(c => c.classList.remove('mood-dim')); return; }
   gridEl.querySelectorAll('.cell').forEach(c => {
-    const it = S().items.find(x => x.id === c.dataset.id)
-    if (!it) return
-    // dim wenn KEINER der Item-Moods in assignMoods ist UND nicht ausgewählt
-    const hasMatch = Array.isArray(it.moods) && it.moods.some(m => assignMoods.has(m))
-    c.classList.toggle('mood-dim', !hasMatch && !selectedIds.has(it.id))
-  })
+    const it = S.items.find(x => x.id === c.dataset.id);
+    if (!it) return;
+    const hasMatch = Array.isArray(it.moods) && it.moods.some(m => assignMoods.has(m));
+    c.classList.toggle('mood-dim', !hasMatch && !selectedIds.has(it.id));
+  });
 }
 
-// ─── Selection Mode ───────────────────────────────────────────────────────────
-function enterSelMode(mode) {
-  selMode = mode; selectedIds.clear(); assignMoods.clear()
-  closeMenu()
-  actionBarTitle.textContent = mode === 'assign' ? 'Mood zuweisen / ändern'
-    : mode === 'remove' ? 'Moods entfernen' : 'Bilder löschen'
-  abConfirm.classList.toggle('hidden', mode !== 'assign')
-  abRemove.classList.toggle('hidden', mode !== 'remove')
+// Selection Mode
+function enterSelMode(mode){
+  selMode = mode;
+  selectedIds.clear();
+  assignMoods.clear();
+  closeMenu();
+  actionBarTitle.textContent = mode === 'assign' ? 'Mood zuweisen / ändern' : mode === 'remove' ? 'Moods entfernen' : 'Bilder löschen';
+  abConfirm.classList.toggle('hidden', mode !== 'assign');
+  abRemove.classList.toggle('hidden', mode !== 'remove');
+
   if (mode === 'assign') {
-    actionBarMoods.innerHTML = S().moodsAll.filter(m => m !== 'All').map(m =>
-      `<button class="ab-chip" data-m="${m}">${moodIcon(m)} ${m}</button>`).join('')
-    actionBarMoods.querySelectorAll('.ab-chip').forEach(b => {
-      b.onclick = () => {
-        b.classList.toggle('sel')
-        b.classList.contains('sel') ? assignMoods.add(b.dataset.m) : assignMoods.delete(b.dataset.m)
-        updateDimming()
-      }
-    })
-  } else { actionBarMoods.innerHTML = '' }
-  actionBar.classList.add('show')
-  renderGrid(); updateActionBarCount()
-}
-
-function exitSelMode() {
-  selMode = null; selectedIds.clear(); assignMoods.clear()
-  actionBar.classList.remove('show'); renderGrid()
-}
-
-abCancel.onclick = () => { document.getElementById('deleteFloatingBtn')?.remove(); exitSelMode() }
-
-// ─── Assign Confirm (Multi-Mood) ──────────────────────────────────────────────
-abConfirm.onclick = async () => {
-  if (!selectedIds.size) { toast('Nichts ausgewählt'); return }
-  if (!assignMoods.size) { toast('Keine Mood ausgewählt'); return }
-  const moodsToAssign = [...assignMoods]
-  ;[...selectedIds].forEach(id => {
-    const it = S().items.find(x => x.id === id)
-    if (it) it.moods = moodsToAssign   // ← Multi-Mood Array
-  })
-  await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x => x.id === id))))
-  toast(`${selectedIds.size} Bilder → ${moodsToAssign.join(', ')}`)
-  exitSelMode()
-}
-
-// ─── Remove Mood ──────────────────────────────────────────────────────────────
-abRemove.onclick = async () => {
-  if (!selectedIds.size) { toast('Nichts ausgewählt'); return }
-  ;[...selectedIds].forEach(id => {
-    const it = S().items.find(x => x.id === id)
-    if (it) it.moods = []
-  })
-  await Promise.all([...selectedIds].map(id => sbUpdate(S().items.find(x => x.id === id))))
-  toast(`${selectedIds.size} Moods entfernt`)
-  exitSelMode()
-}
-
-$('assignMoodBtn').onclick = () => enterSelMode('assign')
-$('removeMoodBtn').onclick = () => enterSelMode('remove')
-$('assignMoodBtnSheet').onclick = () => enterSelMode('assign')
-$('removeMoodBtnSheet').onclick = () => enterSelMode('remove')
-
-// ─── Lightbox ─────────────────────────────────────────────────────────────────
-function openLightbox(idx) {
-  if (idx < 0 || idx >= S().currentItems.length) return
-  lbIndex = idx
-  const it = S().currentItems[idx]
-  lbInner.querySelectorAll('img,video').forEach(e => e.remove())
-  lbMuteBtn.classList.remove('show')
-  if (it.mediatype === 'video') {
-    const v = document.createElement('video')
-    v.src = it.mediaurl; v.controls = true; v.autoplay = true
-    v.muted = false; v.loop = true; lbInner.appendChild(v)
-    lbIsMuted = false; lbMuteBtn.innerHTML = '🔊'; lbMuteBtn.classList.add('show')
+    actionBarMoods.innerHTML = S.moodsAll.filter(m => m !== 'All').map(m => `<button class="ab-chip" data-m="${m}">${moodIcon(m)} ${m}</button>`).join('');
+    actionBarMoods.querySelectorAll('.ab-chip').forEach(b => b.onclick = () => {
+      b.classList.toggle('sel');
+      b.classList.contains('sel') ? assignMoods.add(b.dataset.m) : assignMoods.delete(b.dataset.m);
+      updateDimming();
+    });
   } else {
-    const img = document.createElement('img')
-    img.src = it.mediaurl; img.style.pointerEvents = 'none'; lbInner.appendChild(img)
+    actionBarMoods.innerHTML = '';
   }
-  lightbox.classList.add('show'); lbMoodBtn.classList.add('show')
-  closeLbMoodPicker(); updateLbArrows()
+
+  actionBar.classList.add('show');
+  renderGrid();
+  updateActionBarCount();
 }
-function updateLbArrows() {
-  $('lbPrev').style.opacity = lbIndex === 0 ? '0.2' : '1'
-  $('lbNext').style.opacity = lbIndex === S().currentItems.length - 1 ? '0.2' : '1'
+function exitSelMode(){
+  selMode = null;
+  selectedIds.clear();
+  assignMoods.clear();
+  actionBar.classList.remove('show');
+  renderGrid();
 }
-function lbNavigate(dir) {
-  const next = lbIndex + dir
-  if (next < 0 || next >= S().currentItems.length) return
-  lbInner.querySelectorAll('video').forEach(v => v.pause())
-  closeLbMoodPicker(); openLightbox(next)
+abCancel.onclick = () => { document.getElementById('deleteFloatingBtn')?.remove(); exitSelMode(); };
+
+// Assign Confirm Multi-Mood
+abConfirm.onclick = async () => {
+  if (!selectedIds.size) return toast('Nichts ausgewählt');
+  if (!assignMoods.size) return toast('Keine Mood ausgewählt');
+  const moodsToAssign = [...assignMoods];
+  selectedIds.forEach(id => {
+    const it = S.items.find(x => x.id === id);
+    if (it) it.moods = moodsToAssign;
+  });
+  await Promise.all([...selectedIds].map(id => sbUpdate(S.items.find(x => x.id === id))));
+  toast(`${selectedIds.size} Bilder → ${moodsToAssign.join(', ')}`);
+  exitSelMode();
+};
+
+// Remove Mood
+abRemove.onclick = async () => {
+  if (!selectedIds.size) return toast('Nichts ausgewählt');
+  selectedIds.forEach(id => {
+    const it = S.items.find(x => x.id === id);
+    if (it) it.moods = [];
+  });
+  await Promise.all([...selectedIds].map(id => sbUpdate(S.items.find(x => x.id === id))));
+  toast(`${selectedIds.size} Moods entfernt`);
+  exitSelMode();
+};
+
+assignMoodBtn.onclick = () => enterSelMode('assign');
+removeMoodBtn.onclick = () => enterSelMode('remove');
+assignMoodBtnSheet.onclick = () => enterSelMode('assign');
+removeMoodBtnSheet.onclick = () => enterSelMode('remove');
+
+// Lightbox
+function openLightbox(idx){
+  if (idx < 0 || idx >= S.currentItems.length) return;
+  lbIndex = idx;
+  const it = S.currentItems[idx];
+  lbInner.querySelectorAll('img,video').forEach(e => e.remove());
+  lbMuteBtn.classList.remove('show');
+
+  if (it.mediatype === 'video') {
+    const v = document.createElement('video');
+    v.src = it.mediaurl;
+    v.controls = true;
+    v.autoplay = true;
+    v.muted = false;
+    v.loop = true;
+    lbInner.appendChild(v);
+    lbIsMuted = false;
+    lbMuteBtn.innerHTML = '🔇';
+    lbMuteBtn.classList.add('show');
+  } else {
+    const img = document.createElement('img');
+    img.src = it.mediaurl;
+    img.style.pointerEvents = 'none';
+    lbInner.appendChild(img);
+  }
+
+  lightbox.classList.add('show');
+  lbMoodBtn.classList.add('show');
+  closeLbMoodPicker();
+  updateLbArrows();
 }
-$('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1) }
-$('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1) }
+function updateLbArrows(){
+  lbPrev.style.opacity = lbIndex <= 0 ? 0.2 : 1;
+  lbNext.style.opacity = lbIndex >= S.currentItems.length - 1 ? 0.2 : 1;
+}
+function lbNavigate(dir){
+  const next = lbIndex + dir;
+  if (next < 0 || next >= S.currentItems.length) return;
+  lbInner.querySelectorAll('video').forEach(v => v.pause());
+  closeLbMoodPicker();
+  openLightbox(next);
+}
+lbPrev.onclick = e => { e.stopPropagation(); lbNavigate(-1); };
+lbNext.onclick = e => { e.stopPropagation(); lbNavigate(1); };
 lightbox.onclick = e => {
-  if (lbMoodPicker.classList.contains('show')) { closeLbMoodPicker(); return }
-  if (!e.target.closest('.lb-arrow') && !e.target.closest('#lbMoodBtn') &&
-      !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb()
-}
-function closeLb() {
-  lightbox.classList.remove('show')
-  lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show')
-  closeLbMoodPicker(); lbInner.querySelectorAll('video').forEach(v => v.pause())
+  if (lbMoodPicker.classList.contains('show')) { closeLbMoodPicker(); return; }
+  if (!e.target.closest('.lb-arrow') && !e.target.closest('#lbMoodBtn') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
+};
+function closeLb(){
+  lightbox.classList.remove('show');
+  lbMoodBtn.classList.remove('show');
+  lbMuteBtn.classList.remove('show');
+  closeLbMoodPicker();
+  lbInner.querySelectorAll('video').forEach(v => v.pause());
 }
 lbMuteBtn.onclick = e => {
-  e.stopPropagation()
-  const v = lbInner.querySelector('video'); if (!v) return
-  lbIsMuted = !lbIsMuted; v.muted = lbIsMuted
-  lbMuteBtn.innerHTML = lbIsMuted ? '🔇' : '🔊'
-}
-let txS = 0, tyS = 0
-lightbox.addEventListener('touchstart', e => { txS = e.touches[0].clientX; tyS = e.touches[0].clientY }, { passive: true })
+  e.stopPropagation();
+  const v = lbInner.querySelector('video');
+  if (!v) return;
+  lbIsMuted = !lbIsMuted;
+  v.muted = lbIsMuted;
+  lbMuteBtn.innerHTML = lbIsMuted ? '🔇' : '🔊';
+};
+let txS = 0, tyS = 0;
+lightbox.addEventListener('touchstart', e => { txS = e.touches[0].clientX; tyS = e.touches[0].clientY; }, { passive:true });
 lightbox.addEventListener('touchend', e => {
-  const dx = e.changedTouches[0].clientX - txS, dy = e.changedTouches[0].clientY - tyS
-  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) lbNavigate(dx < 0 ? 1 : -1)
-}, { passive: true })
+  const dx = e.changedTouches[0].clientX - txS, dy = e.changedTouches[0].clientY - tyS;
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) lbNavigate(dx > 0 ? -1 : 1);
+}, { passive:true });
 
-// ─── Lightbox Mood Picker (Multi-Mood) ────────────────────────────────────────
-function openLbMoodPicker() {
-  const it = S().currentItems[lbIndex]; if (!it) return
+// Lightbox Mood Picker Multi-Mood
+function openLbMoodPicker(){
+  const it = S.currentItems[lbIndex];
+  if (!it) return;
   // FIX: moods ist jetzt ein Array, kein String
-  lbPickedMoods = new Set(Array.isArray(it.moods) ? it.moods : [])
-  lbCurrentMood.textContent = lbPickedMoods.size
-    ? 'Aktuell: ' + [...lbPickedMoods].join(', ')
-    : 'Noch keine Mood'
-  renderLbMoodTiles(); lbMoodPicker.classList.add('show')
+  lbPickedMoods = new Set(Array.isArray(it.moods) ? it.moods : []);
+  lbCurrentMood.textContent = lbPickedMoods.size ? `Aktuell: ${[...lbPickedMoods].join(', ')}` : 'Noch keine Mood';
+  renderLbMoodTiles();
+  lbMoodPicker.classList.add('show');
 }
-function renderLbMoodTiles() {
-  lbMoodTiles.innerHTML = S().moodsAll.filter(m => m !== 'All').map(m =>
-    `<button class="lb-mood-tile ${lbPickedMoods.has(m) ? 'sel' : ''}" data-m="${m}">${moodIcon(m)} ${m}</button>`
-  ).join('')
-  lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(b => {
-    b.onclick = e => {
-      e.stopPropagation()
-      lbPickedMoods.has(b.dataset.m) ? lbPickedMoods.delete(b.dataset.m) : lbPickedMoods.add(b.dataset.m)
-      b.classList.toggle('sel', lbPickedMoods.has(b.dataset.m))
-    }
-  })
+function renderLbMoodTiles(){
+  lbMoodTiles.innerHTML = S.moodsAll.filter(m => m !== 'All').map(m => `<button class="lb-mood-tile ${lbPickedMoods.has(m) ? 'sel' : ''}" data-m="${m}">${moodIcon(m)} ${m}</button>`).join('');
+  lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    lbPickedMoods.has(b.dataset.m) ? lbPickedMoods.delete(b.dataset.m) : lbPickedMoods.add(b.dataset.m);
+    b.classList.toggle('sel');
+  });
 }
-function closeLbMoodPicker() {
-  lbMoodPicker.classList.remove('show'); lbPickedMoods = new Set()
+function closeLbMoodPicker(){
+  lbMoodPicker.classList.remove('show');
+  lbPickedMoods = new Set();
 }
-lbMoodBtn.onclick = e => {
-  e.stopPropagation()
-  lbMoodPicker.classList.contains('show') ? closeLbMoodPicker() : openLbMoodPicker()
-}
+lbMoodBtn.onclick = e => { e.stopPropagation(); lbMoodPicker.classList.contains('show') ? closeLbMoodPicker() : openLbMoodPicker(); };
 lbMoodConfirm.onclick = async e => {
-  e.stopPropagation()
-  const it = S().currentItems[lbIndex]; if (!it) return
-  it.moods = [...lbPickedMoods]   // ← Multi-Mood Array
-  const orig = S().items.find(x => x.id === it.id)
-  if (orig) orig.moods = it.moods
-  await sbUpdate(it)
-  toast('Mood gesetzt: ' + (it.moods.join(', ') || '–'))
-  closeLbMoodPicker()
-}
+  e.stopPropagation();
+  const it = S.currentItems[lbIndex];
+  if (!it) return;
+  it.moods = [...lbPickedMoods]; // Multi-Mood Array
+  const orig = S.items.find(x => x.id === it.id);
+  if (orig) orig.moods = it.moods;
+  await sbUpdate(it);
+  toast(`Mood gesetzt: ${it.moods.join(', ')}`);
+  closeLbMoodPicker();
+};
 document.addEventListener('click', e => {
-  if (lbMoodPicker.classList.contains('show') &&
-      !e.target.closest('#lbMoodPicker') && !e.target.closest('#lbMoodBtn'))
-    closeLbMoodPicker()
-})
+  if (lbMoodPicker.classList.contains('show') && !e.target.closest('#lbMoodPicker') && !e.target.closest('#lbMoodBtn')) closeLbMoodPicker();
+});
 document.addEventListener('keydown', e => {
   if (lightbox.classList.contains('show')) {
-    if (e.key === 'ArrowLeft') lbNavigate(-1)
-    else if (e.key === 'ArrowRight') lbNavigate(1)
-    else if (e.key === 'Escape') {
-      if (lbMoodPicker.classList.contains('show')) closeLbMoodPicker()
-      else closeLb()
-    }
+    if (e.key === 'ArrowLeft') lbNavigate(-1);
+    else if (e.key === 'ArrowRight') lbNavigate(1);
+    else if (e.key === 'Escape') { if (lbMoodPicker.classList.contains('show')) closeLbMoodPicker(); else closeLb(); }
   } else if (e.key === 'Escape') {
-    if (selMode) exitSelMode(); else closeMenu()
+    if (selMode) exitSelMode();
+    else closeMenu();
   }
-})
+});
 
-// ─── Shuffle ──────────────────────────────────────────────────────────────────
-shuffleBtn.onclick = renderGrid
+// Shuffle
+shuffleBtn.onclick = renderGrid;
 
-// ─── Upload ───────────────────────────────────────────────────────────────────
-$('uploadBtn').onclick = () => { fileInput.click(); closeMenu() }
-$('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu() }
-fileInput.onchange = e => upload(e.target.files)
-
-async function upload(files) {
-  const arr = Array.from(files)
+// Upload
+uploadBtn.onclick = () => { fileInput.click(); closeMenu(); };
+uploadBtnSheet.onclick = () => { fileInput.click(); closeMenu(); };
+fileInput.onchange = e => upload(e.target.files);
+async function upload(files){
+  const arr = Array.from(files);
   for (let i = 0; i < arr.length; i++) {
-    prog(Math.round((i / arr.length) * 90))
-    toast(`Upload ${i + 1}/${arr.length}`)
-    const f = arr[i]
-    const c = await compress(f)
-    const ext = f.name.split('.').pop().toLowerCase()
-    const path = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.${ext}`
-    const { error: e1 } = await sb.storage.from(BUCKET).upload(path, c, { upsert: false, contentType: c.type })
-    if (e1) { toast('Upload-Fehler: ' + e1.message); continue }
-    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path)
-    const item = { title: f.name.replace(/\.\./g, ''), moods: [], tags: [], mediaurl: pub.publicUrl, mediatype: isVid(f.name) ? 'video' : 'image', favorite: false }
-    const { data: ins, error: e2 } = await sb.from(S().table).insert(item).select().single()
-    if (e2) { toast('DB-Fehler: ' + e2.message); continue }
-    S().items.unshift({ ...item, id: ins.id })
-    renderGrid()
+    prog(Math.round((i / arr.length) * 90));
+    toast(`Upload ${i+1}/${arr.length}`);
+    const f = arr[i];
+    const c = await compress(f);
+    const ext = f.name.split('.').pop().toLowerCase();
+    const path = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    const { error: e1 } = await sb.storage.from(BUCKET).upload(path, c, { upsert:false, contentType:c.type });
+    if (e1) { toast(`Upload-Fehler: ${e1.message}`); continue; }
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+    const item = { title:f.name.replace(/\..+$/, ''), moods:[], tags:[], mediaurl:pub.publicUrl, mediatype:isVid(f.name) ? 'video' : 'image', favorite:false };
+    const { data: ins, error: e2 } = await sb.from(S.table).insert(item).select().single();
+    if (e2) { toast(`DB-Fehler: ${e2.message}`); continue; }
+    S.items.unshift({ ...item, id: ins.id });
+    renderGrid();
   }
-  prog(100); toast('Fertig ✓')
-  fileInput.value = ''
+  prog(100); toast('Fertig'); fileInput.value = '';
 }
+gridWrap.addEventListener('dragover', e => { e.preventDefault(); gridWrap.classList.add('dragover'); });
+gridWrap.addEventListener('dragleave', () => gridWrap.classList.remove('dragover'));
+gridWrap.addEventListener('drop', e => { e.preventDefault(); gridWrap.classList.remove('dragover'); upload(e.dataTransfer.files); });
 
-// Drag & Drop
-gridWrap.addEventListener('dragover', e => { e.preventDefault(); gridWrap.classList.add('dragover') })
-gridWrap.addEventListener('dragleave', () => gridWrap.classList.remove('dragover'))
-gridWrap.addEventListener('drop', e => { e.preventDefault(); gridWrap.classList.remove('dragover'); upload(e.dataTransfer.files) })
-
-// ─── Delete Mode ──────────────────────────────────────────────────────────────
-function startDeleteMode() {
-  closeMenu(); selMode = 'delete'; selectedIds.clear()
-  actionBarTitle.textContent = 'Bilder löschen'
-  abConfirm.classList.add('hidden'); abRemove.classList.add('hidden')
-  actionBarMoods.innerHTML = ''; actionBar.classList.add('show')
-  renderGrid(); updateActionBarCount()
-  document.getElementById('deleteFloatingBtn')?.remove()
-  const btn = document.createElement('button')
-  btn.id = 'deleteFloatingBtn'
-  btn.innerHTML = '🗑️'
-  btn.style.cssText = 'position:fixed;left:20px;bottom:100px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,60,60,.2);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)'
+// Delete Mode
+function startDeleteMode(){
+  closeMenu();
+  selMode = 'delete';
+  selectedIds.clear();
+  actionBarTitle.textContent = 'Bilder löschen';
+  abConfirm.classList.add('hidden');
+  abRemove.classList.add('hidden');
+  actionBarMoods.innerHTML = '';
+  actionBar.classList.add('show');
+  renderGrid();
+  updateActionBarCount();
+  document.getElementById('deleteFloatingBtn')?.remove();
+  const btn = document.createElement('button');
+  btn.id = 'deleteFloatingBtn';
+  btn.innerHTML = '🗑';
+  btn.style.cssText = 'position:fixed;left:20px;bottom:100px;z-index:60;width:46px;height:46px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,60,60,.2);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.3)';
   btn.onclick = async () => {
-    if (!selectedIds.size) { toast('Nichts ausgewählt'); return }
-    if (!confirm(`${selectedIds.size} Bilder löschen?`)) return
-    await sbDeleteMany([...selectedIds])
-    S().items = S().items.filter(i => !selectedIds.has(i.id))
-    toast('Gelöscht'); btn.remove(); exitSelMode()
-  }
-  document.body.appendChild(btn)
+    if (!selectedIds.size) return toast('Nichts ausgewählt');
+    if (!confirm(`${selectedIds.size} Bilder löschen?`)) return;
+    await sbDeleteMany([...selectedIds]);
+    S.items = S.items.filter(i => !selectedIds.has(i.id));
+    toast('Gelöscht');
+    btn.remove();
+    exitSelMode();
+  };
+  document.body.appendChild(btn);
 }
-$('pickDeleteBtn').onclick = startDeleteMode
-$('pickDeleteBtnSheet').onclick = startDeleteMode
+pickDeleteBtn.onclick = startDeleteMode;
+pickDeleteBtnSheet.onclick = startDeleteMode;
 
-// ─── Editor ───────────────────────────────────────────────────────────────────
-function openEditor(id) {
-  editId = id
-  const it = S().items.find(x => x.id === id); if (!it) return
-  $('editorTitle').textContent = it.title || 'Item'
-  $('tagInput').value = (it.tags || []).join(', ')
-  editorWrap.classList.add('show'); dropdown.classList.add('show')
-  renderTagChips()
+// Editor
+function openEditor(id){
+  editId = id;
+  const it = S.items.find(x => x.id === id);
+  if (!it) return;
+  editorTitle.textContent = it.title;
+  tagInput.value = it.tags?.join(', ') || '';
+  editorWrap.classList.add('show');
+  dropdown.classList.add('show');
+  renderTagChips();
 }
-function renderTagChips() {
-  const it = S().items.find(x => x.id === editId)
-  $('tagChips').innerHTML = S().moodsAll.filter(m => m !== 'All').map(m =>
-    `<button class="tchip ${it && Array.isArray(it.moods) && it.moods.includes(m) ? 'active' : ''}" data-m="${m}">${m}</button>`
-  ).join('')
-  document.querySelectorAll('.tchip').forEach(b => {
-    b.onclick = () => {
-      const it = S().items.find(x => x.id === editId); if (!it) return
-      if (!Array.isArray(it.moods)) it.moods = []
-      if (it.moods.includes(b.dataset.m)) {
-        it.moods = it.moods.filter(m => m !== b.dataset.m)
-      } else {
-        it.moods = [...it.moods, b.dataset.m]
-      }
-      sbUpdate(it); renderGrid(); renderTagChips()
-    }
-  })
+function renderTagChips(){
+  const it = S.items.find(x => x.id === editId);
+  tagChips.innerHTML = S.moodsAll.filter(m => m !== 'All').map(m => `<button class="tchip ${it && Array.isArray(it.moods) && it.moods.includes(m) ? 'active' : ''}" data-m="${m}">${m}</button>`).join('');
+  document.querySelectorAll('.tchip').forEach(b => b.onclick = () => {
+    const it = S.items.find(x => x.id === editId);
+    if (!it) return;
+    if (!Array.isArray(it.moods)) it.moods = [];
+    if (it.moods.includes(b.dataset.m)) it.moods = it.moods.filter(m => m !== b.dataset.m);
+    else it.moods = [...it.moods, b.dataset.m];
+    sbUpdate(it);
+    renderGrid();
+    renderTagChips();
+  });
 }
-$('saveTagsBtn').onclick = () => {
-  const it = S().items.find(x => x.id === editId); if (!it) return
-  it.tags = $('tagInput').value.split(',').map(s => s.trim()).filter(Boolean)
-  sbUpdate(it); renderGrid(); toast('Tags gespeichert')
-}
+saveTagsBtn.onclick = () => {
+  const it = S.items.find(x => x.id === editId);
+  if (!it) return;
+  it.tags = tagInput.value.split(',').map(s => s.trim()).filter(Boolean);
+  sbUpdate(it);
+  renderGrid();
+  toast('Tags gespeichert');
+};
 
-// ─── Load Items ───────────────────────────────────────────────────────────────
-async function loadItems() {
-  const { data, error } = await sb.from(S().table)
+// Load Items
+async function loadItems(){
+  const { data, error } = await sb.from(S.table)
     .select('id,title,moods,tags,mediaurl,mediatype,favorite')
-    .order('created_at', { ascending: false })
-  if (error) { toast('Ladefehler: ' + error.message); gridEl.innerHTML = '<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return }
-  S().items = data.map(d => ({ ...d, moods: Array.isArray(d.moods) ? d.moods : [] }))
-  renderGrid()
-  $('bootMsg')?.remove()
+    .order('createdat', { ascending:false });
+
+  if (error) {
+    toast('Ladefehler: ' + error.message);
+    gridEl.innerHTML = '<div style="padding:24px;color:#fff">Kein Datenzugriff</div>';
+    return;
+  }
+
+  S.items = data.map(d => ({ ...d, moods: Array.isArray(d.moods) ? d.moods : [] }));
+  renderGrid();
+  bootMsg?.remove();
 }
 
-// ─── Supabase Helpers ─────────────────────────────────────────────────────────
-async function sbUpdate(item) {
-  if (!item) return
-  await sb.from(S().table).update({
+// Supabase Helpers
+async function sbUpdate(item){
+  if (!item) return;
+  return await sb.from(S.table).update({
     title: item.title,
     moods: Array.isArray(item.moods) ? item.moods : [],
     tags: item.tags,
     mediaurl: item.mediaurl,
     mediatype: item.mediatype,
     favorite: false
-  }).eq('id', item.id)
+  }).eq('id', item.id);
 }
-async function sbDeleteMany(ids) {
-  if (!ids.length) return
-  await sb.from(S().table).delete().in('id', ids)
+async function sbDeleteMany(ids){
+  if (!ids.length) return;
+  return await sb.from(S.table).delete().in('id', ids);
 }
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
-renderMoodChips(); applyGridCols(gridCols); updateFilterBtnState(); loadItems()
-window.addEventListener('resize', () => applyGridCols(gridCols))
+// Init
+renderMoodChips();
+applyGridCols(gridCols);
+updateFilterBtnState();
+loadItems();
+window.addEventListener('resize', () => applyGridCols(gridCols));
 </script>
-
-
 </body>
 </html>
