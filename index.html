@@ -839,7 +839,7 @@ async function loadItems(){
 
   S.items = data.map(d => ({ ...d, moods: Array.isArray(d.moods) ? d.moods : [] }));
   renderGrid();
-  bootMsg?.remove();
+  document.getElementById('bootMsg')?.remove();
 }
 
 // Supabase Helpers
