@@ -759,7 +759,7 @@ async function upload(files) {
     const { error: e1 } = await sb.storage.from(BUCKET).upload(path, c, { upsert: false, contentType: c.type })
     if (e1) { toast('Upload-Fehler: ' + e1.message); continue }
     const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path)
-    const item = { title: f.name.replace(/\.\./g, ''), moods: [], tags: [], mediaurl: pub.publicUrl, mediatype: isVid(f.name) ? 'video' : 'image', favorite: false }
+    const item = { title: f.name.replace(/\.\./g, ''), mood: [], tags: [], media_url: pub.publicUrl, media_type: isVid(f.name) ? 'video' : 'image', favorite: false }
     const { data: ins, error: e2 } = await sb.from(S().table).insert(item).select().single()
     if (e2) { toast('DB-Fehler: ' + e2.message); continue }
     S().items.unshift({ ...item, id: ins.id })
@@ -834,10 +834,10 @@ $('saveTagsBtn').onclick = () => {
 // ─── Load Items ───────────────────────────────────────────────────────────────
 async function loadItems() {
   const { data, error } = await sb.from(S().table)
-    .select('id,title,moods,tags,mediaurl,mediatype,favorite')
+    .select('id,title,mood,tags,media_url,media_type,favorite,created_at')
     .order('created_at', { ascending: false })
   if (error) { toast('Ladefehler: ' + error.message); gridEl.innerHTML = '<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return }
-  S().items = data.map(d => ({ ...d, moods: Array.isArray(d.moods) ? d.moods : [] }))
+  S().items = data.map(d => ({ ...d, mood: Array.isArray(d.moods) ? d.moods : [] }))
   renderGrid()
   $('bootMsg')?.remove()
 }
@@ -847,10 +847,10 @@ async function sbUpdate(item) {
   if (!item) return
   await sb.from(S().table).update({
     title: item.title,
-    moods: Array.isArray(item.moods) ? item.moods : [],
+    mood: Array.isArray(item.moods) ? item.moods : [],
     tags: item.tags,
-    mediaurl: item.mediaurl,
-    mediatype: item.mediatype,
+    media_url: item.mediaurl,
+    media_type: item.mediatype,
     favorite: false
   }).eq('id', item.id)
 }
