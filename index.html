@@ -136,7 +136,7 @@ button,input{font:inherit}
   left:50%;
   transform:translateX(-50%);
   z-index:31;
-  width:clamp(240px, 46vw, 380px);
+  width:clamp(240px, 46vw, 420px);
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:14px;
@@ -145,7 +145,13 @@ button,input{font:inherit}
   overflow:hidden;
   border-left:3px solid #1DB954;
 }
-.spotify-kachel iframe{display:block;width:100%;border:0;height:64px}
+
+.spotify-kachel iframe{
+  display:block;
+  width:100%;
+  border:0;
+  height:96px;
+}
 
 @media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}.lb-arrow{display:none}.dropdown{display:none!important}}
 @media(min-width:601px){.bottom-sheet,.sheet-overlay{display:none!important}}
@@ -267,7 +273,7 @@ button,input{font:inherit}
 <!-- Spotify Mini Player -->
 <div class="spotify-kachel" id="spotifyKachel">
   <iframe src="https://open.spotify.com/embed/playlist/2qURpmjeU1eFu9orvltb5I?utm_source=generator&theme=0"
-    height="64" frameBorder="0" allowfullscreen=""
+    height="96" frameBorder="0" allowfullscreen=""
     allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
     loading="lazy"></iframe>
 </div>
