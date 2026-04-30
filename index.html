@@ -517,36 +517,13 @@ function renderGrid(){
   const _flipRects = new Map();
   gridEl.querySelectorAll('.cell[data-id]').forEach(c => _flipRects.set(c.dataset.id, c.getBoundingClientRect()));
   if(_observer){ _observer.disconnect(); _observer=null; }
-
-  // Reuse existing cells to avoid re-loading images on every render
-  const _existing = new Map();
-  gridEl.querySelectorAll('.cell[data-id]').forEach(c => _existing.set(c.dataset.id, c));
-  const frag = document.createDocumentFragment();
-  arr.forEach(it => {
-    let c = _existing.get(it.id);
-    if(!c){
-      c = document.createElement('div');
-      c.className = 'cell'; c.dataset.id = it.id;
-      const chk = document.createElement('input');
-      chk.className = 'selcheck'; chk.type = 'checkbox'; chk.dataset.id = it.id;
-      c.appendChild(chk);
-      if(it.media_type === 'video'){
-        const v = document.createElement('video');
-        v.src=it.media_url; v.muted=true; v.loop=true; v.preload='none'; v.setAttribute('playsinline','');
-        c.appendChild(v);
-      } else {
-        const img = document.createElement('img');
-        img.src=it.media_url; img.loading='lazy'; img.decoding='async'; img.alt='';
-        c.appendChild(img);
-      }
-    }
-    frag.appendChild(c);
-  });
-  // Append new-order cells first (grid never empty → scroll preserved),
-  // then remove any filtered-out cells that are now at the front
-  gridEl.appendChild(frag);
-  const _surplus = gridEl.children.length - arr.length;
-  for(let i = 0; i < _surplus; i++) gridEl.removeChild(gridEl.firstChild);
+  gridEl.innerHTML = arr.map(it => `
+    <div class="cell" data-id="${it.id}">
+      <input class="selcheck" type="checkbox" data-id="${it.id}">
+      ${it.media_type==='video'
+        ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
+        : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
+    </div>`).join('');
 
   if(_flipRects.size){
     gridEl.querySelectorAll('.cell[data-id]').forEach(c => {
