@@ -95,21 +95,9 @@ button,input{font:inherit}
 .lb-arrow:hover{background:rgba(255,255,255,.18)}
 .lb-arrow.prev{left:14px}
 .lb-arrow.next{right:14px}
-.lb-mood-btn,.lb-mute-btn{position:fixed;bottom:28px;z-index:90;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:none;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.15s}
-.lb-mood-btn{right:20px}
-.lb-mute-btn{right:76px}
-.lb-mood-btn:hover,.lb-mute-btn:hover{background:rgba(255,255,255,.18)}
-.lb-mood-btn.show,.lb-mute-btn.show{display:grid}
-.lb-mood-picker{position:fixed;bottom:88px;right:14px;z-index:91;display:none;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 12px 40px rgba(0,0,0,.6);min-width:180px}
-.lb-mood-picker.show{display:flex}
-.lb-mood-picker-title{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:0 2px 4px}
-.lb-mood-tiles{display:flex;flex-wrap:wrap;gap:6px}
-.lb-mood-tile{border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;transition:.15s;font-weight:500}
-.lb-mood-tile:hover{background:rgba(255,255,255,.14)}
-.lb-mood-tile.sel{background:#fff;color:#111;border-color:#fff}
-.lb-mood-confirm{width:100%;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#111;margin-top:2px;transition:.15s}
-.lb-mood-confirm:hover{background:#ddd}
-.lb-current-mood{font-size:11px;opacity:.4;padding:0 2px}
+.lb-mute-btn{position:fixed;bottom:28px;right:20px;z-index:90;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:none;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.15s}
+.lb-mute-btn:hover{background:rgba(255,255,255,.18)}
+.lb-mute-btn.show{display:grid}
 .progress{position:fixed;top:0;left:0;height:2px;background:#fff;z-index:100;width:0;transition:width .25s}
 .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:102;background:rgba(0,0,0,.85);border:1px solid var(--border);color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;white-space:nowrap}
 .toast.show{opacity:1}
@@ -122,7 +110,7 @@ button,input{font:inherit}
 
 .spotify-popup{position:fixed;bottom:80px;left:50%;z-index:35;width:min(420px,calc(100vw - 120px));border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);overflow:hidden;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
 .spotify-popup.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
-.spotify-popup iframe{width:100%;height:152px;border:0;display:block;border-radius:12px}
+.spotify-popup iframe{width:100%;height:352px;border:0;display:block;border-radius:12px}
 
 .filter-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:35;width:280px;display:none;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
 .filter-popup.show{display:flex}
@@ -264,14 +252,6 @@ button,input{font:inherit}
 </div>
 
 <button class="lb-mute-btn" id="lbMuteBtn">&#128266;</button>
-<button class="lb-mood-btn" id="lbMoodBtn">&#127991;</button>
-
-<div class="lb-mood-picker" id="lbMoodPicker">
-  <div class="lb-mood-picker-title">Mood setzen</div>
-  <div class="lb-current-mood" id="lbCurrentMood"></div>
-  <div class="lb-mood-tiles" id="lbMoodTiles"></div>
-  <button class="lb-mood-confirm" id="lbMoodConfirm">Bestätigen</button>
-</div>
 
 <div class="progress" id="progress"></div>
 <div class="toast" id="toast"></div>
@@ -292,7 +272,7 @@ let currentPage = 'moodboard';
 const S = () => state[currentPage];
 
 let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
-let selectedIds=new Set(), assignMoods=new Set(), lbPickedMoods=new Set();
+let selectedIds=new Set(), assignMoods=new Set();
 let _observer = null;
 
 const $ = id => document.getElementById(id);
@@ -313,11 +293,7 @@ const actionBar      = $('actionBar');
 const actionBarMoods = $('actionBarMoods');
 const actionBarCount = $('actionBarCount');
 const actionBarTitle = $('actionBarTitle');
-const lbMoodBtn      = $('lbMoodBtn');
 const lbMuteBtn      = $('lbMuteBtn');
-const lbMoodPicker   = $('lbMoodPicker');
-const lbMoodTiles    = $('lbMoodTiles');
-const lbCurrentMood  = $('lbCurrentMood');
 const MAX_PX         = 2400;
 
 // ── Mood Icon Map (Platzhalter – später anpassen) ────────
@@ -623,8 +599,7 @@ $('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
     img.src=it.media_url; img.style.pointerEvents='none';
     lbInner.appendChild(img);
   }
-  lightbox.classList.add('show'); lbMoodBtn.classList.add('show');
-  closeLbMoodPicker();
+  lightbox.classList.add('show');
   updateLbArrows();
 }
 function updateLbArrows(){
@@ -635,18 +610,15 @@ function lbNavigate(dir){
   const next=lbIndex+dir;
   if(next<0 || next>=S().currentItems.length) return;
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
-  closeLbMoodPicker();
   openLightbox(next);
 }
 $('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1); };
 $('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1); };
 lightbox.onclick = e => {
-  if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); return; }
-  if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMoodBtn') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
+  if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
 };
 function closeLb(){
-  lightbox.classList.remove('show'); lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show');
-  closeLbMoodPicker();
+  lightbox.classList.remove('show'); lbMuteBtn.classList.remove('show');
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
 lbMuteBtn.onclick = e => {
@@ -663,41 +635,12 @@ lightbox.addEventListener('touchend', e=>{
   if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>40) lbNavigate(dx<0?1:-1);
 }, {passive:true});
 
-function openLbMoodPicker(){
-  const it=S().currentItems[lbIndex]; if(!it) return;
-  lbPickedMoods = new Set(it.mood && it.mood!=='All' ? [it.mood] : []);
-  lbCurrentMood.textContent = it.mood && it.mood!=='All' ? 'Aktuell: '+it.mood : 'Noch keine Mood';
-  renderLbMoodTiles(); lbMoodPicker.classList.add('show');
-}
-function renderLbMoodTiles(){
-  lbMoodTiles.innerHTML = S().moods.filter(m=>m!=='All').map(m =>
-    `<button class="lb-mood-tile ${lbPickedMoods.has(m)?'sel':''}" data-m="${m}">${m}</button>`).join('');
-  lbMoodTiles.querySelectorAll('.lb-mood-tile').forEach(b => b.onclick = e => {
-    e.stopPropagation();
-    lbPickedMoods.has(b.dataset.m) ? lbPickedMoods.delete(b.dataset.m) : lbPickedMoods.add(b.dataset.m);
-    b.classList.toggle('sel', lbPickedMoods.has(b.dataset.m));
-  });
-}
-function closeLbMoodPicker(){ lbMoodPicker.classList.remove('show'); lbPickedMoods=new Set(); }
-lbMoodBtn.onclick = e => { e.stopPropagation(); lbMoodPicker.classList.contains('show') ? closeLbMoodPicker() : openLbMoodPicker(); };
-$('lbMoodConfirm').onclick = async e => {
-  e.stopPropagation();
-  if(!lbPickedMoods.size){ toast('Keine Mood ausgewählt'); return; }
-  const mood=[...lbPickedMoods][0];
-  const it=S().currentItems[lbIndex]; if(!it) return;
-  it.moods=Array.from(new Set([...(Array.isArray(it.moods)?it.moods:[]), mood]));
-  const orig=S().items.find(x=>x.id===it.id); if(orig) orig.mood=mood;
-  await sbUpdate(it); toast('Mood → '+mood); closeLbMoodPicker();
-};
-document.addEventListener('click', e => {
-  if(lbMoodPicker.classList.contains('show') && !e.target.closest('#lbMoodPicker') && !e.target.closest('#lbMoodBtn')) closeLbMoodPicker();
-});
 
 document.addEventListener('keydown', e => {
   if(lightbox.classList.contains('show')){
     if(e.key==='ArrowLeft') lbNavigate(-1);
     else if(e.key==='ArrowRight') lbNavigate(1);
-    else if(e.key==='Escape'){ if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); } else closeLb(); }
+    else if(e.key==='Escape') closeLb();
     return;
   }
   if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
