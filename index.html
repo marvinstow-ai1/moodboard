@@ -59,9 +59,9 @@ button,input{font:inherit}
 .bottombar-btn.active{background:rgba(255,255,255,.14)}
 .bottombar-divider{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 2px;flex-shrink:0}
 #spotifyBtn svg{width:22px;height:22px;display:block}
-.gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
-.cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
+.cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict;touch-action:pan-y}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
 .cell:hover img,.cell:hover video{transform:scale(1.04)}
 .cell.sel-highlight{outline:2px solid #fff;outline-offset:-2px}
@@ -554,7 +554,11 @@ function renderGrid(){
       if(isAnyOverlayOpen()){ closeAllOverlays(); e.stopPropagation(); return; }
       const idx = S().currentItems.findIndex(x => x.id===c.dataset.id); openLightbox(idx);
     };
-    c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
+    let _lp = null, _lpDone = false;
+    c.addEventListener('touchstart', () => { _lpDone = false; _lp = setTimeout(() => { _lp = null; _lpDone = true; if(!selMode) openEditor(c.dataset.id); }, 600); }, {passive:true});
+    c.addEventListener('touchmove',  () => { clearTimeout(_lp); _lp = null; }, {passive:true});
+    c.addEventListener('touchend',   () => { clearTimeout(_lp); _lp = null; }, {passive:true});
+    c.addEventListener('contextmenu', e => { e.preventDefault(); if(!_lpDone && !selMode) openEditor(c.dataset.id); });
     if(selMode==='assign'||selMode==='remove') c.querySelector('.cell-mood-badge').classList.add('show');
     if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
   });
