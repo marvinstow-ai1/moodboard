@@ -119,9 +119,9 @@ button,input{font:inherit}
 
 /* ── Filter & Spotify Popups ────────────────────────────── */
 
-.spotify-popup{position:fixed;bottom:80px;left:50%;z-index:35;width:min(420px,calc(100vw - 120px));border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);overflow:hidden;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
+.spotify-popup{position:fixed;bottom:80px;left:50%;z-index:35;width:min(480px,calc(100vw - 32px));border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);overflow:hidden;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
 .spotify-popup.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
-.spotify-popup iframe{width:100%;height:152px;border:0;display:block;border-radius:12px}
+.spotify-popup iframe{width:100%;height:352px;border:0;display:block;border-radius:12px}
 
 .filter-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:35;width:280px;display:none;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
 .filter-popup.show{display:flex}
@@ -516,13 +516,33 @@ function renderGrid(){
   const _flipRects = new Map();
   gridEl.querySelectorAll('.cell[data-id]').forEach(c => _flipRects.set(c.dataset.id, c.getBoundingClientRect()));
   if(_observer){ _observer.disconnect(); _observer=null; }
-  gridEl.innerHTML = arr.map(it => `
-    <div class="cell" data-id="${it.id}">
-      <input class="selcheck" type="checkbox" data-id="${it.id}">
-      ${it.media_type==='video'
-        ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
-        : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
-    </div>`).join('');
+
+  // Reuse existing cells to avoid re-loading images on every render
+  const _existing = new Map();
+  gridEl.querySelectorAll('.cell[data-id]').forEach(c => _existing.set(c.dataset.id, c));
+  const frag = document.createDocumentFragment();
+  arr.forEach(it => {
+    let c = _existing.get(it.id);
+    if(!c){
+      c = document.createElement('div');
+      c.className = 'cell'; c.dataset.id = it.id;
+      const chk = document.createElement('input');
+      chk.className = 'selcheck'; chk.type = 'checkbox'; chk.dataset.id = it.id;
+      c.appendChild(chk);
+      if(it.media_type === 'video'){
+        const v = document.createElement('video');
+        v.src=it.media_url; v.muted=true; v.loop=true; v.preload='none'; v.setAttribute('playsinline','');
+        c.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src=it.media_url; img.loading='lazy'; img.decoding='async'; img.alt='';
+        c.appendChild(img);
+      }
+    }
+    frag.appendChild(c);
+  });
+  while(gridEl.firstChild) gridEl.removeChild(gridEl.firstChild);
+  gridEl.appendChild(frag);
 
   if(_flipRects.size){
     gridEl.querySelectorAll('.cell[data-id]').forEach(c => {
@@ -841,7 +861,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   const options = {
     uri: 'spotify:playlist:2qURpmjeU1eFu9orvltb5I',
     width: '100%',
-    height: 152
+    height: 352
   };
   IFrameAPI.createController(el, options, (controller) => {
     const tryPlay = () => { try { controller.play(); } catch(e){} };
