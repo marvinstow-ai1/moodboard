@@ -59,9 +59,9 @@ button,input{font:inherit}
 .bottombar-btn.active{background:rgba(255,255,255,.14)}
 .bottombar-divider{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 2px;flex-shrink:0}
 #spotifyBtn svg{width:22px;height:22px;display:block}
-.gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
-.cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict;touch-action:pan-y;-webkit-touch-callout:none;user-select:none}
+.cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
 .cell:hover img,.cell:hover video{transform:scale(1.04)}
 .cell.sel-highlight{outline:2px solid #fff;outline-offset:-2px}
@@ -120,9 +120,9 @@ button,input{font:inherit}
 
 /* ── Filter & Spotify Popups ────────────────────────────── */
 
-.spotify-popup{position:fixed;bottom:80px;left:50%;z-index:35;width:min(480px,calc(100vw - 32px));border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);overflow:hidden;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
+.spotify-popup{position:fixed;bottom:80px;left:50%;z-index:35;width:min(420px,calc(100vw - 120px));border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);overflow:hidden;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
 .spotify-popup.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
-.spotify-popup iframe{width:100%;height:352px;border:0;display:block;border-radius:12px}
+.spotify-popup iframe{width:100%;height:152px;border:0;display:block;border-radius:12px}
 
 .filter-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:35;width:280px;display:none;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
 .filter-popup.show{display:flex}
@@ -146,6 +146,40 @@ button,input{font:inherit}
 .fp-grid-btn:hover{background:rgba(255,255,255,.1)}
 .fp-grid-btn.sel{background:#fff;color:#111;border-color:#fff}
 
+/* ── Lightbox Mood Chips ──────────────────────────────── */
+#lbMoodChips {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 82;
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  max-width: 80vw;
+}
+#lbMoodChips.show { display: flex; }
+.lb-mood-chip {
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(16px);
+  pointer-events: none;
+  opacity: 0.55;
+  transition: .15s;
+}
+.lb-mood-chip.active {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.55);
+  opacity: 1;
+}
 
 /* ── Action Bar: already-set mood indicator ────────────── */
 .ab-chip.isset {
@@ -260,6 +294,8 @@ button,input{font:inherit}
   <button class="lb-arrow prev" id="lbPrev">&#8249;</button>
   <div class="lb-inner" id="lbInner"></div>
   <button class="lb-arrow next" id="lbNext">&#8250;</button>
+<div id="lbMoodChips"></div>
+
 </div>
 
 <button class="lb-mute-btn" id="lbMuteBtn">&#128266;</button>
@@ -514,10 +550,7 @@ function renderGrid(){
     : s.items;
   arr = [...arr].sort(() => Math.random()-.5);
   s.currentItems = arr;
-  const _flipRects = new Map();
-  gridEl.querySelectorAll('.cell[data-id]').forEach(c => _flipRects.set(c.dataset.id, c.getBoundingClientRect()));
   if(_observer){ _observer.disconnect(); _observer=null; }
-  const _prevH = gridEl.offsetHeight; if(_prevH) gridEl.style.minHeight = _prevH + 'px';
   gridEl.innerHTML = arr.map(it => `
     <div class="cell" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
@@ -525,21 +558,6 @@ function renderGrid(){
         ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
         : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
     </div>`).join('');
-  requestAnimationFrame(() => { gridEl.style.minHeight = ''; });
-
-  if(_flipRects.size){
-    gridEl.querySelectorAll('.cell[data-id]').forEach(c => {
-      const old = _flipRects.get(c.dataset.id); if(!old) return;
-      const cur = c.getBoundingClientRect();
-      const dx = old.left - cur.left, dy = old.top - cur.top;
-      if(!dx && !dy) return;
-      c.style.transform = `translate(${dx}px,${dy}px)`; c.style.transition = 'none';
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        c.style.transition = 'transform 0.45s cubic-bezier(.2,.8,.2,1)';
-        c.style.transform = '';
-      }));
-    });
-  }
 
   _observer = new IntersectionObserver(entries => entries.forEach(e => {
     const v = e.target.querySelector('video'); if(!v) return;
@@ -556,12 +574,7 @@ function renderGrid(){
       if(isAnyOverlayOpen()){ closeAllOverlays(); e.stopPropagation(); return; }
       const idx = S().currentItems.findIndex(x => x.id===c.dataset.id); openLightbox(idx);
     };
-    let _lp = null, _lpDone = false, _touching = false;
-    c.addEventListener('touchstart',  () => { _touching = true;  _lpDone = false; _lp = setTimeout(() => { _lp = null; _lpDone = true; if(!selMode) openEditor(c.dataset.id); }, 600); }, {passive:true});
-    c.addEventListener('touchmove',   () => { clearTimeout(_lp); _lp = null; }, {passive:true});
-    c.addEventListener('touchend',    () => { _touching = false; clearTimeout(_lp); _lp = null; }, {passive:true});
-    c.addEventListener('touchcancel', () => { _touching = false; clearTimeout(_lp); _lp = null; }, {passive:true});
-    c.addEventListener('contextmenu', e => { if(_touching) return; e.preventDefault(); if(!selMode) openEditor(c.dataset.id); });
+    c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
     if(selMode==='assign'||selMode==='remove') c.querySelector('.cell-mood-badge').classList.add('show');
     if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
   });
@@ -628,7 +641,19 @@ $('assignMoodBtnSheet').onclick = () => enterSelMode('assign');
 $('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
 
 
-function openLightbox(idx){
+  function renderLbMoodChips() {
+    const el = document.getElementById('lbMoodChips');
+    if (!el) return;
+    const it = S().currentItems[lbIndex];
+    const moods = S().moods.filter(m => m !== 'All');
+    if (!moods.length) { el.classList.remove('show'); return; }
+    el.innerHTML = moods.map(m =>
+      `<span class="lb-mood-chip${it && Array.isArray(it.moods) && it.moods.includes(m) ? ' active' : ''}">${moodIcon(m)}${m}</span>`
+    ).join('');
+    el.classList.add('show');
+  }
+
+  function openLightbox(idx){
   if(idx<0 || idx>=S().currentItems.length) return;
   lbIndex = idx;
   const it = S().currentItems[idx];
@@ -644,8 +669,9 @@ function openLightbox(idx){
     img.src=it.media_url; img.style.pointerEvents='none';
     lbInner.appendChild(img);
   }
-  lightbox.classList.add('show'); lbMoodBtn.classList.add('show');
-  closeLbMoodPicker(); updateLbArrows();
+  lightbox.classList.add('show'); lbMoodBtn.classList.add('show'); renderLbMoodChips();
+  closeLbMoodPicker();
+    renderLbMoodChips(); updateLbArrows();
 }
 function updateLbArrows(){
   $('lbPrev').style.opacity = lbIndex>0 ? '1' : '0.2';
@@ -655,17 +681,21 @@ function lbNavigate(dir){
   const next=lbIndex+dir;
   if(next<0 || next>=S().currentItems.length) return;
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
-  closeLbMoodPicker(); openLightbox(next);
+  closeLbMoodPicker();
+    renderLbMoodChips(); openLightbox(next);
 }
 $('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1); };
 $('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1); };
 lightbox.onclick = e => {
-  if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); return; }
+  if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker();
+    renderLbMoodChips(); return; }
   if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMoodBtn') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
 };
 function closeLb(){
-  lightbox.classList.remove('show'); lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show');
-  closeLbMoodPicker(); lbInner.querySelectorAll('video').forEach(v=>v.pause());
+  lightbox.classList.remove('show'); document.getElementById('lbMoodChips')?.classList.remove('show');
+    document.getElementById('lbMoodChips').classList.remove('show'); lbMoodBtn.classList.remove('show'); lbMuteBtn.classList.remove('show');
+  closeLbMoodPicker();
+    renderLbMoodChips(); lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
 lbMuteBtn.onclick = e => {
   e.stopPropagation();
@@ -706,16 +736,18 @@ $('lbMoodConfirm').onclick = async e => {
   it.moods=Array.from(new Set([...(Array.isArray(it.moods)?it.moods:[]), mood]));
   const orig=S().items.find(x=>x.id===it.id); if(orig) orig.mood=mood;
   await sbUpdate(it); toast('Mood → '+mood); closeLbMoodPicker();
+    renderLbMoodChips();
 };
 document.addEventListener('click', e => {
   if(lbMoodPicker.classList.contains('show') && !e.target.closest('#lbMoodPicker') && !e.target.closest('#lbMoodBtn')) closeLbMoodPicker();
+    renderLbMoodChips();
 });
 
 document.addEventListener('keydown', e => {
   if(lightbox.classList.contains('show')){
     if(e.key==='ArrowLeft') lbNavigate(-1);
     else if(e.key==='ArrowRight') lbNavigate(1);
-    else if(e.key==='Escape'){ if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); } else closeLb(); }
+    else if(e.key==='Escape'){ if(lbMoodPicker.classList.contains('show')){ closeLbMoodPicker(); renderLbMoodChips(); } else closeLb(); }
     return;
   }
   if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
@@ -849,7 +881,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   const options = {
     uri: 'spotify:playlist:2qURpmjeU1eFu9orvltb5I',
     width: '100%',
-    height: 352
+    height: 152
   };
   IFrameAPI.createController(el, options, (controller) => {
     const tryPlay = () => { try { controller.play(); } catch(e){} };
