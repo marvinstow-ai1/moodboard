@@ -17,6 +17,17 @@
 :root{--bg:#050505;--text:#fff;--border:rgba(255,255,255,.12);--panel:rgba(12,12,12,.96)}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overflow:hidden}
+.noise-bg{position:fixed;inset:-10%;z-index:0;pointer-events:none;opacity:.055;background-repeat:repeat;background-size:180px 180px;will-change:transform;animation:noiseShift 1.2s steps(6) infinite}
+@keyframes noiseShift{
+  0%{transform:translate(0,0)}
+  16%{transform:translate(-2%,-1%)}
+  33%{transform:translate(1%,-2%)}
+  50%{transform:translate(-1%,2%)}
+  66%{transform:translate(2%,1%)}
+  83%{transform:translate(-2%,-2%)}
+  100%{transform:translate(0,0)}
+}
+@media (prefers-reduced-motion: reduce){.noise-bg{animation:none}}
 button,input{font:inherit}
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);gap:16px}
 .topbar-left{display:flex;align-items:center;gap:20px}
@@ -159,6 +170,8 @@ button,input{font:inherit}
 </head>
 <body>
 
+<div class="noise-bg" id="noiseBg"></div>
+
 <div class="topbar">
   <div class="topbar-left">
     <span class="board-title" id="boardTitle">Marvin's Place</span>
@@ -272,6 +285,29 @@ button,input{font:inherit}
 <div class="progress" id="progress"></div>
 <div class="toast" id="toast"></div>
 
+<script>
+// ── Noise Background (one-time generated grain texture) ──
+(function initNoise(){
+  const NOISE_ENABLED = true;
+  const el = document.getElementById('noiseBg');
+  if(!NOISE_ENABLED || !el){ if(el) el.remove(); return; }
+  try {
+    const W = 180, H = 180;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(W, H);
+    const d = img.data;
+    for(let i = 0; i < d.length; i += 4){
+      const v = (Math.random() * 255) | 0;
+      d[i] = d[i+1] = d[i+2] = v;
+      d[i+3] = 60 + ((Math.random() * 110) | 0);
+    }
+    ctx.putImageData(img, 0, 0);
+    el.style.backgroundImage = `url(${c.toDataURL('image/png')})`;
+  } catch(e){ el.remove(); }
+})();
+</script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
