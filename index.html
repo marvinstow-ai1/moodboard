@@ -100,6 +100,9 @@ button,input{font:inherit}
 .lb-mute-btn{position:fixed;bottom:28px;right:20px;z-index:90;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:18px;display:none;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.15s}
 .lb-mute-btn:hover{background:rgba(255,255,255,.18)}
 .lb-mute-btn.show{display:grid}
+.lb-share-btn{position:fixed;bottom:28px;left:20px;z-index:90;width:46px;height:46px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:17px;display:none;place-items:center;backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.15s}
+.lb-share-btn:hover{background:rgba(255,255,255,.18)}
+.lb-share-btn.show{display:grid}
 .progress{position:fixed;top:0;left:0;height:2px;background:#fff;z-index:100;width:0;transition:width .25s}
 .toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:102;background:rgba(0,0,0,.85);border:1px solid var(--border);color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.2s;white-space:nowrap}
 .toast.show{opacity:1}
@@ -255,6 +258,7 @@ button,input{font:inherit}
 </div>
 
 <button class="lb-mute-btn" id="lbMuteBtn">&#128266;</button>
+<button class="lb-share-btn" id="lbShareBtn" title="Link kopieren">&#128279;</button>
 
 <div class="progress" id="progress"></div>
 <div class="toast" id="toast"></div>
@@ -297,8 +301,53 @@ const actionBarMoods = $('actionBarMoods');
 const actionBarCount = $('actionBarCount');
 const actionBarTitle = $('actionBarTitle');
 const lbMuteBtn      = $('lbMuteBtn');
+const lbShareBtn     = $('lbShareBtn');
 const lbAmbient      = $('lbAmbient');
 const MAX_PX         = 2400;
+
+// ── Share Link (deep link to a single item) ─────────────
+function buildShareUrl(it){
+  const tag = currentPage === 'personal' ? 'pb' : 'mb';
+  return `${location.origin}${location.pathname}#${tag}=${encodeURIComponent(it.id)}`;
+}
+async function shareCurrentItem(){
+  const it = S().currentItems[lbIndex]; if(!it) return;
+  const url = buildShareUrl(it);
+  if(navigator.share){
+    try { await navigator.share({ title:'Moodboard', url }); return; }
+    catch(e){ if(e.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(url); toast('Link kopiert ✓'); }
+  catch(e){
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = url; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+      toast('Link kopiert ✓');
+    } catch(e2){ toast('Kopieren fehlgeschlagen'); }
+  }
+}
+function parseShareHash(){
+  const m = (location.hash || '').slice(1).match(/^(mb|pb)=(.+)$/);
+  if(!m) return null;
+  return { page: m[1]==='pb' ? 'personal' : 'moodboard', id: decodeURIComponent(m[2]) };
+}
+let pendingShare = parseShareHash();
+function tryOpenPendingShare(){
+  if(!pendingShare) return;
+  if(currentPage !== pendingShare.page){ switchPage(pendingShare.page); return; }
+  const it = S().items.find(x => x.id === pendingShare.id);
+  if(!it){ if(S().items.length){ pendingShare = null; toast('Geteiltes Item nicht gefunden'); } return; }
+  let idx = S().currentItems.findIndex(x => x.id === pendingShare.id);
+  if(idx < 0){ S().currentItems = [it, ...S().currentItems]; idx = 0; }
+  pendingShare = null;
+  openLightbox(idx);
+}
+window.addEventListener('hashchange', () => {
+  const p = parseShareHash();
+  if(p){ pendingShare = p; tryOpenPendingShare(); }
+});
 
 // ── Ambient Mode (lightbox background glow) ─────────────
 const ambientCache = new Map();
@@ -526,6 +575,7 @@ function switchPage(page){
   editorWrap.classList.remove('show');
   renderMoodChips(); renderGrid();
   if(!S().items.length) loadItems();
+  else tryOpenPendingShare();
 }
 $('boardTitle').onclick = () => { if(currentPage!=='moodboard') switchPage('moodboard'); else renderGrid(); };
 
@@ -660,6 +710,7 @@ $('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
     lbInner.appendChild(img);
   }
   lightbox.classList.add('show');
+  lbShareBtn.classList.add('show');
   setAmbientFor(it);
   updateLbArrows();
 }
@@ -676,13 +727,14 @@ function lbNavigate(dir){
 $('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1); };
 $('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1); };
 lightbox.onclick = e => {
-  if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMuteBtn') && !e.target.closest('video')) closeLb();
+  if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMuteBtn') && !e.target.closest('#lbShareBtn') && !e.target.closest('video')) closeLb();
 };
 function closeLb(){
-  lightbox.classList.remove('show'); lbMuteBtn.classList.remove('show');
+  lightbox.classList.remove('show'); lbMuteBtn.classList.remove('show'); lbShareBtn.classList.remove('show');
   lbAmbient.style.opacity = '0';
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
+lbShareBtn.onclick = e => { e.stopPropagation(); shareCurrentItem(); };
 lbMuteBtn.onclick = e => {
   e.stopPropagation();
   const v = lbInner.querySelector('video'); if(!v) return;
@@ -780,6 +832,7 @@ async function loadItems(){
     .order('created_at',{ascending:false});
   if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
   S().items=data||[]; renderGrid(); $('bootMsg')?.remove();
+  tryOpenPendingShare();
 }
 async function sbUpdate(item){
   if(!item) return;
