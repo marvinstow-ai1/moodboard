@@ -35,6 +35,17 @@ button,input{font:inherit}
 .bottom-sheet.show{display:block;transform:translateY(0)}
 .sheet-handle{width:36px;height:4px;border-radius:999px;background:rgba(255,255,255,.2);margin:0 auto 16px}
 .dd-section{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:8px 8px 4px}
+.dd-tabs{display:flex;gap:2px;padding:3px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
+.dd-tab{flex:1;border:0;background:transparent;color:#fff;opacity:.55;border-radius:9px;padding:7px 4px;font-size:10.5px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;transition:.15s}
+.dd-tab:hover{opacity:.85;background:rgba(255,255,255,.04)}
+.dd-tab.active{background:rgba(255,255,255,.12);opacity:1}
+.dd-panel{display:none;flex-direction:column;gap:2px}
+.dd-panel.show{display:flex}
+.dd-empty{padding:28px 12px;text-align:center;font-size:12px;opacity:.45}
+.dropdown:has(.editor-wrap.show) .dd-tabs,
+.dropdown:has(.editor-wrap.show) .dd-panel{display:none}
+.bottom-sheet:has(.editor-wrap.show) .dd-tabs,
+.bottom-sheet:has(.editor-wrap.show) .dd-panel{display:none}
 .dd-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
 .dd-btn{width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px;border-radius:10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px}
 .dd-btn:hover{background:rgba(255,255,255,.08)}
@@ -167,24 +178,47 @@ button,input{font:inherit}
 </div>
 
 <div class="dropdown" id="dropdown">
-<div class="dd-section">Aktionen</div>
-  <button class="dd-btn" id="uploadBtn"><span class="icon">+</span> Bilder / Videos hochladen</button>
-  <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
-  <button class="dd-btn" id="pickDeleteBtn"><span class="icon">&#128465;</span> Bilder löschen</button>
-  <div class="dd-divider"></div>
-  <div class="dd-section">Moods</div>
-  <button class="dd-btn" id="assignMoodBtn"><span class="icon">&#127991;</span> Moods zuweisen / ändern</button>
-  <button class="dd-btn" id="removeMoodBtn"><span class="icon">&#x2715;</span> Moods entfernen</button>
-  <button class="dd-btn" id="mgmtToggleBtn"><span class="icon">⚙</span> Moods verwalten</button>
-  <div id="mgmtSection" class="mgmt-section">
-    <div class="dd-input-row"><input id="newMood" placeholder="Neue Mood"><button id="addMoodBtn">Add</button></div>
+  <div class="dd-tabs">
+    <button class="dd-tab active" data-tab="create">Erstellen</button>
+    <button class="dd-tab" data-tab="manage">Verwalten</button>
+    <button class="dd-tab" data-tab="view">Ansicht</button>
+    <button class="dd-tab" data-tab="settings">Einst.</button>
+  </div>
+
+  <div class="dd-panel show" data-panel="create">
+    <button class="dd-btn" id="uploadBtn"><span class="icon">+</span> Bilder / Videos hochladen</button>
+    <input id="fileInput" class="hidden" type="file" accept="image/*,video/*" multiple>
+    <div class="dd-section">Quick-Add per URL</div>
+    <div class="dd-input-row">
+      <input id="quickAddUrl" placeholder="Bild- oder Video-URL" inputmode="url">
+      <button id="quickAddBtn">Add</button>
+    </div>
+  </div>
+
+  <div class="dd-panel" data-panel="manage">
+    <div class="dd-section">Auswahl &amp; Aktionen</div>
+    <button class="dd-btn" id="assignMoodBtn"><span class="icon">&#127991;</span> Moods zuweisen</button>
+    <button class="dd-btn" id="removeMoodBtn"><span class="icon">&#x2715;</span> Moods entfernen</button>
+    <button class="dd-btn" id="pickDeleteBtn"><span class="icon">&#128465;</span> Bilder löschen</button>
+    <div class="dd-divider"></div>
+    <div class="dd-section">Mood-Tags</div>
+    <div class="dd-input-row"><input id="newMood" placeholder="Neuer Mood-Tag"><button id="addMoodBtn">Add</button></div>
+    <div class="dd-btn" id="showRenameBtn"><span class="icon">✎</span> Umbenennen</div>
     <div class="dd-input-row" id="renameArea" style="display:none">
        <input id="oldMoodName" placeholder="Alt"><input id="newMoodName" placeholder="Neu"><button id="renameMoodBtn" style="background:#fff;color:#000">Go</button>
     </div>
-    <div class="dd-btn" id="showRenameBtn">Umbenennen</div>
-    <div class="dd-input-row"><input id="deleteMood" placeholder="Name"><button id="deleteMoodBtn" style="color:#ff6b6b">Löschen</button></div>
+    <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn" style="color:#ff6b6b">Del</button></div>
   </div>
-  <div class="dd-divider"></div>
+
+  <div class="dd-panel" data-panel="view">
+    <button class="dd-btn" id="ddFilterBtn"><span class="icon">&#x1F50D;</span> Filter &amp; Layout</button>
+    <button class="dd-btn" id="ddShuffleBtn"><span class="icon">&#x21C4;</span> Zufällig anordnen</button>
+  </div>
+
+  <div class="dd-panel" data-panel="settings">
+    <div class="dd-empty">Bald verfügbar.</div>
+  </div>
+
   <div class="editor-wrap" id="editorWrap">
     <div class="dd-section">Editor &mdash; <span id="editorTitle" style="text-transform:none;letter-spacing:0;opacity:.7"></span></div>
     <div class="tag-chips" id="tagChips"></div>
@@ -198,21 +232,44 @@ button,input{font:inherit}
 <div class="sheet-overlay" id="sheetOverlay"></div>
 <div class="bottom-sheet" id="bottomSheet">
   <div class="sheet-handle"></div>
-<div class="dd-section">Aktionen</div>
-  <button class="dd-btn" id="uploadBtnSheet"><span class="icon">+</span> Bilder / Videos hochladen</button>
-  <button class="dd-btn" id="pickDeleteBtnSheet"><span class="icon">&#128465;</span> Bilder löschen</button>
-  <div class="dd-divider"></div>
-  <div class="dd-section">Moods</div>
-  <button class="dd-btn" id="assignMoodBtnSheet"><span class="icon">&#127991;</span> Moods zuweisen / ändern</button>
-  <button class="dd-btn" id="removeMoodBtnSheet"><span class="icon">&#x2715;</span> Moods entfernen</button>
-  <button class="dd-btn" id="mgmtToggleBtnSheet"><span class="icon">⚙</span> Moods verwalten</button>
-  <div id="mgmtSectionSheet" class="mgmt-section">
-    <div class="dd-input-row"><input id="newMoodSheet" placeholder="Neue Mood"><button id="addMoodBtnSheet">Add</button></div>
+  <div class="dd-tabs">
+    <button class="dd-tab active" data-tab="create">Erstellen</button>
+    <button class="dd-tab" data-tab="manage">Verwalten</button>
+    <button class="dd-tab" data-tab="view">Ansicht</button>
+    <button class="dd-tab" data-tab="settings">Einst.</button>
+  </div>
+
+  <div class="dd-panel show" data-panel="create">
+    <button class="dd-btn" id="uploadBtnSheet"><span class="icon">+</span> Bilder / Videos hochladen</button>
+    <div class="dd-section">Quick-Add per URL</div>
+    <div class="dd-input-row">
+      <input id="quickAddUrlSheet" placeholder="Bild- oder Video-URL" inputmode="url">
+      <button id="quickAddBtnSheet">Add</button>
+    </div>
+  </div>
+
+  <div class="dd-panel" data-panel="manage">
+    <div class="dd-section">Auswahl &amp; Aktionen</div>
+    <button class="dd-btn" id="assignMoodBtnSheet"><span class="icon">&#127991;</span> Moods zuweisen</button>
+    <button class="dd-btn" id="removeMoodBtnSheet"><span class="icon">&#x2715;</span> Moods entfernen</button>
+    <button class="dd-btn" id="pickDeleteBtnSheet"><span class="icon">&#128465;</span> Bilder löschen</button>
+    <div class="dd-divider"></div>
+    <div class="dd-section">Mood-Tags</div>
+    <div class="dd-input-row"><input id="newMoodSheet" placeholder="Neuer Mood-Tag"><button id="addMoodBtnSheet">Add</button></div>
+    <div class="dd-btn" id="showRenameBtnSheet"><span class="icon">✎</span> Umbenennen</div>
     <div class="dd-input-row" id="renameAreaSheet" style="display:none">
        <input id="oldMoodNameSheet" placeholder="Alt"><input id="newMoodNameSheet" placeholder="Neu"><button id="renameMoodBtnSheet" style="background:#fff;color:#000">Go</button>
     </div>
-    <div class="dd-btn" id="showRenameBtnSheet">Umbenennen</div>
-    <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Name"><button id="deleteMoodBtnSheet" style="color:#ff6b6b">Löschen</button></div>
+    <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Mood löschen"><button id="deleteMoodBtnSheet" style="color:#ff6b6b">Del</button></div>
+  </div>
+
+  <div class="dd-panel" data-panel="view">
+    <button class="dd-btn" id="ddFilterBtnSheet"><span class="icon">&#x1F50D;</span> Filter &amp; Layout</button>
+    <button class="dd-btn" id="ddShuffleBtnSheet"><span class="icon">&#x21C4;</span> Zufällig anordnen</button>
+  </div>
+
+  <div class="dd-panel" data-panel="settings">
+    <div class="dd-empty">Bald verfügbar.</div>
   </div>
 </div>
 
@@ -511,7 +568,6 @@ document.getElementById('fpGo').onclick = () => {
 // ── Bind Mood Management ──────────────────────────────────
 function bindMgmt(suffix){
   const g = k => $(k + (suffix||''));
-  g('mgmtToggleBtn').onclick = () => g('mgmtSection').classList.toggle('show');
   g('showRenameBtn').onclick = () => g('renameArea').style.display = 'flex';
 
   g('addMoodBtn').onclick = () => {
@@ -535,6 +591,58 @@ function bindMgmt(suffix){
   };
 }
 bindMgmt(''); bindMgmt('Sheet');
+
+// ── Tabs (dropdown + bottom sheet) ───────────────────────
+function bindTabs(rootId){
+  const root = $(rootId); if(!root) return;
+  const tabs = root.querySelectorAll('.dd-tab');
+  const panels = root.querySelectorAll('.dd-panel');
+  tabs.forEach(btn => btn.onclick = () => {
+    const t = btn.dataset.tab;
+    tabs.forEach(b => b.classList.toggle('active', b === btn));
+    panels.forEach(p => p.classList.toggle('show', p.dataset.panel === t));
+  });
+}
+bindTabs('dropdown'); bindTabs('bottomSheet');
+
+// ── Quick-Add via URL ────────────────────────────────────
+function bindQuickAdd(suffix){
+  const g = k => $(k + (suffix||''));
+  const btn = g('quickAddBtn'); const inp = g('quickAddUrl');
+  if(!btn || !inp) return;
+  const run = async () => {
+    const url = inp.value.trim();
+    if(!url) return;
+    if(!/^https?:\/\//i.test(url)){ toast('Ungültige URL'); return; }
+    const isVideo = /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url);
+    const item = {
+      title: ((url.split('/').pop()||'Link').split('?')[0] || 'Link').slice(0, 80),
+      moods: [], tags: [],
+      media_url: url,
+      media_type: isVideo ? 'video' : 'image',
+      favorite: false
+    };
+    btn.disabled = true;
+    const {data:ins, error} = await sb.from(S().table).insert(item).select().single();
+    btn.disabled = false;
+    if(error){ toast('Fehler: '+error.message); return; }
+    S().items.unshift({...item, id: ins.id});
+    inp.value = '';
+    toast('Hinzugefügt ✓'); renderGrid(); closeMenu();
+  };
+  btn.onclick = run;
+  inp.onkeydown = e => { if(e.key === 'Enter') run(); };
+}
+bindQuickAdd(''); bindQuickAdd('Sheet');
+
+// ── View tab actions (delegate to existing controls) ─────
+function bindView(suffix){
+  const g = k => $(k + (suffix||''));
+  const f = g('ddFilterBtn'); const s = g('ddShuffleBtn');
+  if(f) f.onclick = () => { closeMenu(); $('filterBtn').click(); };
+  if(s) s.onclick = () => { closeMenu(); renderGrid(); toast('Neu gemischt'); };
+}
+bindView(''); bindView('Sheet');
 
 // ── Shared Logic (same as before) ─────────────────────────
 function toast(t){ toastEl.textContent=t; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1600); }
@@ -560,7 +668,7 @@ function openMenu(){
   if(window.innerWidth<=600){ bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); }
   else dropdown.classList.toggle('show');
 }
-function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); }
+function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); editorWrap.classList.remove('show'); }
 function closeAllOverlays(){
   closeMenu();
   filterPopup.classList.remove('show');
