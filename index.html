@@ -74,7 +74,6 @@ button,input{font:inherit}
 .bottombar-btn.active{background:rgba(255,255,255,.14)}
 .bottombar-divider{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 2px;flex-shrink:0}
 #spotifyBtn svg{width:22px;height:22px;display:block}
-#filterBtn svg{width:20px;height:20px;display:block}
 .gridwrap{position:relative}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
@@ -137,26 +136,20 @@ button,input{font:inherit}
 .spotify-popup.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
 .spotify-popup iframe{width:100%;height:352px;border:0;display:block;border-radius:12px}
 
-.filter-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:35;width:280px;display:none;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
-.filter-popup.show{display:flex}
-
-.fp-section{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:2px 0 4px}
-
-.fp-moods{display:flex;flex-wrap:wrap;gap:6px}
-.fp-chip{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:999px;padding:7px 13px;font-size:12px;cursor:pointer;transition:.12s;display:flex;align-items:center;gap:5px}
-.fp-chip:hover{background:rgba(255,255,255,.1)}
-.fp-chip.sel{background:#fff;color:#111;border-color:#fff}
-.fp-chip .mood-icon{font-size:14px}
-.fp-go{width:100%;border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;background:#fff;color:#111;transition:.15s;margin-top:2px}
-.fp-go:hover{background:#ddd}
-.fp-divider{height:1px;background:rgba(255,255,255,.07)}
-.fp-grid-section{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.fp-grid-label{font-size:11px;opacity:.5;margin-right:2px}
-.fp-grid-btn{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;border-radius:8px;width:34px;height:30px;cursor:pointer;font-size:11px;font-weight:600;transition:.12s;display:grid;place-items:center}
-.fp-grid-btn:hover{background:rgba(255,255,255,.1)}
-.fp-grid-btn.sel{background:#fff;color:#111;border-color:#fff}
 
 
+/* ── Swipe Control (Grid Columns) ──────────────────────── */
+.swipe-control{display:flex;align-items:center;gap:6px;padding:0 6px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;flex-shrink:0;width:110px;height:42px}
+.swipe-arrow{width:24px;height:24px;border-radius:999px;border:none;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:12px;display:grid;place-items:center;transition:.12s;flex-shrink:0;padding:0;line-height:1}
+.swipe-arrow:hover{background:rgba(255,255,255,.18)}
+.swipe-arrow:active{transform:scale(.9)}
+.swipe-track-wrap{flex:1;position:relative;height:32px;display:flex;align-items:center}
+.swipe-track{position:relative;width:100%;height:4px;background:rgba(255,255,255,.12);border-radius:999px;overflow:visible}
+.swipe-fill{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.4);border-radius:999px;pointer-events:none;transition:width .08s ease}
+.swipe-thumb{position:absolute;top:50%;z-index:2;width:30px;height:30px;border-radius:999px;background:#fff;color:#111;font-size:11px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:grab;transition:left .08s ease,box-shadow .15s;transform:translate(-50%,-50%);will-change:left}
+.swipe-thumb:active{cursor:grabbing;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.swipe-thumb.dragging{transition:none}
+.swipe-label{font-size:9px;opacity:.4;text-align:center;letter-spacing:.04em;position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;pointer-events:none}
 /* ── Moods View ───────────────────────────────────────── */
 .moods-view{position:relative;display:none;background:var(--bg)}
 .moods-view.show{display:block}
@@ -287,19 +280,6 @@ button,input{font:inherit}
   </div>
 </div>
 
-
-<div class="filter-popup" id="filterPopup">
-  <div class="fp-section">Kachelgröße</div>
-  <div class="fp-grid-section">
-    <span class="fp-grid-label">Spalten:</span>
-    <button class="fp-grid-btn" data-cols="1">1</button>
-    <button class="fp-grid-btn" data-cols="2">2</button>
-    <button class="fp-grid-btn" data-cols="3">3</button>
-    <button class="fp-grid-btn" data-cols="4">4</button>
-  </div>
-
-  <button class="fp-go" id="fpGo">Anwenden</button>
-</div>
 
 <div class="gridwrap" id="gridWrap">
   <div class="grid" id="grid">
@@ -508,61 +488,102 @@ const MOOD_ICONS = {
 function moodIcon(m){ return MOOD_ICONS[m] || '🏷️'; }
 
 // ── Active Filter State ────────────────────────────────────
-// activeMoods = Set of selected moods (empty = show all)
 let activeMoods = new Set(JSON.parse(localStorage.getItem('active_moods')||'[]'));
-let gridCols    = parseInt(localStorage.getItem('grid_cols')||'2');
+
+// ── Grid Column Swipe Control ──────────────────────────────
+// Desktop: min 3, max 7, default 5 (centered)
+// Mobile:  min 1, max 5, default 3 (centered)
+function getColRange(){
+  return window.innerWidth <= 600
+    ? { min: 1, max: 5 }
+    : { min: 3, max: 7 };
+}
+function getDefaultCols(){
+  const r = getColRange();
+  return Math.round((r.min + r.max) / 2);
+}
+
+let gridCols = (() => {
+  const saved = localStorage.getItem('grid_cols');
+  if(saved !== null){ const v = parseInt(saved); if(v >= getColRange().min && v <= getColRange().max) return v; }
+  return getDefaultCols();
+})();
 
 function saveFilterState(){
   localStorage.setItem('active_moods', JSON.stringify([...activeMoods]));
   localStorage.setItem('grid_cols', String(gridCols));
 }
 
-// ── Apply grid cols ────────────────────────────────────────
 function applyGridCols(cols){
   gridCols = cols;
-  // Only apply custom cols on mobile; desktop uses CSS auto-fill
-  if(window.innerWidth <= 600){
-    document.getElementById('grid').style.gridTemplateColumns =
-      cols === 1 ? '1fr' : `repeat(${cols}, 1fr)`;
-  } else {
-    document.getElementById('grid').style.gridTemplateColumns = '';
-  }
-  document.querySelectorAll('.fp-grid-btn').forEach(b => {
-    b.classList.toggle('sel', parseInt(b.dataset.cols) === cols);
-  });
+  document.getElementById('grid').style.gridTemplateColumns =
+    cols === 1 ? '1fr' : `repeat(${cols}, 1fr)`;
+  updateSwipeUI();
   saveFilterState();
 }
 
-// ── Render filter popup ────────────────────────────────────
-function renderFilterPopup(){
-  // grid col buttons
-  document.querySelectorAll('.fp-grid-btn').forEach(b => {
-    b.classList.toggle('sel', parseInt(b.dataset.cols) === gridCols);
-    b.onclick = () => applyGridCols(parseInt(b.dataset.cols));
-  });
+// ── Swipe Control DOM ──────────────────────────────────────
+const swipeThumb = document.getElementById('swipeThumb');
+const swipeTrack = document.getElementById('swipeTrack');
+const swipeFill  = document.getElementById('swipeFill');
+const swipeValue = document.getElementById('swipeValue');
+const colDec     = document.getElementById('colDec');
+const colInc     = document.getElementById('colInc');
+
+function updateSwipeUI(){
+  const r = getColRange();
+  const pct = r.max > r.min ? ((gridCols - r.min) / (r.max - r.min)) * 100 : 50;
+  swipeThumb.style.left = pct + '%';
+  swipeFill.style.width = pct + '%';
+  swipeValue.textContent = gridCols;
 }
 
-function updateFilterBtnState(){ /* tile-size button has no active state */ }
+// ── Mouse / Touch Drag ─────────────────────────────────────
+let _drag = false;
 
-// ── Filter popup open/close ────────────────────────────────
-const filterPopup = document.getElementById('filterPopup');
-const filterBtn   = document.getElementById('filterBtn');
-filterBtn.onclick = e => {
-  e.stopPropagation();
-  const open = filterPopup.classList.toggle('show');
-  if(open) renderFilterPopup();
-};
-document.addEventListener('click', e => {
-  if(!e.target.closest('#filterPopup') && !e.target.closest('#filterBtn'))
-    filterPopup.classList.remove('show');
+function startDrag(e){
+  _drag = true;
+  swipeThumb.classList.add('dragging');
+  e.preventDefault();
+}
+function moveDrag(cx){
+  if(!_drag) return;
+  const rect = swipeTrack.getBoundingClientRect();
+  let pct = (cx - rect.left) / rect.width;
+  pct = Math.max(0, Math.min(1, pct));
+  const r = getColRange();
+  const cols = Math.round(r.min + pct * (r.max - r.min));
+  if(cols !== gridCols) applyGridCols(cols);
+}
+function endDrag(){
+  if(!_drag) return;
+  _drag = false;
+  swipeThumb.classList.remove('dragging');
+}
+
+// Touch
+swipeThumb.addEventListener('touchstart', startDrag, { passive: false });
+document.addEventListener('touchmove', e => { if(_drag) moveDrag(e.touches[0].clientX); }, { passive: true });
+document.addEventListener('touchend', endDrag, { passive: true });
+// Mouse
+swipeThumb.addEventListener('mousedown', startDrag);
+document.addEventListener('mousemove', e => { if(_drag) moveDrag(e.clientX); });
+document.addEventListener('mouseup', endDrag);
+
+// Click on track to jump
+swipeTrack.addEventListener('click', e => {
+  if(e.target === swipeThumb) return;
+  moveDrag(e.clientX);
 });
 
-// ── Go button ─────────────────────────────────────────────
-document.getElementById('fpGo').onclick = () => {
-  saveFilterState();
-  filterPopup.classList.remove('show');
-  renderGrid();
-  updateFilterBtnState();
+// Arrow buttons
+colDec.onclick = () => {
+  const r = getColRange();
+  if(gridCols > r.min) applyGridCols(gridCols - 1);
+};
+colInc.onclick = () => {
+  const r = getColRange();
+  if(gridCols < r.max) applyGridCols(gridCols + 1);
 };
 
 
@@ -614,7 +635,7 @@ bindQuickAdd(''); bindQuickAdd('Sheet');
 function bindView(suffix){
   const g = k => $(k + (suffix||''));
   const f = g('ddFilterBtn'); const s = g('ddShuffleBtn');
-  if(f) f.onclick = () => { closeMenu(); $('filterBtn').click(); };
+  if(f) f.onclick = () => { closeMenu(); };
   if(s) s.onclick = () => { closeMenu(); renderGrid(); toast('Neu gemischt'); };
 }
 bindView(''); bindView('Sheet');
@@ -662,7 +683,6 @@ function openMenu(){
 function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); editorWrap.classList.remove('show'); updateBodyLock(); }
 function closeAllOverlays(){
   closeMenu();
-  filterPopup.classList.remove('show');
   editorWrap.classList.remove('show');
   const sp = document.getElementById('spotifyPopup');
   if(sp){ sp.classList.remove('show'); document.getElementById('spotifyBtn').classList.remove('active'); }
@@ -670,7 +690,6 @@ function closeAllOverlays(){
 function isAnyOverlayOpen(){
   return dropdown.classList.contains('show') ||
          bottomSheet.classList.contains('show') ||
-         filterPopup.classList.contains('show') ||
          editorWrap.classList.contains('show') ||
          !!document.getElementById('spotifyPopup')?.classList.contains('show');
 }
@@ -682,21 +701,12 @@ $('boardTitle').onclick = () => {
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) hideMoodsView();
   activeMoods.clear();
   saveFilterState();
-  updateFilterBtnState();
   renderGrid();
 };
 
 function renderMoodChips(){
-  const fpMoods = document.getElementById('fpMoods');
-  if(!fpMoods) return;
-  const moods = S().moods.filter(m => m !== 'All');
-  fpMoods.innerHTML = moods.map(m => `<button class="fp-chip${activeMoods.has(m) ? ' sel' : ''}" data-m="${m}">${moodIcon(m)}${m}</button>`).join('');
-  fpMoods.querySelectorAll('.fp-chip').forEach(b => b.onclick = () => {
-    const m = b.dataset.m;
-    activeMoods.has(m) ? activeMoods.delete(m) : activeMoods.add(m);
-    b.classList.toggle('sel');
-    updateFilterBtnState();
-  });
+  // Mood chips are rendered in the dropdown via the mood-chips element
+  // (filter popup was removed – mood filtering still works via moods view)
 }
 function renderMoodChipsSheet(){ renderMoodChips(); }
 
@@ -1055,7 +1065,6 @@ function renderMoodsView(){
       const m = tile.dataset.m;
       activeMoods = new Set([m]);
       saveFilterState();
-      updateFilterBtnState();
       hideMoodsView();
       renderGrid();
     };
@@ -1065,7 +1074,6 @@ function renderMoodsView(){
 function showMoodsView(){
   moodsViewOpen = true;
   closeMenu(); closeLb(); exitSelMode();
-  filterPopup.classList.remove('show');
   gridWrap.style.display = 'none';
   moodsView.classList.add('show');
   moodsNavBtn.classList.add('active');
@@ -1133,10 +1141,15 @@ moodCreateModal.addEventListener('click', e => {
 
 renderMoodChips();
 applyGridCols(gridCols);
-updateFilterBtnState();
 loadItems();
 subscribeRealtime();
-window.addEventListener('resize', () => applyGridCols(gridCols));
+window.addEventListener('resize', () => {
+  // Clamp gridCols to the new range when crossing mobile/desktop boundary
+  const r = getColRange();
+  const clamped = Math.max(r.min, Math.min(r.max, gridCols));
+  if(clamped !== gridCols) applyGridCols(clamped);
+  else applyGridCols(gridCols);
+});
 
 </script>
 <div class="spotify-popup" id="spotifyPopup">
@@ -1152,14 +1165,16 @@ window.addEventListener('resize', () => applyGridCols(gridCols));
   <div class="bottombar-divider"></div>
   <button class="bottombar-btn" id="shuffleBtn">&#x21C4;</button>
   <div class="bottombar-divider"></div>
-  <button class="bottombar-btn" id="filterBtn" aria-label="Kachelgröße">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/>
-      <rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/>
-      <rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/>
-      <rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/>
-    </svg>
-  </button>
+  <div class="swipe-control" id="swipeControl">
+    <button class="swipe-arrow" id="colDec" aria-label="Weniger Spalten">&#8249;</button>
+    <div class="swipe-track-wrap">
+      <div class="swipe-track" id="swipeTrack">
+        <div class="swipe-fill" id="swipeFill"></div>
+        <div class="swipe-thumb" id="swipeThumb"><span id="swipeValue">5</span></div>
+      </div>
+    </div>
+    <button class="swipe-arrow" id="colInc" aria-label="Mehr Spalten">&#8250;</button>
+  </div>
 </div>
 
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
