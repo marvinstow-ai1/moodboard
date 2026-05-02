@@ -1180,8 +1180,10 @@ async function refetchItems(){
   if(error) return;
   S().items = data || [];
   mergeMoodsFromItems();
-  // Grid nicht neu rendern während die Moods-View offen ist – sonst flackern die Bilder
-  if(typeof moodsViewOpen === 'undefined' || !moodsViewOpen) renderGrid();
+  // Kein renderGrid() – die aktuelle (shufflete) Ansicht bleibt erhalten.
+  // Ein renderGrid() ohne shuffle würde die feste DB-Reihenfolge (created_at DESC)
+  // anzeigen und die zufällige Anordnung zerstören.
+  // Neu geladene Items erscheinen beim nächsten expliziten renderGrid(true).
   renderMoodChips();
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
 }
