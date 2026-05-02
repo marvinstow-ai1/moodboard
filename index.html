@@ -17,10 +17,10 @@
 :root{--bg:#050505;--text:#fff;--border:rgba(255,255,255,.12);--panel:rgba(12,12,12,.96)}
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:var(--bg)}
-body{min-height:100vh;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overscroll-behavior-y:none;-webkit-text-size-adjust:100%;padding-top:52px;padding-bottom:96px}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overscroll-behavior-y:none;-webkit-text-size-adjust:100%;padding-bottom:96px}
 body.no-scroll{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 button,input{font:inherit}
-.topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);gap:16px}
+.topbar{position:static;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);gap:16px;background:var(--bg)}
 .topbar-left{display:flex;align-items:center;gap:20px}
 .board-title{background:transparent;border:0;color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;cursor:pointer;opacity:.9;user-select:none;padding:4px 0}
 .board-title:hover{opacity:1}
@@ -269,14 +269,6 @@ button,input{font:inherit}
     <button class="dd-btn" id="assignMoodBtn"><span class="icon">&#127991;</span> Moods zuweisen</button>
     <button class="dd-btn" id="removeMoodBtn"><span class="icon">&#x2715;</span> Moods entfernen</button>
     <button class="dd-btn" id="pickDeleteBtn"><span class="icon">&#128465;</span> Bilder löschen</button>
-    <div class="dd-divider"></div>
-    <div class="dd-section">Mood-Tags</div>
-    <div class="dd-input-row"><input id="newMood" placeholder="Neuer Mood-Tag"><button id="addMoodBtn">Add</button></div>
-    <div class="dd-btn" id="showRenameBtn"><span class="icon">✎</span> Umbenennen</div>
-    <div class="dd-input-row" id="renameArea" style="display:none">
-       <input id="oldMoodName" placeholder="Alt"><input id="newMoodName" placeholder="Neu"><button id="renameMoodBtn" style="background:#fff;color:#000">Go</button>
-    </div>
-    <div class="dd-input-row"><input id="deleteMood" placeholder="Mood löschen"><button id="deleteMoodBtn" style="color:#ff6b6b">Del</button></div>
   </div>
 
   <div class="dd-panel" data-panel="view">
@@ -322,14 +314,6 @@ button,input{font:inherit}
     <button class="dd-btn" id="assignMoodBtnSheet"><span class="icon">&#127991;</span> Moods zuweisen</button>
     <button class="dd-btn" id="removeMoodBtnSheet"><span class="icon">&#x2715;</span> Moods entfernen</button>
     <button class="dd-btn" id="pickDeleteBtnSheet"><span class="icon">&#128465;</span> Bilder löschen</button>
-    <div class="dd-divider"></div>
-    <div class="dd-section">Mood-Tags</div>
-    <div class="dd-input-row"><input id="newMoodSheet" placeholder="Neuer Mood-Tag"><button id="addMoodBtnSheet">Add</button></div>
-    <div class="dd-btn" id="showRenameBtnSheet"><span class="icon">✎</span> Umbenennen</div>
-    <div class="dd-input-row" id="renameAreaSheet" style="display:none">
-       <input id="oldMoodNameSheet" placeholder="Alt"><input id="newMoodNameSheet" placeholder="Neu"><button id="renameMoodBtnSheet" style="background:#fff;color:#000">Go</button>
-    </div>
-    <div class="dd-input-row"><input id="deleteMoodSheet" placeholder="Mood löschen"><button id="deleteMoodBtnSheet" style="color:#ff6b6b">Del</button></div>
   </div>
 
   <div class="dd-panel" data-panel="view">
@@ -646,47 +630,6 @@ document.getElementById('fpGo').onclick = () => {
 
 
 
-// ── Bind Mood Management ──────────────────────────────────
-function bindMgmt(suffix){
-  const g = k => $(k + (suffix||''));
-  g('showRenameBtn').onclick = () => g('renameArea').style.display = 'flex';
-
-  g('addMoodBtn').onclick = () => {
-    const v=g('newMood').value.trim(); if(!v||S().moods.includes(v)) return;
-    S().moods.push(v); S().currentMood=v; saveMoodsList(); g('newMood').value=''; renderMoodChips(); renderGrid();
-    if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
-  };
-  g('renameMoodBtn').onclick = () => {
-    const old=g('oldMoodName').value.trim(); const v=g('newMoodName').value.trim();
-    if(!old||!v||!S().moods.includes(old)) return;
-    S().moods = S().moods.map(m=>m===old?v:m);
-    S().items.forEach(it => {
-      if(Array.isArray(it.moods) && it.moods.includes(old)){
-        it.moods = it.moods.map(x => x===old ? v : x);
-        sbUpdate(it);
-      }
-    });
-    saveMoodsList();
-    S().currentMood=v; g('oldMoodName').value=''; g('newMoodName').value=''; g('renameArea').style.display='none';
-    renderMoodChips(); renderGrid();
-    if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
-  };
-  g('deleteMoodBtn').onclick = () => {
-    const v=g('deleteMood').value.trim(); if(!v||!S().moods.includes(v)||v==='All') return;
-    S().moods=S().moods.filter(m=>m!==v);
-    S().items.forEach(it => {
-      if(Array.isArray(it.moods) && it.moods.includes(v)){
-        it.moods = it.moods.filter(x => x!==v);
-        sbUpdate(it);
-      }
-    });
-    saveMoodsList();
-    if(S().currentMood===v) S().currentMood='All';
-    g('deleteMood').value=''; renderMoodChips(); renderGrid();
-    if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
-  };
-}
-bindMgmt(''); bindMgmt('Sheet');
 
 // ── Tabs (dropdown + bottom sheet) ───────────────────────
 function bindTabs(rootId){
