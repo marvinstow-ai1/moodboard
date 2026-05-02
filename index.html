@@ -810,6 +810,7 @@ function renderGrid(){
       const idx = S().currentItems.findIndex(x => x.id===c.dataset.id); openLightbox(idx);
     };
     c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
+    if(selMode==='assign'||selMode==='remove') c.querySelector('.cell-mood-badge')?.classList.add('show');
     if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
   });
 }
@@ -1140,7 +1141,7 @@ function hideMoodsView(){
   closeMoodPicker();
 }
 
-moodsNavBtn.onclick = () => { if(moodsViewOpen) hideMoodsView(); else showMoodsView(); };
+moodsNavBtn.onclick = () => { window.open('moods.html?page=' + currentPage, '_blank'); };
 boardTitle.classList.add('active');
 const _origBoardClick = boardTitle.onclick;
 boardTitle.onclick = e => { if(moodsViewOpen) hideMoodsView(); if(_origBoardClick) _origBoardClick.call(boardTitle, e); };

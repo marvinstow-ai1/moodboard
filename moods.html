@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moods</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0a;--border:rgba(255,255,255,.1)}
+body{background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overscroll-behavior:none}
+
+/* ── Topbar ── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);gap:16px;backdrop-filter:blur(10px);background:rgba(10,10,10,.85)}
+.topbar-left{display:flex;align-items:center;gap:16px}
+.back-link{color:#fff;font-size:16px;font-weight:700;letter-spacing:.04em;opacity:.7;text-decoration:none;transition:opacity .15s}
+.back-link:hover{opacity:1}
+.page-label{color:#fff;font-size:14px;font-weight:600;letter-spacing:.06em;opacity:.45}
+.moods-heading{color:#fff;font-size:14px;font-weight:700;letter-spacing:.06em}
+.page-switcher{display:flex;gap:6px;margin-left:auto}
+.page-btn{background:transparent;border:1px solid var(--border);color:rgba(255,255,255,.5);font-size:12px;font-weight:600;letter-spacing:.04em;padding:5px 12px;border-radius:999px;cursor:pointer;transition:.15s}
+.page-btn.active{background:#fff;color:#111;border-color:#fff}
+.page-btn:hover:not(.active){background:rgba(255,255,255,.08);color:#fff}
+
+/* ── Grid layout ── */
+.page-content{padding-top:68px;padding-bottom:32px;padding-left:10px;padding-right:10px}
+.moods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));grid-auto-rows:148px;grid-auto-flow:dense;gap:8px}
+@media(min-width:480px){.moods-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));grid-auto-rows:160px}}
+@media(min-width:768px){.moods-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));grid-auto-rows:190px;gap:10px}.page-content{padding-left:18px;padding-right:18px}}
+
+/* Size variants */
+.tile-wide{grid-column:span 2}
+.tile-tall{grid-row:span 2}
+.tile-big{grid-column:span 2;grid-row:span 2}
+.tile-small{grid-column:span 1;grid-row:span 1}
+
+/* ── Mood tile ── */
+.mood-tile{position:relative;border-radius:12px;overflow:hidden;cursor:pointer;background:#1a1a1a;transition:transform .15s,box-shadow .15s;min-height:148px}
+.mood-tile:hover{transform:scale(1.013);box-shadow:0 8px 28px rgba(0,0,0,.55)}
+.mood-tile img,.mood-tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.tile-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,rgba(0,0,0,.05) 55%,transparent 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:12px}
+.tile-empty .tile-overlay{justify-content:center;align-items:center;background:rgba(255,255,255,.03)}
+.tile-placeholder{font-size:32px;opacity:.3;margin-bottom:8px}
+.tile-name{font-size:14px;font-weight:700;letter-spacing:.02em;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+.tile-count{font-size:11px;opacity:.65;margin-top:2px;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+.tile-empty .tile-name,.tile-empty .tile-count{text-align:center;text-shadow:none;opacity:.4}
+
+/* Cover button (top-right of tile) */
+.tile-cover-btn{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .2s;z-index:2;backdrop-filter:blur(4px);line-height:1}
+.mood-tile:hover .tile-cover-btn,.mood-tile.touch-show .tile-cover-btn{opacity:1}
+.tile-cover-btn:hover{background:rgba(0,0,0,.75)}
+
+/* ── Cover Picker Modal ── */
+.cover-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);flex-direction:column;overflow-y:auto}
+.cover-modal.show{display:flex}
+.cover-modal-header{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(10,10,10,.9);border-bottom:1px solid var(--border);z-index:1}
+.cover-modal-title{font-size:15px;font-weight:700}
+.cover-modal-close{background:transparent;border:1px solid var(--border);color:#fff;font-size:16px;width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cover-reset-btn{margin:10px 12px 2px;padding:11px;background:transparent;border:1px solid var(--border);color:rgba(255,255,255,.55);font-size:13px;border-radius:8px;cursor:pointer;text-align:left;transition:.15s}
+.cover-reset-btn:hover{background:rgba(255,255,255,.06);color:#fff}
+.cover-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:4px;padding:10px 12px 24px}
+.cover-item{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .1s}
+.cover-item:hover{transform:scale(1.03)}
+.cover-item.selected{border-color:#fff}
+.cover-item img,.cover-item video{width:100%;height:100%;object-fit:cover;display:block}
+.cover-check{position:absolute;top:4px;right:4px;width:20px;height:20px;background:#fff;color:#111;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:10px;font-weight:900}
+.cover-item.selected .cover-check{display:flex}
+
+/* ── Loader ── */
+.loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;opacity:.45;pointer-events:none}
+.loader.hidden{display:none}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a class="back-link" href="index.html">Marvin's Place</a>
+    <span class="page-label">/</span>
+    <span class="moods-heading">Moods</span>
+  </div>
+  <div class="page-switcher">
+    <button class="page-btn" data-page="moodboard">Moodboard</button>
+    <button class="page-btn" data-page="personal">Personal</button>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="moods-grid" id="moodsGrid"></div>
+</div>
+
+<div class="loader" id="loader">Lade...</div>
+
+<div class="cover-modal" id="coverModal">
+  <div class="cover-modal-header">
+    <span class="cover-modal-title" id="coverModalTitle">Cover wählen</span>
+    <button class="cover-modal-close" id="coverModalClose">✕</button>
+  </div>
+  <button class="cover-reset-btn" id="coverResetBtn">↺ Zufälliges Bild (Standard)</button>
+  <div class="cover-grid" id="coverGrid"></div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://bnwcbxjgsmmvmtvqblrr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJud2NieGpnc21tdm10dnFibHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjAyMDQsImV4cCI6MjA5MjE5NjIwNH0.Lo0lAnOoyFhMpq7YwO3pw2vMccSsJc8Xbk7Teck5QmE';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const PAGES = {
+  moodboard: { moods:['Summer','Winter','Cozy','Dark'], table:'moodboard_items' },
+  personal:  { moods:['Work','Family','Travel','Misc'],  table:'personal_items'  }
+};
+const MOOD_ICONS = { Summer:'☀️', Winter:'❄️', Cozy:'🕯️', Dark:'🌑', Work:'💼', Family:'🏠', Travel:'✈️', Misc:'🏷️' };
+// Tile size pattern cycling through moods
+const SIZES = ['tile-wide','tile-tall','tile-small','tile-big','tile-small','tile-wide','tile-tall','tile-small'];
+
+let currentPage = new URLSearchParams(location.search).get('page') || 'moodboard';
+let allItems = [];
+let coverPickerMood = null;
+
+const grid    = document.getElementById('moodsGrid');
+const loader  = document.getElementById('loader');
+const coverModal = document.getElementById('coverModal');
+const coverGrid  = document.getElementById('coverGrid');
+const coverModalTitle = document.getElementById('coverModalTitle');
+
+function coverKey(mood){ return `mood_cover_${currentPage}_${mood}`; }
+function getCover(mood){ return localStorage.getItem(coverKey(mood)); }
+function setCover(mood, url){ localStorage.setItem(coverKey(mood), url); }
+function clearCover(mood){ localStorage.removeItem(coverKey(mood)); }
+
+function itemsForMood(mood){
+  return allItems.filter(i => Array.isArray(i.moods) && i.moods.includes(mood));
+}
+
+function pickRandom(arr){ return arr.length ? arr[Math.floor(Math.random()*arr.length)] : null; }
+
+function mediaEl(item, lazy){
+  if(!item) return '';
+  if(item.media_type==='video')
+    return `<video src="${item.media_url}" muted loop playsinline autoplay></video>`;
+  return `<img src="${item.media_url}" alt=""${lazy?' loading="lazy"':''}>`;
+}
+
+function renderGrid(){
+  const moods = PAGES[currentPage]?.moods || [];
+  grid.innerHTML = '';
+  moods.forEach((mood, i) => {
+    const items   = itemsForMood(mood);
+    const coverUrl = getCover(mood);
+    let displayItem = null;
+    if(coverUrl){
+      displayItem = items.find(it => it.media_url === coverUrl)
+        || { media_url: coverUrl, media_type: /\.(mp4|webm|mov)$/i.test(coverUrl) ? 'video' : 'image' };
+    } else {
+      displayItem = pickRandom(items.filter(i => i.media_type !== 'video').concat(items.filter(i => i.media_type === 'video')));
+      // prefer images for cover, fallback to video
+      const imgs = items.filter(i => i.media_type !== 'video');
+      displayItem = pickRandom(imgs.length ? imgs : items);
+    }
+
+    const sizeClass = SIZES[i % SIZES.length];
+    const icon = MOOD_ICONS[mood] || '🏷️';
+    const empty = !displayItem;
+
+    const tile = document.createElement('div');
+    tile.className = `mood-tile ${sizeClass}${empty ? ' tile-empty' : ''}`;
+    tile.dataset.mood = mood;
+
+    tile.innerHTML = `
+      ${displayItem ? mediaEl(displayItem, true) : ''}
+      <div class="tile-overlay">
+        ${empty ? `<div class="tile-placeholder">${icon}</div>` : ''}
+        <div class="tile-name">${icon} ${mood}</div>
+        <div class="tile-count">${items.length} ${items.length===1?'Bild':'Bilder'}</div>
+      </div>
+      <button class="tile-cover-btn" title="Cover-Bild wählen">🖼</button>
+    `;
+
+    tile.querySelector('.tile-cover-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      openCoverPicker(mood);
+    });
+
+    // show cover btn briefly on touch
+    tile.addEventListener('touchstart', () => {
+      tile.classList.add('touch-show');
+    }, { passive:true });
+    tile.addEventListener('touchend', () => {
+      setTimeout(() => tile.classList.remove('touch-show'), 2000);
+    }, { passive:true });
+
+    grid.appendChild(tile);
+  });
+}
+
+function openCoverPicker(mood){
+  coverPickerMood = mood;
+  const items = itemsForMood(mood);
+  const currentCover = getCover(mood);
+  coverModalTitle.textContent = `${MOOD_ICONS[mood]||'🏷️'} ${mood} — Cover wählen`;
+
+  if(!items.length){
+    coverGrid.innerHTML = '<div style="padding:24px;opacity:.4;font-size:14px">Keine Bilder in dieser Mood</div>';
+    coverModal.classList.add('show');
+    return;
+  }
+
+  coverGrid.innerHTML = items.map(it => `
+    <div class="cover-item${it.media_url===currentCover?' selected':''}" data-url="${it.media_url}" data-type="${it.media_type}">
+      ${it.media_type==='video'
+        ? `<video src="${it.media_url}" muted loop playsinline autoplay></video>`
+        : `<img src="${it.media_url}" alt="" loading="lazy">`}
+      <div class="cover-check">✓</div>
+    </div>
+  `).join('');
+
+  coverGrid.querySelectorAll('.cover-item').forEach(el => {
+    el.addEventListener('click', () => {
+      setCover(mood, el.dataset.url);
+      coverModal.classList.remove('show');
+      renderGrid();
+    });
+  });
+
+  coverModal.classList.add('show');
+}
+
+document.getElementById('coverModalClose').addEventListener('click', () => {
+  coverModal.classList.remove('show');
+});
+
+document.getElementById('coverResetBtn').addEventListener('click', () => {
+  if(coverPickerMood){ clearCover(coverPickerMood); }
+  coverModal.classList.remove('show');
+  renderGrid();
+});
+
+coverModal.addEventListener('click', e => {
+  if(e.target === coverModal) coverModal.classList.remove('show');
+});
+
+document.querySelectorAll('.page-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.dataset.page === currentPage) return;
+    currentPage = btn.dataset.page;
+    const url = new URL(location.href);
+    url.searchParams.set('page', currentPage);
+    history.replaceState(null, '', url);
+    document.querySelectorAll('.page-btn').forEach(b => b.classList.toggle('active', b===btn));
+    load();
+  });
+});
+
+async function load(){
+  loader.classList.remove('hidden');
+  grid.innerHTML = '';
+  const table = PAGES[currentPage].table;
+  const {data, error} = await sb.from(table)
+    .select('id,moods,media_url,media_type')
+    .order('created_at',{ascending:false});
+  loader.classList.add('hidden');
+  if(error){ grid.innerHTML='<div style="padding:24px;opacity:.4;font-size:14px">Fehler beim Laden</div>'; return; }
+  allItems = data || [];
+  renderGrid();
+}
+
+// init active page btn
+document.querySelectorAll('.page-btn').forEach(b => b.classList.toggle('active', b.dataset.page===currentPage));
+load();
+</script>
+</body>
+</html>
