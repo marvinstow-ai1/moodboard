@@ -84,8 +84,8 @@ button,input{font:inherit}
   100%{transform:scale(1) translateY(0);opacity:1}
 }
 
-.moods-view{position:relative;display:block;background:var(--bg);transform:scale(.85) translateY(20px);opacity:0;pointer-events:none;transition:transform .5s cubic-bezier(.32,1,.23,1),opacity .5s cubic-bezier(.32,1,.23,1);transform-origin:50% 0}
-.moods-view.show{transform:scale(1) translateY(0);opacity:1;pointer-events:auto}
+.moods-view{position:relative;visibility:hidden;background:var(--bg);transform:scale(.85) translateY(20px);opacity:0;pointer-events:none;transition:transform .5s cubic-bezier(.32,1,.23,1),opacity .5s cubic-bezier(.32,1,.23,1),visibility .5s cubic-bezier(.32,1,.23,1);transform-origin:50% 0}
+.moods-view.show{visibility:visible;transform:scale(1) translateY(0);opacity:1;pointer-events:auto}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
@@ -167,8 +167,6 @@ button,input{font:inherit}
 .swipe-thumb:active{cursor:grabbing;box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .swipe-thumb.dragging{transition:none}
 /* ── Moods View ───────────────────────────────────────── */
-.moods-view{position:relative;display:none;background:var(--bg)}
-.moods-view.show{display:block}
 .moods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px;padding:2px}
 .mood-tile{position:relative;overflow:hidden;background:#111;cursor:pointer;transition:transform .2s, box-shadow .2s;contain:strict;aspect-ratio:1}
 .mood-tile:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.5)}
@@ -1170,7 +1168,7 @@ function showMoodsView(){
   // Bottombar umschalten (Buttons schrumpfen)
   document.getElementById('bottombar').classList.add('moods-active');
   document.getElementById('moodsMgmtBtn').classList.add('show');
-  // Nach der Ausblend-Animation: MoodsView einblenden
+  // Nach der Ausblend-Animation: Grid verstecken, MoodsView einblenden
   setTimeout(() => {
     gridWrap.style.display = 'none';
     gridWrap.classList.remove('hide-view');
@@ -1180,13 +1178,13 @@ function showMoodsView(){
     renderMoodsView();
     window.scrollTo(0, 0);
     _moodsAnimating = false;
-  }, 450);
+  }, 500);
 }
 function hideMoodsView(){
   if(_moodsAnimating) return;
   _moodsAnimating = true;
   moodsViewOpen = false;
-  // MoodsView ausblenden (scale down + fade)
+  // MoodsView ausblenden (scale down + fade) – funktioniert jetzt via visibility
   moodsView.classList.remove('show');
   // Bottombar zurücksetzen (Buttons wachsen)
   document.getElementById('bottombar').classList.remove('moods-active');
@@ -1205,7 +1203,7 @@ function hideMoodsView(){
     });
     moodsNavBtn.classList.remove('active');
     boardTitle.classList.add('active');
-  }, 450);
+  }, 500);
 }
 
 moodsNavBtn.onclick = () => {
