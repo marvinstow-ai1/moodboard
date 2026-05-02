@@ -1147,6 +1147,47 @@ async function sbDeleteMany(ids){
   await sb.from(S().table).delete().in('id',ids);
 }
 
+// ── Cross-device live sync ────────────────────────────────
+// Refetch silently so other devices see uploads / mood-tag changes
+// without a manual reload. Skipped while a modal/lightbox is open
+// to avoid yanking state out from under the user.
+let _syncTimer = null;
+function isUiBusy(){
+  return (typeof lightbox!=='undefined' && lightbox.classList.contains('show'))
+    || (typeof moodPicker!=='undefined' && moodPicker.classList.contains('show'))
+    || (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
+    || bottomSheet.classList.contains('show');
+}
+async function refetchItems(){
+  if(isUiBusy()){ scheduleSync(1500); return; }
+  const {data,error} = await sb.from(S().table)
+    .select('id,title,moods,tags,media_url,media_type,favorite')
+    .order('created_at',{ascending:false});
+  if(error) return;
+  S().items = data || [];
+  mergeMoodsFromItems();
+  renderGrid();
+  renderMoodChips();
+  if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
+}
+function scheduleSync(delay){
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(refetchItems, delay ?? 400);
+}
+function subscribeRealtime(){
+  try{
+    sb.channel('moodboard_items_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'moodboard_items' },
+          () => scheduleSync(300))
+      .subscribe();
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') scheduleSync(0);
+});
+window.addEventListener('focus', () => scheduleSync(0));
+window.addEventListener('online', () => scheduleSync(0));
+
 // ── Moods Overview Page ───────────────────────────────────
 let moodsViewOpen = false;
 const moodsView = $('moodsView');
@@ -1345,6 +1386,7 @@ renderMoodChips();
 applyGridCols(gridCols);
 updateFilterBtnState();
 loadItems();
+subscribeRealtime();
 window.addEventListener('resize', () => applyGridCols(gridCols));
 
 </script>
