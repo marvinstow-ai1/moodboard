@@ -1015,6 +1015,11 @@ const moodsGrid = $('moodsGrid');
 const moodsNavBtn = $('moodsNavBtn');
 const boardTitle = $('boardTitle');
 
+// Wählt ein repräsentatives Item (Bild/Video) für eine Mood aus
+function pickMainItem(mood){
+  return S().items.find(x => Array.isArray(x.moods) && x.moods.includes(mood)) || null;
+}
+
 function renderMoodsView(){
   const moods = S().moods.filter(m => m !== 'All');
   // Pattern: every 4th tile wide, every 7th tile tall — feels organic
