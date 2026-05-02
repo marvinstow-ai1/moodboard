@@ -804,7 +804,7 @@ function bindView(suffix){
   const g = k => $(k + (suffix||''));
   const f = g('ddFilterBtn'); const s = g('ddShuffleBtn');
   if(f) f.onclick = () => { closeMenu(); filterPopup.classList.toggle('show'); };
-  if(s) s.onclick = () => { closeMenu(); renderGrid(); toast('Neu gemischt'); };
+  if(s) s.onclick = () => { closeMenu(); renderGrid(true); toast('Neu gemischt'); };
 }
 bindView(''); bindView('Sheet');
 
@@ -873,7 +873,7 @@ $('boardTitle').onclick = () => {
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) hideMoodsView();
   activeMoods.clear();
   saveFilterState();
-  renderGrid();
+  renderGrid(true);
 };
 
 function renderMoodChips(){
@@ -882,7 +882,7 @@ function renderMoodChips(){
 }
 function renderMoodChipsSheet(){ renderMoodChips(); }
 
-function renderGrid(){
+function renderGrid(shuffle){
   const s = S();
   // Drop any active mood filters that no longer exist in the moods list
   // (e.g. the mood was renamed/deleted on another device).
@@ -899,7 +899,8 @@ function renderGrid(){
     saveFilterState();
     arr = s.items;
   }
-  arr = [...arr].sort(() => Math.random()-.5);
+  // Nur shufflen wenn explizit gewünscht (Shuffle-Button, initiales Laden, Klick auf "Marvin's Place")
+  if(shuffle) arr = [...arr].sort(() => Math.random()-.5);
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
   gridEl.innerHTML = arr.map(it => `
@@ -1051,7 +1052,7 @@ document.addEventListener('keydown', e => {
   if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
 });
 
-$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); renderGrid(); };
+$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); renderGrid(true); };
 $('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
 $('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
 fileInput.onchange = e => upload(e.target.files);
@@ -1125,7 +1126,7 @@ async function loadItems(){
   if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
   S().items=data||[];
   mergeMoodsFromItems();
-  renderGrid(); $('bootMsg')?.remove();
+  renderGrid(true); $('bootMsg')?.remove();
   renderMoodChips();
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
   tryOpenPendingShare();
