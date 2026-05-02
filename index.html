@@ -16,7 +16,9 @@
 <style>
 :root{--bg:#050505;--text:#fff;--border:rgba(255,255,255,.12);--panel:rgba(12,12,12,.96)}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overflow:hidden}
+html{background:var(--bg)}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overscroll-behavior-y:none;-webkit-text-size-adjust:100%;padding-top:52px;padding-bottom:96px}
+body.no-scroll{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 button,input{font:inherit}
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);gap:16px}
 .topbar-left{display:flex;align-items:center;gap:20px}
@@ -70,7 +72,7 @@ button,input{font:inherit}
 .bottombar-btn.active{background:rgba(255,255,255,.14)}
 .bottombar-divider{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 2px;flex-shrink:0}
 #spotifyBtn svg{width:22px;height:22px;display:block}
-.gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
+.gridwrap{position:relative}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
@@ -168,7 +170,7 @@ button,input{font:inherit}
 }
 
 /* ── Moods View ───────────────────────────────────────── */
-.moods-view{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;display:none;background:var(--bg)}
+.moods-view{position:relative;display:none;background:var(--bg)}
 .moods-view.show{display:block}
 .moods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:14px;grid-auto-rows:200px;grid-auto-flow:dense;max-width:1600px;margin:0 auto}
 .mood-tile{position:relative;overflow:hidden;background:#111;border-radius:14px;cursor:pointer;transition:transform .2s, box-shadow .2s;contain:strict}
@@ -781,11 +783,28 @@ function compress(file, maxPx=MAX_PX, q=0.88){
     img.src=url;
   });
 }
+let _lockedScrollY = 0;
+function updateBodyLock(){
+  const lock = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'))
+    || (typeof moodPicker!=='undefined' && moodPicker.classList.contains('show'))
+    || (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
+    || bottomSheet.classList.contains('show');
+  const isLocked = document.body.classList.contains('no-scroll');
+  if(lock && !isLocked){
+    _lockedScrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.top = `-${_lockedScrollY}px`;
+    document.body.classList.add('no-scroll');
+  } else if(!lock && isLocked){
+    document.body.classList.remove('no-scroll');
+    document.body.style.top = '';
+    window.scrollTo(0, _lockedScrollY);
+  }
+}
 function openMenu(){
-  if(window.innerWidth<=600){ bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); }
+  if(window.innerWidth<=600){ bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); updateBodyLock(); }
   else dropdown.classList.toggle('show');
 }
-function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); editorWrap.classList.remove('show'); }
+function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); editorWrap.classList.remove('show'); updateBodyLock(); }
 function closeAllOverlays(){
   closeMenu();
   filterPopup.classList.remove('show');
@@ -825,15 +844,6 @@ function renderMoodChips(){
   });
 }
 function renderMoodChipsSheet(){ renderMoodChips(); }
-
-// iOS Safari swallows the first downward swipe when a fixed scroll container
-// is at scrollTop===0. Nudging to 1 makes scroll-down work on first try.
-function nudgeScroll(el){
-  if(!el) return;
-  requestAnimationFrame(() => {
-    if(el.scrollTop === 0 && el.scrollHeight > el.clientHeight) el.scrollTop = 1;
-  });
-}
 
 function renderGrid(){
   const s = S();
@@ -879,7 +889,6 @@ function renderGrid(){
     if(selMode==='assign'||selMode==='remove') c.querySelector('.cell-mood-badge')?.classList.add('show');
     if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
   });
-  nudgeScroll(gridWrap);
 }
 
 function updateActionBarCount(){
@@ -964,6 +973,7 @@ $('removeMoodBtnSheet').onclick = () => enterSelMode('remove');
   lbShareBtn.classList.add('show');
   setAmbientFor(it);
   updateLbArrows();
+  updateBodyLock();
 }
 function updateLbArrows(){
   $('lbPrev').style.opacity = lbIndex>0 ? '1' : '0.2';
@@ -984,6 +994,7 @@ lightbox.onclick = e => {
 function closeLb(){
   lightbox.classList.remove('show'); lbMuteBtn.classList.remove('show'); lbShareBtn.classList.remove('show');
   closeSharePopup();
+  updateBodyLock();
   lbAmbient.style.opacity = '0';
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
@@ -1204,7 +1215,7 @@ function showMoodsView(){
   moodsNavBtn.classList.add('active');
   boardTitle.classList.remove('active');
   renderMoodsView();
-  nudgeScroll(moodsView);
+  window.scrollTo(0, 0);
 }
 function hideMoodsView(){
   moodsViewOpen = false;
@@ -1250,8 +1261,9 @@ function openMoodPicker(mood){
     });
   }
   moodPicker.classList.add('show');
+  updateBodyLock();
 }
-function closeMoodPicker(){ moodPicker.classList.remove('show'); pickerMood = null; }
+function closeMoodPicker(){ moodPicker.classList.remove('show'); pickerMood = null; updateBodyLock(); }
 $('mpClose').onclick = closeMoodPicker;
 $('mpReset').onclick = () => {
   if(!pickerMood) return;
@@ -1271,10 +1283,12 @@ function openMoodCreate(){
   mcmError.classList.remove('show');
   mcmError.innerHTML = '&nbsp;';
   moodCreateModal.classList.add('show');
+  updateBodyLock();
   setTimeout(() => mcmInput.focus(), 60);
 }
 function closeMoodCreate(){
   moodCreateModal.classList.remove('show');
+  updateBodyLock();
 }
 function showMcmError(msg){
   mcmError.textContent = msg;
