@@ -1180,7 +1180,8 @@ async function refetchItems(){
   if(error) return;
   S().items = data || [];
   mergeMoodsFromItems();
-  renderGrid();
+  // Grid nicht neu rendern während die Moods-View offen ist – sonst flackern die Bilder
+  if(typeof moodsViewOpen === 'undefined' || !moodsViewOpen) renderGrid();
   renderMoodChips();
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
 }
@@ -1263,6 +1264,8 @@ function showMoodsView(){
   if(_moodsAnimating) return;
   _moodsAnimating = true;
   moodsViewOpen = true;
+  // Ausstehenden Sync abbrechen – kein renderGrid() während der Animation
+  clearTimeout(_syncTimer);
   closeMenu(); closeLb();
   // Selection-Mode zurücksetzen OHNE renderGrid() – das Grid wird gleich ausgeblendet
   selMode = null; selectedIds.clear();
@@ -1288,6 +1291,8 @@ function hideMoodsView(){
   if(_moodsAnimating) return;
   _moodsAnimating = true;
   moodsViewOpen = false;
+  // Ausstehenden Sync abbrechen – kein renderGrid() während der Animation
+  clearTimeout(_syncTimer);
   // MoodsView ausblenden (scale down + fade) – funktioniert jetzt via visibility
   moodsView.classList.remove('show');
   // Bottombar zurücksetzen (Buttons wachsen)
