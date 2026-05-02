@@ -770,10 +770,21 @@ function renderMoodChipsSheet(){ renderMoodChips(); }
 
 function renderGrid(){
   const s = S();
+  // Drop any active mood filters that no longer exist in the moods list
+  // (e.g. the mood was renamed/deleted on another device).
+  const validMoods = new Set(s.moods);
+  for(const m of [...activeMoods]) if(!validMoods.has(m)) activeMoods.delete(m);
   // Filter: if activeMoods has entries, show items matching ANY selected mood (OR)
   let arr = activeMoods.size > 0
     ? s.items.filter(i => (Array.isArray(i.moods) && i.moods.some(m => activeMoods.has(m))))
     : s.items;
+  // If a filter is active but matches nothing (e.g. items were retagged on
+  // another device), drop the filter so the user always sees content.
+  if(activeMoods.size > 0 && arr.length === 0 && s.items.length > 0){
+    activeMoods.clear();
+    saveFilterState();
+    arr = s.items;
+  }
   arr = [...arr].sort(() => Math.random()-.5);
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
