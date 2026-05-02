@@ -1111,9 +1111,32 @@ async function loadItems(){
     .select('id,title,moods,tags,media_url,media_type,favorite')
     .order('created_at',{ascending:false});
   if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
-  S().items=data||[]; renderGrid(); $('bootMsg')?.remove();
+  S().items=data||[];
+  mergeMoodsFromItems();
+  renderGrid(); $('bootMsg')?.remove();
+  renderMoodChips();
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
   tryOpenPendingShare();
+}
+
+// Merge any mood tags found on items into the local moods list so moods
+// created on another device appear here too. The moods list is otherwise
+// only persisted per-device in localStorage.
+function mergeMoodsFromItems(){
+  const known = new Set(S().moods);
+  let changed = false;
+  for(const it of S().items){
+    if(!Array.isArray(it.moods)) continue;
+    for(const m of it.moods){
+      if(typeof m !== 'string') continue;
+      const trimmed = m.trim();
+      if(!trimmed || known.has(trimmed)) continue;
+      S().moods.push(trimmed);
+      known.add(trimmed);
+      changed = true;
+    }
+  }
+  if(changed) saveMoodsList();
 }
 async function sbUpdate(item){
   if(!item) return;
