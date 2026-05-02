@@ -194,6 +194,34 @@ button,input{font:inherit}
 .mcm-btn:disabled{opacity:.4;cursor:not-allowed}
 .mcm-error{font-size:12px;color:#ff7373;margin-top:-8px;margin-bottom:12px;min-height:14px;opacity:0;transition:opacity .15s}
 .mcm-error.show{opacity:1}
+/* ── Moods Management Popup ──────────────────────────── */
+.moods-mgmt-popup{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
+.moods-mgmt-popup.show{display:flex}
+.mmg-content{width:min(420px,calc(100vw - 40px));max-height:80vh;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow-y:auto}
+.mmg-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}
+.mmg-list{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.mmg-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid transparent;transition:.12s}
+.mmg-item:hover{background:rgba(255,255,255,.08)}
+.mmg-item .mmg-icon{font-size:18px;width:24px;text-align:center}
+.mmg-item .mmg-name{flex:1;font-size:14px;font-weight:500}
+.mmg-item .mmg-count{font-size:11px;opacity:.5}
+.mmg-item .mmg-del{width:28px;height:28px;border-radius:999px;border:none;background:rgba(255,60,60,.15);color:#ff6b6b;cursor:pointer;font-size:14px;display:grid;place-items:center;transition:.12s;flex-shrink:0}
+.mmg-item .mmg-del:hover{background:rgba(255,60,60,.3)}
+.mmg-add-row{display:flex;gap:6px;margin-bottom:14px}
+.mmg-add-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:10px 12px;outline:none;font-size:14px}
+.mmg-add-row input:focus{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.09)}
+.mmg-add-row button{border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;transition:.12s}
+.mmg-add-row button:hover{background:rgba(255,255,255,.15)}
+.mmg-close{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.mmg-close:hover{background:rgba(255,255,255,.12)}
+
+/* ── Bottombar extended (moods active) ──────────────── */
+.bottombar.moods-active{padding:6px 10px;transition:padding .35s cubic-bezier(.32,1,.23,1)}
+.moods-mgmt-divider{display:none;transition:opacity .25s ease}
+.moods-mgmt-divider.show{display:block}
+.moods-mgmt-btn{height:42px;border-radius:999px;border:1px solid transparent;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:12px;font-weight:600;padding:0;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;max-width:0;opacity:0;overflow:hidden;transition:max-width .35s cubic-bezier(.32,1,.23,1),padding .35s cubic-bezier(.32,1,.23,1),opacity .25s ease .1s,border-color .25s ease .1s}
+.moods-mgmt-btn.show{max-width:200px;padding:0 16px;opacity:1;border-color:var(--border)}
+.moods-mgmt-btn:hover{background:rgba(255,255,255,.15)}
 </style>
 </head>
 <body>
@@ -683,7 +711,8 @@ let _lockedScrollY = 0;
 function updateBodyLock(){
   const lock = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'))
     || (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
-    || bottomSheet.classList.contains('show');
+    || bottomSheet.classList.contains('show')
+    || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'));
   const isLocked = document.body.classList.contains('no-scroll');
   if(lock && !isLocked){
     _lockedScrollY = window.scrollY || window.pageYOffset || 0;
@@ -1005,7 +1034,8 @@ let _syncTimer = null;
 function isUiBusy(){
   return (typeof lightbox!=='undefined' && lightbox.classList.contains('show'))
     || (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
-    || bottomSheet.classList.contains('show');
+    || bottomSheet.classList.contains('show')
+    || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'));
 }
 async function refetchItems(){
   if(isUiBusy()){ scheduleSync(1500); return; }
@@ -1101,6 +1131,10 @@ function showMoodsView(){
   boardTitle.classList.remove('active');
   renderMoodsView();
   window.scrollTo(0, 0);
+  // Bottombar erweitern: "Moods verwalten" Button einblenden
+  document.getElementById('bottombar').classList.add('moods-active');
+  document.getElementById('mgmtDivider').classList.add('show');
+  document.getElementById('moodsMgmtBtn').classList.add('show');
 }
 function hideMoodsView(){
   moodsViewOpen = false;
@@ -1108,6 +1142,10 @@ function hideMoodsView(){
   gridWrap.style.display = '';
   moodsNavBtn.classList.remove('active');
   boardTitle.classList.add('active');
+  // Bottombar zurücksetzen
+  document.getElementById('bottombar').classList.remove('moods-active');
+  document.getElementById('mgmtDivider').classList.remove('show');
+  document.getElementById('moodsMgmtBtn').classList.remove('show');
 }
 
 moodsNavBtn.onclick = () => {
@@ -1160,6 +1198,82 @@ moodCreateModal.addEventListener('click', e => {
   if(e.target === moodCreateModal) closeMoodCreate();
 });
 
+// ── Moods Management Popup ─────────────────────────────
+const moodsMgmtPopup = $('moodsMgmtPopup');
+const mmgList = $('mmgList');
+const mmgInput = $('mmgInput');
+const mmgAddBtn = $('mmgAddBtn');
+const mmgClose = $('mmgClose');
+
+function renderMoodsMgmt(){
+  const moods = S().moods.filter(m => m !== 'All');
+  mmgList.innerHTML = moods.map(m => {
+    const count = S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
+    return `<div class="mmg-item">
+      <span class="mmg-icon">${moodIcon(m)}</span>
+      <span class="mmg-name">${m}</span>
+      <span class="mmg-count">${count}</span>
+      <button class="mmg-del" data-m="${m}">✕</button>
+    </div>`;
+  }).join('');
+  mmgList.querySelectorAll('.mmg-del').forEach(btn => {
+    btn.onclick = e => {
+      e.stopPropagation();
+      const m = btn.dataset.m;
+      if(!confirm(`Mood „${m}" löschen?`)) return;
+      S().moods = S().moods.filter(x => x !== m);
+      saveMoodsList();
+      for(const it of S().items){
+        if(Array.isArray(it.moods)){
+          const idx = it.moods.indexOf(m);
+          if(idx >= 0){ it.moods.splice(idx, 1); sbUpdate(it); }
+        }
+      }
+      renderMoodsMgmt();
+      if(moodsViewOpen) renderMoodsView();
+      renderGrid();
+      toast(`Mood „${m}" gelöscht`);
+    };
+  });
+}
+
+$('moodsMgmtBtn').onclick = () => {
+  moodsMgmtPopup.classList.add('show');
+  renderMoodsMgmt();
+  updateBodyLock();
+  setTimeout(() => mmgInput.focus(), 60);
+};
+
+function closeMoodsMgmt(){
+  moodsMgmtPopup.classList.remove('show');
+  updateBodyLock();
+}
+
+mmgClose.onclick = closeMoodsMgmt;
+moodsMgmtPopup.addEventListener('click', e => {
+  if(e.target === moodsMgmtPopup) closeMoodsMgmt();
+});
+
+mmgAddBtn.onclick = () => {
+  const raw = mmgInput.value.trim();
+  if(!raw){ toast('Bitte einen Namen eingeben'); return; }
+  if(raw.length < 2){ toast('Mindestens 2 Zeichen'); return; }
+  const exists = S().moods.some(m => m.toLowerCase() === raw.toLowerCase());
+  if(exists){ toast('Diese Mood existiert bereits'); return; }
+  S().moods.push(raw);
+  saveMoodsList();
+  renderMoodsMgmt();
+  if(moodsViewOpen) renderMoodsView();
+  renderGrid();
+  mmgInput.value = '';
+  toast(`Mood „${raw}" erstellt ✓`);
+};
+
+mmgInput.addEventListener('keydown', e => {
+  if(e.key === 'Enter') mmgAddBtn.click();
+  else if(e.key === 'Escape') closeMoodsMgmt();
+});
+
 renderMoodChips();
 applyGridCols(gridCols);
 loadItems();
@@ -1185,11 +1299,24 @@ document.addEventListener('click', e => {
 });
 
 </script>
+
+<!-- ── Moods Management Popup ──────────────────────────── -->
+<div class="moods-mgmt-popup" id="moodsMgmtPopup">
+  <div class="mmg-content">
+    <div class="mmg-title">Moods verwalten</div>
+    <div class="mmg-list" id="mmgList"></div>
+    <div class="mmg-add-row">
+      <input id="mmgInput" placeholder="Neue Mood hinzufügen" maxlength="32" autocomplete="off">
+      <button id="mmgAddBtn">Hinzufügen</button>
+    </div>
+    <button class="mmg-close" id="mmgClose">Schließen</button>
+  </div>
+</div>
 <div class="spotify-popup" id="spotifyPopup">
   <div id="spotifyEmbed"></div>
 </div>
 
-<div class="bottombar">
+<div class="bottombar" id="bottombar">
   <button class="bottombar-btn" id="spotifyBtn" aria-label="Spotify Playlist">
     <svg viewBox="0 0 168 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path fill="#1ED760" d="M83.996.277C37.747.277.253 37.77.253 84.019c0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l.001-.004zm38.404 120.78a5.217 5.217 0 0 1-7.18 1.73c-19.662-12.01-44.414-14.73-73.564-8.07a5.222 5.222 0 0 1-6.249-3.93 5.213 5.213 0 0 1 3.926-6.25c31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-.903-8.148-4.35a6.538 6.538 0 0 1 4.354-8.143c30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-.001zm.88-23.744c-26.99-16.031-71.52-17.505-97.289-9.684-4.138 1.255-8.514-1.081-9.768-5.219a7.835 7.835 0 0 1 5.221-9.771c29.581-8.98 78.756-7.245 109.83 11.202a7.823 7.823 0 0 1 2.74 10.733c-2.2 3.722-7.02 4.949-10.73 2.739z"/>
@@ -1206,6 +1333,8 @@ document.addEventListener('click', e => {
       <rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/>
     </svg>
   </button>
+  <div class="bottombar-divider moods-mgmt-divider" id="mgmtDivider"></div>
+  <button class="moods-mgmt-btn" id="moodsMgmtBtn">⚙️ Moods verwalten</button>
 </div>
 
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
