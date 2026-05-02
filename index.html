@@ -160,8 +160,8 @@ button,input{font:inherit}
 /* ── Moods View ───────────────────────────────────────── */
 .moods-view{position:relative;display:none;background:var(--bg)}
 .moods-view.show{display:block}
-.moods-grid{display:grid;grid-template-columns:repeat(auto-fill,250px);gap:0;padding:0;grid-auto-rows:auto;grid-auto-flow:dense;max-width:1600px;margin:0 auto;justify-content:center}
-.mood-tile{position:relative;overflow:hidden;background:#111;cursor:pointer;transition:transform .2s, box-shadow .2s;contain:strict;aspect-ratio:1;width:250px}
+.moods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px;padding:2px;grid-auto-rows:auto;grid-auto-flow:dense}
+.mood-tile{position:relative;overflow:hidden;background:#111;cursor:pointer;transition:transform .2s, box-shadow .2s;contain:strict;aspect-ratio:1}
 .mood-tile:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.5)}
 .mood-tile.wide{grid-column:span 2}
 .mood-tile.tall{grid-row:span 2}
@@ -172,7 +172,7 @@ button,input{font:inherit}
 .mood-tile .mt-count{font-size:10px;font-weight:500;opacity:.75;margin-left:auto}
 .mood-tile .mt-empty{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.35);font-size:13px}
 @media(max-width:600px){
-  .moods-grid{grid-template-columns:repeat(auto-fill,250px);grid-auto-rows:auto;gap:0;padding:0;justify-content:center}
+  .moods-grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));grid-auto-rows:auto;gap:2px;padding:2px}
   .mood-tile .mt-label{font-size:13px;bottom:10px;left:10px;right:10px}
 }
 
