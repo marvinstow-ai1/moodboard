@@ -1263,7 +1263,10 @@ function showMoodsView(){
   if(_moodsAnimating) return;
   _moodsAnimating = true;
   moodsViewOpen = true;
-  closeMenu(); closeLb(); exitSelMode();
+  closeMenu(); closeLb();
+  // Selection-Mode zurücksetzen OHNE renderGrid() – das Grid wird gleich ausgeblendet
+  selMode = null; selectedIds.clear();
+  actionBar.classList.remove('show');
   // GridWrap ausblenden (scale down + fade)
   gridWrap.classList.add('hide-view');
   // Bottombar umschalten (Buttons schrumpfen)
