@@ -1015,9 +1015,10 @@ const moodsGrid = $('moodsGrid');
 const moodsNavBtn = $('moodsNavBtn');
 const boardTitle = $('boardTitle');
 
-// Wählt ein repräsentatives Item (Bild/Video) für eine Mood aus
+// Wählt ein zufälliges Item (Bild/Video) aus einer Mood aus
 function pickMainItem(mood){
-  return S().items.find(x => Array.isArray(x.moods) && x.moods.includes(mood)) || null;
+  const items = S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(mood));
+  return items.length ? items[Math.floor(Math.random() * items.length)] : null;
 }
 
 function renderMoodsView(){
