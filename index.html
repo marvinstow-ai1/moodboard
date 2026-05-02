@@ -70,7 +70,7 @@ button,input{font:inherit}
 .bottombar-btn.active{background:rgba(255,255,255,.14)}
 .bottombar-divider{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 2px;flex-shrink:0}
 #spotifyBtn svg{width:22px;height:22px;display:block}
-.gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.gridwrap{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
@@ -168,7 +168,7 @@ button,input{font:inherit}
 }
 
 /* ── Moods View ───────────────────────────────────────── */
-.moods-view{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:none;background:var(--bg)}
+.moods-view{position:fixed;inset:52px 0 0 0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;display:none;background:var(--bg)}
 .moods-view.show{display:block}
 .moods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:14px;grid-auto-rows:200px;grid-auto-flow:dense;max-width:1600px;margin:0 auto}
 .mood-tile{position:relative;overflow:hidden;background:#111;border-radius:14px;cursor:pointer;transition:transform .2s, box-shadow .2s;contain:strict}
@@ -208,6 +208,29 @@ button,input{font:inherit}
 .mp-cell img,.mp-cell video{width:100%;height:100%;object-fit:cover;display:block}
 .mp-cell .mp-current-badge{position:absolute;top:6px;right:6px;background:#fff;color:#111;border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700;display:none}
 .mp-cell.current .mp-current-badge{display:block}
+
+/* ── Create Mood Tile + Modal ─────────────────────────── */
+.mood-tile-create{background:rgba(255,255,255,.04);border:1.5px dashed rgba(255,255,255,.18);cursor:pointer;display:grid;place-items:center;transition:background .18s,border-color .18s,transform .18s}
+.mood-tile-create:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.4);transform:translateY(-2px)}
+.mood-tile-create .mtc-inner{display:flex;flex-direction:column;align-items:center;gap:6px;color:rgba(255,255,255,.7);pointer-events:none}
+.mood-tile-create .mtc-plus{width:48px;height:48px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;font-size:26px;display:grid;place-items:center;backdrop-filter:blur(16px);font-weight:300;line-height:1}
+.mood-tile-create .mtc-label{font-size:13px;font-weight:600;letter-spacing:.02em;opacity:.85}
+
+.mood-create-modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
+.mood-create-modal.show{display:flex}
+.mcm-content{width:min(380px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
+.mcm-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}
+.mcm-input{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:12px 14px;outline:none;font-size:14px;margin-bottom:14px}
+.mcm-input:focus{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.09)}
+.mcm-actions{display:flex;gap:8px}
+.mcm-btn{flex:1;border:1px solid var(--border);border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.mcm-btn.cancel{background:rgba(255,255,255,.06);color:#fff}
+.mcm-btn.cancel:hover{background:rgba(255,255,255,.12)}
+.mcm-btn.confirm{background:#fff;color:#111;border-color:#fff}
+.mcm-btn.confirm:hover{background:#ddd}
+.mcm-btn:disabled{opacity:.4;cursor:not-allowed}
+.mcm-error{font-size:12px;color:#ff7373;margin-top:-8px;margin-bottom:12px;min-height:14px;opacity:0;transition:opacity .15s}
+.mcm-error.show{opacity:1}
 </style>
 </head>
 <body>
@@ -377,6 +400,18 @@ button,input{font:inherit}
 
 </div>
 
+<div class="mood-create-modal" id="moodCreateModal">
+  <div class="mcm-content">
+    <div class="mcm-title">Neue Mood erstellen</div>
+    <input class="mcm-input" id="mcmInput" placeholder="Mood-Name (z.B. Calm)" maxlength="32" autocomplete="off">
+    <div class="mcm-error" id="mcmError">&nbsp;</div>
+    <div class="mcm-actions">
+      <button class="mcm-btn cancel" id="mcmCancel">Abbrechen</button>
+      <button class="mcm-btn confirm" id="mcmConfirm">Erstellen</button>
+    </div>
+  </div>
+</div>
+
 <button class="lb-mute-btn" id="lbMuteBtn">&#128266;</button>
 <button class="lb-share-btn" id="lbShareBtn" title="Link teilen">&#128279;</button>
 <div class="share-popup" id="sharePopup">
@@ -395,9 +430,20 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const BUCKET = 'moodboard';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const DEFAULT_MOODS = ['All','Summer','Winter','Cozy','Dark'];
+function loadMoodsList(){
+  try{
+    const v = JSON.parse(localStorage.getItem('mb_moods_list')||'null');
+    if(Array.isArray(v) && v.length && v[0]==='All') return v;
+  }catch(e){}
+  return [...DEFAULT_MOODS];
+}
+function saveMoodsList(){
+  try{ localStorage.setItem('mb_moods_list', JSON.stringify(state.moodboard.moods)); }catch(e){}
+}
+
 const state = {
-  moodboard: { items:[], currentItems:[], moods:['All','Summer','Winter','Cozy','Dark'], currentMood: localStorage.getItem('mb_mood')||'All', table:'moodboard_items' },
-  personal:  { items:[], currentItems:[], moods:['All','Work','Family','Travel','Misc'],  currentMood: localStorage.getItem('pb_mood')||'All', table:'personal_items' }
+  moodboard: { items:[], currentItems:[], moods: loadMoodsList(), currentMood: localStorage.getItem('mb_mood')||'All', table:'moodboard_items' }
 };
 let currentPage = 'moodboard';
 const S = () => state[currentPage];
@@ -431,8 +477,7 @@ const MAX_PX         = 2400;
 
 // ── Share Link (deep link to a single item) ─────────────
 function buildShareUrl(it){
-  const tag = currentPage === 'personal' ? 'pb' : 'mb';
-  return `${location.origin}${location.pathname}#${tag}=${encodeURIComponent(it.id)}`;
+  return `${location.origin}${location.pathname}#mb=${encodeURIComponent(it.id)}`;
 }
 async function copyText(text){
   try { await navigator.clipboard.writeText(text); return true; }
@@ -454,14 +499,13 @@ function openSharePopup(){
 }
 function closeSharePopup(){ $('sharePopup').classList.remove('show'); }
 function parseShareHash(){
-  const m = (location.hash || '').slice(1).match(/^(mb|pb)=(.+)$/);
+  const m = (location.hash || '').slice(1).match(/^mb=(.+)$/);
   if(!m) return null;
-  return { page: m[1]==='pb' ? 'personal' : 'moodboard', id: decodeURIComponent(m[2]) };
+  return { id: decodeURIComponent(m[1]) };
 }
 let pendingShare = parseShareHash();
 function tryOpenPendingShare(){
   if(!pendingShare) return;
-  if(currentPage !== pendingShare.page){ switchPage(pendingShare.page); return; }
   const it = S().items.find(x => x.id === pendingShare.id);
   if(!it){ if(S().items.length){ pendingShare = null; toast('Geteiltes Item nicht gefunden'); } return; }
   let idx = S().currentItems.findIndex(x => x.id === pendingShare.id);
@@ -630,22 +674,37 @@ function bindMgmt(suffix){
 
   g('addMoodBtn').onclick = () => {
     const v=g('newMood').value.trim(); if(!v||S().moods.includes(v)) return;
-    S().moods.push(v); S().currentMood=v; g('newMood').value=''; renderMoodChips(); renderGrid();
+    S().moods.push(v); S().currentMood=v; saveMoodsList(); g('newMood').value=''; renderMoodChips(); renderGrid();
+    if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
   };
   g('renameMoodBtn').onclick = () => {
     const old=g('oldMoodName').value.trim(); const v=g('newMoodName').value.trim();
     if(!old||!v||!S().moods.includes(old)) return;
     S().moods = S().moods.map(m=>m===old?v:m);
-    S().items.forEach(it => { if(it.mood===old) { it.mood=v; sbUpdate(it); }});
+    S().items.forEach(it => {
+      if(Array.isArray(it.moods) && it.moods.includes(old)){
+        it.moods = it.moods.map(x => x===old ? v : x);
+        sbUpdate(it);
+      }
+    });
+    saveMoodsList();
     S().currentMood=v; g('oldMoodName').value=''; g('newMoodName').value=''; g('renameArea').style.display='none';
     renderMoodChips(); renderGrid();
+    if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
   };
   g('deleteMoodBtn').onclick = () => {
-    const v=g('deleteMood').value.trim(); if(!v||!S().moods.includes(v)) return;
+    const v=g('deleteMood').value.trim(); if(!v||!S().moods.includes(v)||v==='All') return;
     S().moods=S().moods.filter(m=>m!==v);
-    S().items.forEach(it => { if(it.mood===v) { it.moods=[]; sbUpdate(it); }});
+    S().items.forEach(it => {
+      if(Array.isArray(it.moods) && it.moods.includes(v)){
+        it.moods = it.moods.filter(x => x!==v);
+        sbUpdate(it);
+      }
+    });
+    saveMoodsList();
     if(S().currentMood===v) S().currentMood='All';
     g('deleteMood').value=''; renderMoodChips(); renderGrid();
+    if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
   };
 }
 bindMgmt(''); bindMgmt('Sheet');
@@ -745,15 +804,13 @@ $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
 sheetOverlay.onclick = closeMenu;
 document.addEventListener('click', e => { if(!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show'); });
 
-function switchPage(page){
-  currentPage = page;
-  exitSelMode(); closeLb(); closeMenu();
-  editorWrap.classList.remove('show');
-  renderMoodChips(); renderGrid();
-  if(!S().items.length) loadItems();
-  else tryOpenPendingShare();
-}
-$('boardTitle').onclick = () => { if(currentPage!=='moodboard') switchPage('moodboard'); else renderGrid(); };
+$('boardTitle').onclick = () => {
+  if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) hideMoodsView();
+  activeMoods.clear();
+  saveFilterState();
+  updateFilterBtnState();
+  renderGrid();
+};
 
 function renderMoodChips(){
   const fpMoods = document.getElementById('fpMoods');
@@ -768,6 +825,15 @@ function renderMoodChips(){
   });
 }
 function renderMoodChipsSheet(){ renderMoodChips(); }
+
+// iOS Safari swallows the first downward swipe when a fixed scroll container
+// is at scrollTop===0. Nudging to 1 makes scroll-down work on first try.
+function nudgeScroll(el){
+  if(!el) return;
+  requestAnimationFrame(() => {
+    if(el.scrollTop === 0 && el.scrollHeight > el.clientHeight) el.scrollTop = 1;
+  });
+}
 
 function renderGrid(){
   const s = S();
@@ -813,6 +879,7 @@ function renderGrid(){
     if(selMode==='assign'||selMode==='remove') c.querySelector('.cell-mood-badge')?.classList.add('show');
     if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
   });
+  nudgeScroll(gridWrap);
 }
 
 function updateActionBarCount(){
@@ -1074,12 +1141,8 @@ function pickMainItem(mood){
 
 function renderMoodsView(){
   const moods = S().moods.filter(m => m !== 'All');
-  if(!moods.length){
-    moodsGrid.innerHTML = '<div class="moods-empty">Noch keine Moods angelegt.</div>';
-    return;
-  }
   // Pattern: every 4th tile wide, every 7th tile tall — feels organic
-  moodsGrid.innerHTML = moods.map((m, i) => {
+  const tilesHtml = moods.map((m, i) => {
     const it = pickMainItem(m);
     const count = S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
     const sizeClass = i % 7 === 6 ? 'tall' : (i % 4 === 3 ? 'wide' : '');
@@ -1100,7 +1163,17 @@ function renderMoodsView(){
         </div>
       </div>`;
   }).join('');
-  moodsGrid.querySelectorAll('.mood-tile').forEach(tile => {
+  const createTile = `
+    <div class="mood-tile mood-tile-create" id="moodCreateTile" title="Neue Mood erstellen">
+      <div class="mtc-inner">
+        <div class="mtc-plus">+</div>
+        <div class="mtc-label">Neue Mood</div>
+      </div>
+    </div>`;
+  moodsGrid.innerHTML = tilesHtml + createTile;
+  const createBtn = document.getElementById('moodCreateTile');
+  if(createBtn) createBtn.onclick = openMoodCreate;
+  moodsGrid.querySelectorAll('.mood-tile:not(.mood-tile-create)').forEach(tile => {
     tile.onclick = e => {
       if(e.target.closest('.mt-edit')) return;
       const m = tile.dataset.m;
@@ -1131,6 +1204,7 @@ function showMoodsView(){
   moodsNavBtn.classList.add('active');
   boardTitle.classList.remove('active');
   renderMoodsView();
+  nudgeScroll(moodsView);
 }
 function hideMoodsView(){
   moodsViewOpen = false;
@@ -1141,10 +1215,11 @@ function hideMoodsView(){
   closeMoodPicker();
 }
 
-moodsNavBtn.onclick = () => { window.open('moods.html?page=' + currentPage, '_blank'); };
+moodsNavBtn.onclick = () => {
+  if(moodsViewOpen) hideMoodsView();
+  else showMoodsView();
+};
 boardTitle.classList.add('active');
-const _origBoardClick = boardTitle.onclick;
-boardTitle.onclick = e => { if(moodsViewOpen) hideMoodsView(); if(_origBoardClick) _origBoardClick.call(boardTitle, e); };
 
 // ── Mood Main-Image Picker ────────────────────────────────
 let pickerMood = null;
@@ -1186,6 +1261,48 @@ $('mpReset').onclick = () => {
   toast('Hauptbild zurückgesetzt');
 };
 moodPicker.addEventListener('click', e => { if(e.target === moodPicker) closeMoodPicker(); });
+
+// ── Create Mood Modal ─────────────────────────────────────
+const moodCreateModal = $('moodCreateModal');
+const mcmInput = $('mcmInput');
+const mcmError = $('mcmError');
+function openMoodCreate(){
+  mcmInput.value = '';
+  mcmError.classList.remove('show');
+  mcmError.innerHTML = '&nbsp;';
+  moodCreateModal.classList.add('show');
+  setTimeout(() => mcmInput.focus(), 60);
+}
+function closeMoodCreate(){
+  moodCreateModal.classList.remove('show');
+}
+function showMcmError(msg){
+  mcmError.textContent = msg;
+  mcmError.classList.add('show');
+}
+async function confirmCreateMood(){
+  const raw = mcmInput.value.trim();
+  if(!raw){ showMcmError('Bitte einen Namen eingeben'); return; }
+  if(raw.length < 2){ showMcmError('Mindestens 2 Zeichen'); return; }
+  // case-insensitive duplicate check
+  const exists = S().moods.some(m => m.toLowerCase() === raw.toLowerCase());
+  if(exists){ showMcmError('Diese Mood existiert bereits'); return; }
+  S().moods.push(raw);
+  saveMoodsList();
+  renderMoodChips();
+  if(moodsViewOpen) renderMoodsView();
+  closeMoodCreate();
+  toast(`Mood „${raw}" erstellt ✓`);
+}
+$('mcmConfirm').onclick = confirmCreateMood;
+$('mcmCancel').onclick = closeMoodCreate;
+mcmInput.addEventListener('keydown', e => {
+  if(e.key === 'Enter') confirmCreateMood();
+  else if(e.key === 'Escape') closeMoodCreate();
+});
+moodCreateModal.addEventListener('click', e => {
+  if(e.target === moodCreateModal) closeMoodCreate();
+});
 
 renderMoodChips();
 applyGridCols(gridCols);
