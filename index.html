@@ -74,6 +74,7 @@ button,input{font:inherit}
 .bottombar-btn.active{background:rgba(255,255,255,.14)}
 .bottombar-divider{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 2px;flex-shrink:0}
 #spotifyBtn svg{width:22px;height:22px;display:block}
+#filterBtn svg{width:20px;height:20px;display:block}
 .gridwrap{position:relative}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
@@ -138,18 +139,22 @@ button,input{font:inherit}
 
 
 
-/* ── Swipe Control (Grid Columns) ──────────────────────── */
-.swipe-control{display:flex;align-items:center;gap:6px;padding:0 6px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;flex-shrink:0;width:110px;height:42px}
-.swipe-arrow{width:24px;height:24px;border-radius:999px;border:none;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:12px;display:grid;place-items:center;transition:.12s;flex-shrink:0;padding:0;line-height:1}
+/* ── Filter Popup (Grid Columns) ───────────────────────── */
+.filter-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:35;width:280px;display:none;flex-direction:column;gap:14px;padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.filter-popup.show{display:flex}
+.fp-header{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;text-align:center}
+
+/* ── Swipe Control (inside popup) ──────────────────────── */
+.swipe-control{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;width:100%;height:44px}
+.swipe-arrow{width:28px;height:28px;border-radius:999px;border:none;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:13px;display:grid;place-items:center;transition:.12s;flex-shrink:0;padding:0;line-height:1}
 .swipe-arrow:hover{background:rgba(255,255,255,.18)}
 .swipe-arrow:active{transform:scale(.9)}
-.swipe-track-wrap{flex:1;position:relative;height:32px;display:flex;align-items:center}
+.swipe-track-wrap{flex:1;position:relative;height:36px;display:flex;align-items:center}
 .swipe-track{position:relative;width:100%;height:4px;background:rgba(255,255,255,.12);border-radius:999px;overflow:visible}
 .swipe-fill{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.4);border-radius:999px;pointer-events:none;transition:width .08s ease}
-.swipe-thumb{position:absolute;top:50%;z-index:2;width:30px;height:30px;border-radius:999px;background:#fff;color:#111;font-size:11px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:grab;transition:left .08s ease,box-shadow .15s;transform:translate(-50%,-50%);will-change:left}
+.swipe-thumb{position:absolute;top:50%;z-index:2;width:32px;height:32px;border-radius:999px;background:#fff;color:#111;font-size:12px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:grab;transition:left .08s ease,box-shadow .15s;transform:translate(-50%,-50%);will-change:left}
 .swipe-thumb:active{cursor:grabbing;box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .swipe-thumb.dragging{transition:none}
-.swipe-label{font-size:9px;opacity:.4;text-align:center;letter-spacing:.04em;position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;pointer-events:none}
 /* ── Moods View ───────────────────────────────────────── */
 .moods-view{position:relative;display:none;background:var(--bg)}
 .moods-view.show{display:block}
@@ -280,6 +285,20 @@ button,input{font:inherit}
   </div>
 </div>
 
+
+<div class="filter-popup" id="filterPopup">
+  <div class="fp-header">Kachelgröße</div>
+  <div class="swipe-control" id="swipeControl">
+    <button class="swipe-arrow" id="colDec" aria-label="Weniger Spalten">&#8249;</button>
+    <div class="swipe-track-wrap">
+      <div class="swipe-track" id="swipeTrack">
+        <div class="swipe-fill" id="swipeFill"></div>
+        <div class="swipe-thumb" id="swipeThumb"><span id="swipeValue">5</span></div>
+      </div>
+    </div>
+    <button class="swipe-arrow" id="colInc" aria-label="Mehr Spalten">&#8250;</button>
+  </div>
+</div>
 
 <div class="gridwrap" id="gridWrap">
   <div class="grid" id="grid">
@@ -491,12 +510,12 @@ function moodIcon(m){ return MOOD_ICONS[m] || '🏷️'; }
 let activeMoods = new Set(JSON.parse(localStorage.getItem('active_moods')||'[]'));
 
 // ── Grid Column Swipe Control ──────────────────────────────
-// Desktop: min 3, max 7, default 5 (centered)
+// Desktop: min 3, max 10, default ~6-7 (centered)
 // Mobile:  min 1, max 5, default 3 (centered)
 function getColRange(){
   return window.innerWidth <= 600
     ? { min: 1, max: 5 }
-    : { min: 3, max: 7 };
+    : { min: 3, max: 10 };
 }
 function getDefaultCols(){
   const r = getColRange();
@@ -635,7 +654,7 @@ bindQuickAdd(''); bindQuickAdd('Sheet');
 function bindView(suffix){
   const g = k => $(k + (suffix||''));
   const f = g('ddFilterBtn'); const s = g('ddShuffleBtn');
-  if(f) f.onclick = () => { closeMenu(); };
+  if(f) f.onclick = () => { closeMenu(); filterPopup.classList.toggle('show'); };
   if(s) s.onclick = () => { closeMenu(); renderGrid(); toast('Neu gemischt'); };
 }
 bindView(''); bindView('Sheet');
@@ -683,6 +702,7 @@ function openMenu(){
 function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); editorWrap.classList.remove('show'); updateBodyLock(); }
 function closeAllOverlays(){
   closeMenu();
+  filterPopup.classList.remove('show');
   editorWrap.classList.remove('show');
   const sp = document.getElementById('spotifyPopup');
   if(sp){ sp.classList.remove('show'); document.getElementById('spotifyBtn').classList.remove('active'); }
@@ -690,6 +710,7 @@ function closeAllOverlays(){
 function isAnyOverlayOpen(){
   return dropdown.classList.contains('show') ||
          bottomSheet.classList.contains('show') ||
+         filterPopup.classList.contains('show') ||
          editorWrap.classList.contains('show') ||
          !!document.getElementById('spotifyPopup')?.classList.contains('show');
 }
@@ -1151,6 +1172,18 @@ window.addEventListener('resize', () => {
   else applyGridCols(gridCols);
 });
 
+// ── Filter popup open/close ────────────────────────────────
+const filterPopup = document.getElementById('filterPopup');
+const filterBtn   = document.getElementById('filterBtn');
+filterBtn.onclick = e => {
+  e.stopPropagation();
+  filterPopup.classList.toggle('show');
+};
+document.addEventListener('click', e => {
+  if(!e.target.closest('#filterPopup') && !e.target.closest('#filterBtn'))
+    filterPopup.classList.remove('show');
+});
+
 </script>
 <div class="spotify-popup" id="spotifyPopup">
   <div id="spotifyEmbed"></div>
@@ -1165,16 +1198,14 @@ window.addEventListener('resize', () => {
   <div class="bottombar-divider"></div>
   <button class="bottombar-btn" id="shuffleBtn">&#x21C4;</button>
   <div class="bottombar-divider"></div>
-  <div class="swipe-control" id="swipeControl">
-    <button class="swipe-arrow" id="colDec" aria-label="Weniger Spalten">&#8249;</button>
-    <div class="swipe-track-wrap">
-      <div class="swipe-track" id="swipeTrack">
-        <div class="swipe-fill" id="swipeFill"></div>
-        <div class="swipe-thumb" id="swipeThumb"><span id="swipeValue">5</span></div>
-      </div>
-    </div>
-    <button class="swipe-arrow" id="colInc" aria-label="Mehr Spalten">&#8250;</button>
-  </div>
+  <button class="bottombar-btn" id="filterBtn" aria-label="Kachelgröße">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/>
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/>
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/>
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/>
+    </svg>
+  </button>
 </div>
 
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
