@@ -20,7 +20,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:var(--bg)}
 body{min-height:100vh;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overscroll-behavior-y:none;-webkit-text-size-adjust:100%;padding-top:24px;padding-bottom:96px}
-body.no-scroll{position:fixed;left:0;right:0;width:100%;overflow:hidden}
+html.no-scroll{overflow:hidden;height:100%}
+body.no-scroll{position:fixed;left:0;right:0;width:100%;overflow:hidden;height:100%}
 button,input{font:inherit}
 .topbar{position:sticky;top:0;z-index:30;height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:16px;background:var(--bg)}
 .topbar-left{display:flex;align-items:center;gap:24px}
@@ -448,6 +449,12 @@ button,input{font:inherit}
 .filter-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:35;width:280px;display:none;flex-direction:column;gap:14px;padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
 .filter-popup.show{display:flex}
 .fp-header{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;text-align:center}
+.fp-divider{height:1px;background:rgba(255,255,255,.07);margin:8px 0}
+.fp-sort-btn{width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px;border-radius:10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px;transition:.12s}
+.fp-sort-btn:hover{background:rgba(255,255,255,.08)}
+.fp-sort-btn.active{background:rgba(255,255,255,.12)}
+.fp-sort-btn .fp-sort-icon{font-size:15px;opacity:.6;width:18px;text-align:center}
+.fp-sort-btn.active .fp-sort-icon{opacity:1}
 
 /* ── Swipe Control (inside popup) ──────────────────────── */
 .swipe-control{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;width:100%;height:44px}
@@ -724,6 +731,10 @@ button,input{font:inherit}
       </svg>
     </button>
   </div>
+  <div class="fp-divider"></div>
+  <button class="fp-sort-btn" id="sortNewestBtn">
+    <span class="fp-sort-icon">🕐</span> Zuletzt hinzugefügt
+  </button>
 </div>
 
 <div class="gridwrap" id="gridWrap">
@@ -868,6 +879,7 @@ let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
 let selectedIds=new Set();
 let _observer = null;
 let favFilterActive = false;
+let sortNewest = localStorage.getItem('sort_newest') === 'true';
 let sleepTimeout = null;
 const SLIDESHOW_INTERVAL = 5000;
 let slideshowActive = false;
@@ -1154,7 +1166,7 @@ function bindView(suffix){
   const g = k => $(k + (suffix||''));
   const f = g('ddFilterBtn'); const s = g('ddShuffleBtn');
   if(f) f.onclick = () => { closeMenu(); filterPopup.classList.toggle('show'); };
-  if(s) s.onclick = () => { closeMenu(); renderGrid(true); toast('Neu gemischt'); };
+  if(s) s.onclick = () => { closeMenu(); renderGrid(); toast('Neu gemischt'); };
 }
 bindView(''); bindView('Sheet');
 
@@ -1185,12 +1197,14 @@ function updateBodyLock(){
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
     || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'));
-  const isLocked = document.body.classList.contains('no-scroll');
+  const isLocked = document.documentElement.classList.contains('no-scroll');
   if(lock && !isLocked){
     _lockedScrollY = window.scrollY || window.pageYOffset || 0;
-    document.body.style.top = `-${_lockedScrollY}px`;
+    document.documentElement.classList.add('no-scroll');
     document.body.classList.add('no-scroll');
+    document.body.style.top = `-${_lockedScrollY}px`;
   } else if(!lock && isLocked){
+    document.documentElement.classList.remove('no-scroll');
     document.body.classList.remove('no-scroll');
     document.body.style.top = '';
     window.scrollTo(0, _lockedScrollY);
@@ -1225,7 +1239,7 @@ $('boardTitle').onclick = () => {
   favFilterActive = false;
   $('favBtn').classList.remove('fav-active');
   saveFilterState();
-  renderGrid(true);
+  renderGrid();
 };
 
 function renderMoodChips(){
@@ -1234,7 +1248,7 @@ function renderMoodChips(){
 }
 function renderMoodChipsSheet(){ renderMoodChips(); }
 
-function renderGrid(shuffle){
+function renderGrid(){
   const s = S();
   // Drop any active mood filters that no longer exist in the moods list
   // (e.g. the mood was renamed/deleted on another device).
@@ -1253,8 +1267,12 @@ function renderGrid(shuffle){
     saveFilterState();
     arr = s.items;
   }
-  // Nur shufflen wenn explizit gewünscht (Shuffle-Button, initiales Laden, Klick auf "Marvin's Place")
-  if(shuffle) arr = [...arr].sort(() => Math.random()-.5);
+  // Sortierung: entweder zufällig (shuffle) oder nach Erstelldatum (neueste zuerst)
+  if(sortNewest){
+    // Items bleiben in ihrer DB-Reihenfolge (created_at DESC)
+  } else {
+    arr = [...arr].sort(() => Math.random()-.5);
+  }
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
   gridEl.innerHTML = arr.map(it => `
@@ -1636,7 +1654,7 @@ document.addEventListener('keydown', e => {
   if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
 });
 
-$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); renderGrid(true); };
+$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); renderGrid(); };
 $('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
 $('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
 fileInput.onchange = e => upload(e.target.files);
@@ -1728,7 +1746,7 @@ async function loadItems(){
   if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
   S().items=data||[];
   mergeMoodsFromItems();
-  renderGrid(true); $('bootMsg')?.remove();
+  renderGrid(); $('bootMsg')?.remove();
   renderMoodChips();
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
   tryOpenPendingShare();
@@ -1782,10 +1800,8 @@ async function refetchItems(){
   if(error) return;
   S().items = data || [];
   mergeMoodsFromItems();
-  // Kein renderGrid() – die aktuelle (shufflete) Ansicht bleibt erhalten.
-  // Ein renderGrid() ohne shuffle würde die feste DB-Reihenfolge (created_at DESC)
-  // anzeigen und die zufällige Anordnung zerstören.
-  // Neu geladene Items erscheinen beim nächsten expliziten renderGrid(true).
+  // Kein renderGrid() – die aktuelle Ansicht bleibt erhalten.
+  // Neu geladene Items erscheinen beim nächsten renderGrid()-Aufruf.
   renderMoodChips();
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
 }
@@ -1859,7 +1875,7 @@ function renderMoodsView(){
       activeMoods = new Set([m]);
       saveFilterState();
       hideMoodsView();
-      renderGrid();
+      // renderGrid() wird bereits in hideMoodsView() aufgerufen
     };
   });
 }
@@ -1907,6 +1923,7 @@ function hideMoodsView(){
   // Nach der Ausblend-Animation: GridWrap einblenden
   setTimeout(() => {
     gridWrap.style.display = '';
+    renderGrid(); // Immer shufflen beim Zurückkehren zur Main-Ansicht
     // Animation starten: kurz warten bis display gesetzt ist
     requestAnimationFrame(() => {
       gridWrap.classList.add('show-view');
@@ -2109,6 +2126,20 @@ document.addEventListener('click', e => {
   if(!e.target.closest('#filterPopup') && !e.target.closest('#filterBtn'))
     filterPopup.classList.remove('show');
 });
+
+// ── "Zuletzt hinzugefügt" Sortierung ────────────────────────
+const sortNewestBtn = document.getElementById('sortNewestBtn');
+function updateSortNewestUI(){
+  sortNewestBtn.classList.toggle('active', sortNewest);
+}
+sortNewestBtn.onclick = () => {
+  sortNewest = !sortNewest;
+  localStorage.setItem('sort_newest', sortNewest);
+  updateSortNewestUI();
+  renderGrid();
+  toast(sortNewest ? 'Sortiert: Zuletzt hinzugefügt' : 'Zufällige Anordnung');
+};
+updateSortNewestUI();
 
 </script>
 
