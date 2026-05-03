@@ -221,6 +221,9 @@ button,input{font:inherit}
 .lb-arrow:hover { background: rgba(255,255,255,.18); }
 .lb-arrow.prev { left: 14px; }
 .lb-arrow.next { right: 14px; }
+.lb-topbar, .lb-bottombar, .lb-arrow {
+  transition: opacity .6s ease;
+}
 
 .lb-bottombar {
   flex-shrink: 0; height: 72px;
@@ -286,6 +289,9 @@ button,input{font:inherit}
 .lightbox.has-video #lbPillMuteDiv { display: flex; }
 #lbPillMuteDiv { display: none; }
 .lightbox.has-video #lbPillMuteDiv { display: block; }
+#lbPillSlideshow.active {
+  background: rgba(255,255,255,.15);
+}
 
 /* Mood-Popup */
 .lb-mood-popup {
@@ -364,6 +370,16 @@ button,input{font:inherit}
   flex-shrink:0; transition:.15s;
 }
 .share-popup button:hover { background:#ddd; }
+
+/* Sleep-Mode: UI ausblenden */
+.lightbox.sleep .lb-topbar,
+.lightbox.sleep .lb-bottombar,
+.lightbox.sleep .lb-arrow,
+.lightbox.sleep .lb-mood-popup,
+.lightbox.sleep .share-popup {
+  opacity: 0;
+  pointer-events: none;
+}
 
 /* ── DESKTOP (min-width: 601px) ── */
 @media (min-width: 601px) {
@@ -787,6 +803,12 @@ button,input{font:inherit}
           <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
         </svg>
       </button>
+      <!-- Slideshow -->
+      <button class="lb-pill-btn" id="lbPillSlideshow" title="Slideshow">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -846,6 +868,10 @@ let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
 let selectedIds=new Set();
 let _observer = null;
 let favFilterActive = false;
+let sleepTimeout = null;
+const SLIDESHOW_INTERVAL = 5000;
+let slideshowActive = false;
+let slideshowTimer  = null;
 
 const $ = id => document.getElementById(id);
 
@@ -1489,12 +1515,85 @@ lightbox.onclick = e => {
 function closeLb(){
   lightbox.classList.remove('show');
   lightbox.classList.remove('has-video');
+  if (slideshowActive) stopSlideshow();
+  lightbox.classList.remove('sleep');
   closeLbPill();
   closeSharePopup();
   updateBodyLock();
   lbAmbient.style.opacity = '0';
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
+
+// ── Sleep / Wake-up ──────────────────────────────────────
+function wakeUp() {
+  lightbox.classList.remove('sleep');
+  clearTimeout(sleepTimeout);
+  if (slideshowActive) {
+    sleepTimeout = setTimeout(() => {
+      if (slideshowActive) lightbox.classList.add('sleep');
+    }, 4000);
+  }
+}
+lightbox.addEventListener('click',      wakeUp, { capture: true });
+lightbox.addEventListener('touchstart', wakeUp, { passive: true, capture: true });
+lightbox.addEventListener('mousemove',  wakeUp, { passive: true });
+
+// ── Fullscreen API ───────────────────────────────────────
+async function enterFullscreen() {
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+  } catch(e) {}
+}
+function exitFullscreen() {
+  try {
+    if (document.exitFullscreen && document.fullscreenElement)
+      document.exitFullscreen();
+    else if (document.webkitExitFullscreen && document.webkitFullscreenElement)
+      document.webkitExitFullscreen();
+  } catch(e) {}
+}
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && slideshowActive) stopSlideshow();
+});
+document.addEventListener('webkitfullscreenchange', () => {
+  if (!document.webkitFullscreenElement && slideshowActive) stopSlideshow();
+});
+
+// ── Slideshow Logik ──────────────────────────────────────
+function updateSlideshowIcon(playing) {
+  $('lbPillSlideshow').innerHTML = playing
+    ? `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
+    : `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+}
+function startSlideshow() {
+  slideshowActive = true;
+  $('lbPillSlideshow').classList.add('active');
+  updateSlideshowIcon(true);
+  enterFullscreen();
+  closeLbPill();
+  sleepTimeout = setTimeout(() => lightbox.classList.add('sleep'), 1200);
+  slideshowTimer = setInterval(() => {
+    const next = lbIndex + 1;
+    if (next >= S().currentItems.length) lbNavigate(-(S().currentItems.length - 1));
+    else lbNavigate(1);
+  }, SLIDESHOW_INTERVAL);
+}
+function stopSlideshow() {
+  slideshowActive = false;
+  clearInterval(slideshowTimer);
+  clearTimeout(sleepTimeout);
+  slideshowTimer = null;
+  $('lbPillSlideshow').classList.remove('active');
+  updateSlideshowIcon(false);
+  lightbox.classList.remove('sleep');
+  exitFullscreen();
+}
+$('lbPillSlideshow').onclick = e => {
+  e.stopPropagation();
+  slideshowActive ? stopSlideshow() : startSlideshow();
+};
 
 // Share-Popup events
 $('sharePopup').addEventListener('click', e => e.stopPropagation());
