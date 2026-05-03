@@ -852,8 +852,8 @@ button,input{font:inherit}
 // MIGRATION: ALTER TABLE moodboard_items ADD COLUMN IF NOT EXISTS favorite BOOLEAN DEFAULT FALSE;
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = 'https://bnwcbxjgsmmvmtvqblrr.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJud2NieGpnc21tdm10dnFibHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjAyMDQsImV4cCI6MjA5MjE5NjIwNH0.Lo0lAnOoyFhMpq7YwO3pw2vMccSsJc8Xbk7Teck5QmE';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const BUCKET = 'moodboard';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
