@@ -94,7 +94,53 @@ button,input{font:inherit}
 .cell.sel-highlight{outline:2px solid #fff;outline-offset:-2px}
 .selcheck{position:absolute;top:8px;left:8px;z-index:2;width:20px;height:20px;accent-color:#fff;opacity:0;pointer-events:none;cursor:pointer}
 .selcheck.visible{opacity:1;pointer-events:auto}
+.cell-heart {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 3;
+  font-size: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.6);
+  transition: opacity .2s, transform .2s;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.5));
+  line-height: 1;
+}
+.cell-heart.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+/* Pop-Animation beim Favorisieren */
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.55); }
+  70%  { transform: scale(0.88); }
+  100% { transform: scale(1); }
+}
+.cell-heart.pop { animation: heartPop .38s cubic-bezier(.36,.07,.19,.97); }
 
+/* Großes Herz-Flash im Bild-Zentrum (wie Instagram) */
+.heart-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  pointer-events: none;
+  opacity: 0;
+}
+@keyframes flashHeart {
+  0%   { opacity: 0; transform: scale(0.5); }
+  25%  { opacity: 1; transform: scale(1.2); }
+  60%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+.heart-flash.play { animation: flashHeart .6s ease forwards; }
+
+/* Wenn Favoriten-Filter aktiv ist */
+#favBtn.fav-active { color: #ff4d6d; }
 
 .action-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;padding:14px 16px 32px;background:linear-gradient(to top,rgba(0,0,0,.97) 70%,transparent);display:none;flex-direction:column;gap:10px}
 .action-bar.show{display:flex}
@@ -139,6 +185,28 @@ button,input{font:inherit}
 .toast.show{opacity:1}
 .gridwrap.dragover::after{content:"Loslassen zum Hochladen";position:fixed;inset:52px 0 0 0;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(0,0,0,.5);border:2px dashed rgba(255,255,255,.3)}
 .hidden{display:none!important}
+.lb-fav-btn {
+  position: fixed;
+  top: 18px; right: 20px;
+  z-index: 90;
+  width: 46px; height: 46px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.5);
+  cursor: pointer;
+  font-size: 20px;
+  display: none;
+  place-items: center;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  transition: color .2s, background .15s;
+  line-height: 1;
+}
+.lb-fav-btn:hover { background: rgba(255,255,255,.18); }
+.lb-fav-btn.show  { display: grid; }
+.lb-fav-btn.is-fav { color: #ff4d6d; }
+
 @media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}.lb-arrow{display:none}.dropdown{display:none!important}}
 @media(min-width:601px){.bottom-sheet,.sheet-overlay{display:none!important}}
 
@@ -405,6 +473,7 @@ button,input{font:inherit}
     <button class="ab-act cancel" id="abCancel">Abbrechen</button>
     <button class="ab-act remove hidden" id="abRemove">Mood entfernen</button>
     <button class="ab-act confirm hidden" id="abConfirm">Zuweisen</button>
+    <button class="ab-act confirm" id="abFavAll" style="display:none">♥ Favorisieren</button>
   </div>
 </div>
 
@@ -454,6 +523,7 @@ button,input{font:inherit}
       <polyline points="9 18 15 12 9 6"/>
     </svg>
   </button>
+  <button class="lb-fav-btn" id="lbFavBtn" aria-label="Favorit">♥</button>
 
 </div>
 
@@ -490,6 +560,7 @@ button,input{font:inherit}
 <div class="toast" id="toast"></div>
 
 <script type="module">
+// MIGRATION: ALTER TABLE moodboard_items ADD COLUMN IF NOT EXISTS favorite BOOLEAN DEFAULT FALSE;
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const SUPABASE_URL = 'https://bnwcbxjgsmmvmtvqblrr.supabase.co';
@@ -518,6 +589,7 @@ const S = () => state[currentPage];
 let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
 let selectedIds=new Set();
 let _observer = null;
+let favFilterActive = false;
 
 const $ = id => document.getElementById(id);
 
@@ -872,6 +944,8 @@ document.addEventListener('click', e => { if(!e.target.closest('#dropdown') && !
 $('boardTitle').onclick = () => {
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) hideMoodsView();
   activeMoods.clear();
+  favFilterActive = false;
+  $('favBtn').classList.remove('fav-active');
   saveFilterState();
   renderGrid(true);
 };
@@ -892,6 +966,8 @@ function renderGrid(shuffle){
   let arr = activeMoods.size > 0
     ? s.items.filter(i => (Array.isArray(i.moods) && i.moods.some(m => activeMoods.has(m))))
     : s.items;
+  // Favoriten-Filter
+  if (favFilterActive) arr = arr.filter(i => i.favorite);
   // If a filter is active but matches nothing (e.g. items were retagged on
   // another device), drop the filter so the user always sees content.
   if(activeMoods.size > 0 && arr.length === 0 && s.items.length > 0){
@@ -906,6 +982,8 @@ function renderGrid(shuffle){
   gridEl.innerHTML = arr.map(it => `
     <div class="cell" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
+      <div class="cell-heart ${it.favorite ? 'visible' : ''}">&#9829;</div>
+      <div class="heart-flash">&#9829;</div>
       ${it.media_type==='video'
         ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
         : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
@@ -935,11 +1013,81 @@ function renderGrid(shuffle){
     };
     c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
     if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
+    // Doppelklick-Favorit
+    let lastTap = 0;
+    c.addEventListener('dblclick', e => {
+      if (selMode) return;
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFavorite(c.dataset.id, c);
+    });
+    // Mobile: doppeltes Tippen (touchend-Heuristik)
+    c.addEventListener('touchend', e => {
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        e.preventDefault();
+        toggleFavorite(c.dataset.id, c);
+        lastTap = 0;
+      } else {
+        lastTap = now;
+      }
+    }, { passive: false });
   });
+}
+
+async function toggleFavorite(id, cellEl) {
+  const item = S().items.find(x => x.id === id);
+  if (!item) return;
+
+  const newVal = !item.favorite;
+  item.favorite = newVal;           // optimistisch updaten (kein Flicker)
+
+  // Herz-Icon auf der Kachel
+  const heartEl = cellEl.querySelector('.cell-heart');
+  if (heartEl) {
+    heartEl.textContent = '♥';
+    heartEl.classList.toggle('visible', newVal);
+    heartEl.classList.remove('pop');
+    void heartEl.offsetWidth;       // reflow für Animation-Restart
+    if (newVal) heartEl.classList.add('pop');
+  }
+
+  // Großes Flash-Herz (nur beim Favorisieren, nicht beim Entfernen)
+  if (newVal) {
+    const flash = cellEl.querySelector('.heart-flash');
+    if (flash) {
+      flash.classList.remove('play');
+      void flash.offsetWidth;
+      flash.classList.add('play');
+      flash.addEventListener('animationend', () => flash.classList.remove('play'), { once: true });
+    }
+    toast('Zu Favoriten hinzugefügt ♥');
+  } else {
+    toast('Aus Favoriten entfernt');
+  }
+
+  // Falls Favoriten-Filter aktiv ist und Item un-favorisiert wurde: Grid neu rendern
+  if (favFilterActive && !newVal) {
+    setTimeout(() => renderGrid(), 400);   // kurze Verzögerung damit Animation fertig ist
+  }
+
+  // Supabase persistieren (fire & forget mit Fehler-Feedback)
+  const { error } = await sb
+    .from(S().table)
+    .update({ favorite: newVal })
+    .eq('id', id);
+
+  if (error) {
+    item.favorite = !newVal;          // Rollback
+    const heartEl2 = cellEl.querySelector('.cell-heart');
+    if (heartEl2) heartEl2.classList.toggle('visible', !newVal);
+    toast('Fehler beim Speichern');
+  }
 }
 
 function updateActionBarCount(){
     actionBarCount.textContent = selectedIds.size + ' ausgewählt';
+    $('abFavAll').style.display = selectedIds.size > 0 ? '' : 'none';
   }
 
 function enterSelMode(){
@@ -974,6 +1122,10 @@ $('abCancel').onclick = () => { $('deleteFloatingBtn')?.remove(); exitSelMode();
   }
   lightbox.classList.add('show');
   lbShareBtn.classList.add('show');
+  const lbFavBtn = $('lbFavBtn');
+  lbFavBtn.classList.add('show');
+  const curItem = S().currentItems[idx];
+  lbFavBtn.classList.toggle('is-fav', !!curItem.favorite);
   setAmbientFor(it);
   updateLbArrows();
   updateBodyLock();
@@ -992,10 +1144,11 @@ function lbNavigate(dir){
 $('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1); };
 $('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1); };
 lightbox.onclick = e => {
-  if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMuteBtn') && !e.target.closest('#lbShareBtn') && !e.target.closest('video')) closeLb();
+  if(!e.target.closest('.lb-arrow') && !e.target.closest('#lbMuteBtn') && !e.target.closest('#lbShareBtn') && !e.target.closest('#lbFavBtn') && !e.target.closest('video')) closeLb();
 };
 function closeLb(){
   lightbox.classList.remove('show'); lbMuteBtn.classList.remove('show'); lbShareBtn.classList.remove('show');
+  $('lbFavBtn').classList.remove('show');
   closeSharePopup();
   updateBodyLock();
   lbAmbient.style.opacity = '0';
@@ -1056,6 +1209,33 @@ $('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); renderGrid(true); };
 $('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
 $('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
 fileInput.onchange = e => upload(e.target.files);
+
+$('favBtn').onclick = () => {
+  favFilterActive = !favFilterActive;
+  $('favBtn').classList.toggle('fav-active', favFilterActive);
+  closeAllOverlays();
+  renderGrid();
+  if (favFilterActive) toast('Nur Favoriten ♥');
+};
+
+$('lbFavBtn').onclick = e => {
+  e.stopPropagation();
+  const it = S().currentItems[lbIndex];
+  if (!it) return;
+  const cellEl = gridEl.querySelector(`.cell[data-id="${it.id}"]`);
+  toggleFavorite(it.id, cellEl || document.createElement('div'));
+  $('lbFavBtn').classList.toggle('is-fav', it.favorite);
+};
+
+$('abFavAll').onclick = async () => {
+  for (const id of selectedIds) {
+    const item = S().items.find(x => x.id === id);
+    if (item && !item.favorite) {
+      await toggleFavorite(id, gridEl.querySelector(`.cell[data-id="${id}"]`) || document.createElement('div'));
+    }
+  }
+  exitSelMode();
+};
 
 async function upload(files){
   const arr = Array.from(files);
@@ -1153,7 +1333,7 @@ function mergeMoodsFromItems(){
 }
 async function sbUpdate(item){
   if(!item) return;
-  await sb.from(S().table).update({title:item.title||'', moods:item.moods||[], tags:item.tags||[], media_url:item.media_url, media_type:item.media_type, favorite:false}).eq('id',item.id);
+  await sb.from(S().table).update({title:item.title||'', moods:item.moods||[], tags:item.tags||[], media_url:item.media_url, media_type:item.media_type, favorite:item.favorite||false}).eq('id',item.id);
 }
 async function sbDeleteMany(ids){
   if(!ids.length) return;
@@ -1222,7 +1402,9 @@ function renderMoodsView(){
   const moods = S().moods.filter(m => m !== 'All');
   const tilesHtml = moods.map((m, i) => {
     const it = pickMainItem(m);
-    const count = S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
+    const count = favFilterActive
+      ? S().items.filter(i => i.favorite && (Array.isArray(i.moods) && i.moods.includes(m))).length
+      : S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
     const media = it
       ? (it.media_type === 'video'
           ? `<video src="${it.media_url}" muted loop playsinline autoplay preload="metadata"></video>`
@@ -1564,6 +1746,16 @@ document.addEventListener('click', e => {
       <rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/>
       <rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/>
       <rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/>
+    </svg>
+  </button>
+  <button class="bottombar-btn" id="favBtn" aria-label="Favoriten">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
+         fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round"
+         style="width:20px;height:20px;display:block">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06
+               a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78
+               1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
     </svg>
   </button>
   <button class="moods-mgmt-btn" id="moodsMgmtBtn">
