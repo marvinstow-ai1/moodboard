@@ -542,10 +542,6 @@ $('lbPillToggle').onclick = e => {
   }
 };
 
-  const it = S().currentItems[lbIndex]; if (!it) return;
-  const cellEl = gridEl.querySelector(`.cell[data-id="${it.id}"]`);
-};
-
 $('lbPillShare').onclick = e => {
   e.stopPropagation();
   const moodPopup = $('lbMoodPopup');
