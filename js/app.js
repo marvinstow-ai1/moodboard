@@ -1,4 +1,3 @@
-// MIGRATION: ALTER TABLE moodboard_items ADD COLUMN IF NOT EXISTS favorite BOOLEAN DEFAULT FALSE;
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const SUPABASE_URL = 'https://uvfuxnwinuakbqanaxtp.supabase.co';
@@ -27,7 +26,6 @@ const S = () => state[currentPage];
 let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
 let selectedIds=new Set();
 let _observer = null;
-let favFilterActive = false;
 let sortNewest = localStorage.getItem('sort_newest') === 'true';
 let _isInitialLoad = true;
 let sleepTimeout = null;
@@ -295,8 +293,7 @@ function bindQuickAdd(suffix){
       title: ((url.split('/').pop()||'Link').split('?')[0] || 'Link').slice(0, 80),
       moods: [], tags: [],
       media_url: url,
-      media_type: isVideo ? 'video' : 'image',
-      favorite: false
+      media_type: isVideo ? 'video' : 'image'
     };
     btn.disabled = true;
     const {data:ins, error} = await sb.from(S().table).insert(item).select().single();
@@ -428,8 +425,6 @@ function renderGrid(){
   let arr = activeMoods.size > 0
     ? s.items.filter(i => (Array.isArray(i.moods) && i.moods.some(m => activeMoods.has(m))))
     : s.items;
-  // Favoriten-Filter
-  if (favFilterActive) arr = arr.filter(i => i.favorite);
   // If a filter is active but matches nothing (e.g. items were retagged on
   // another device), drop the filter so the user always sees content.
   if(activeMoods.size > 0 && arr.length === 0 && s.items.length > 0){
@@ -448,8 +443,6 @@ function renderGrid(){
   gridEl.innerHTML = arr.map(it => `
     <div class="cell" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
-      <div class="cell-heart ${it.favorite ? 'visible' : ''}">&#9829;</div>
-      <div class="heart-flash">&#9829;</div>
       ${it.media_type==='video'
         ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
         : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
@@ -495,14 +488,12 @@ function renderGrid(){
       if (selMode) return;
       e.preventDefault();
       e.stopPropagation();
-      toggleFavorite(c.dataset.id, c);
     });
     // Mobile: doppeltes Tippen (touchend-Heuristik)
     c.addEventListener('touchend', e => {
       const now = Date.now();
       if (now - lastTap < 300) {
         e.preventDefault();
-        toggleFavorite(c.dataset.id, c);
         lastTap = 0;
       } else {
         lastTap = now;
@@ -511,55 +502,7 @@ function renderGrid(){
   });
 }
 
-async function toggleFavorite(id, cellEl) {
-  const item = S().items.find(x => x.id === id);
-  if (!item) return;
 
-  const newVal = !item.favorite;
-  item.favorite = newVal;           // optimistisch updaten (kein Flicker)
-
-  // Herz-Icon auf der Kachel
-  const heartEl = cellEl.querySelector('.cell-heart');
-  if (heartEl) {
-    heartEl.textContent = '♥';
-    heartEl.classList.toggle('visible', newVal);
-    heartEl.classList.remove('pop');
-    void heartEl.offsetWidth;       // reflow für Animation-Restart
-    if (newVal) heartEl.classList.add('pop');
-  }
-
-  // Großes Flash-Herz (nur beim Favorisieren, nicht beim Entfernen)
-  if (newVal) {
-    const flash = cellEl.querySelector('.heart-flash');
-    if (flash) {
-      flash.classList.remove('play');
-      void flash.offsetWidth;
-      flash.classList.add('play');
-      flash.addEventListener('animationend', () => flash.classList.remove('play'), { once: true });
-    }
-    toast('Zu Favoriten hinzugefügt ♥');
-  } else {
-    toast('Aus Favoriten entfernt');
-  }
-
-  // Falls Favoriten-Filter aktiv ist und Item un-favorisiert wurde: Grid neu rendern
-  if (favFilterActive && !newVal) {
-    setTimeout(() => renderGrid(), 400);   // kurze Verzögerung damit Animation fertig ist
-  }
-
-  // Supabase persistieren (fire & forget mit Fehler-Feedback)
-  const { error } = await sb
-    .from(S().table)
-    .update({ favorite: newVal })
-    .eq('id', id);
-
-  if (error) {
-    item.favorite = !newVal;          // Rollback
-    const heartEl2 = cellEl.querySelector('.cell-heart');
-    if (heartEl2) heartEl2.classList.toggle('visible', !newVal);
-    toast('Fehler beim Speichern');
-  }
-}
 
 function updateActionBarCount(){
     actionBarCount.textContent = selectedIds.size + ' ausgewählt';
@@ -602,12 +545,8 @@ $('lbPillToggle').onclick = e => {
   }
 };
 
-$('lbBarHeart').onclick = e => {
-  e.stopPropagation();
   const it = S().currentItems[lbIndex]; if (!it) return;
   const cellEl = gridEl.querySelector(`.cell[data-id="${it.id}"]`);
-  toggleFavorite(it.id, cellEl || document.createElement('div'));
-  $('lbBarHeart').classList.toggle('is-fav', it.favorite);
 };
 
 $('lbPillShare').onclick = e => {
@@ -692,7 +631,6 @@ function openLightbox(idx){
     gsap.fromTo(lightbox, {opacity:0},{opacity:1,duration:0.22,ease:'power2.out'});
     if(media) gsap.fromTo(media,{scale:0.93,opacity:0},{scale:1,opacity:1,duration:0.3,ease:'power2.out'});
   }
-  $('lbBarHeart').classList.toggle('is-fav', !!it.favorite);
   lightbox.classList.toggle('has-video', it.media_type === 'video');
   closeLbPill();
   setAmbientFor(it);
@@ -849,18 +787,8 @@ $('favBtn').onclick = () => {
   $('favBtn').classList.toggle('fav-active', favFilterActive);
   closeAllOverlays();
   renderGrid();
-  if (favFilterActive) toast('Nur Favoriten ♥');
 };
 
-$('abFavAll').onclick = async () => {
-  for (const id of selectedIds) {
-    const item = S().items.find(x => x.id === id);
-    if (item && !item.favorite) {
-      await toggleFavorite(id, gridEl.querySelector(`.cell[data-id="${id}"]`) || document.createElement('div'));
-    }
-  }
-  exitSelMode();
-};
 
 async function upload(files){
   const arr = Array.from(files);
@@ -875,7 +803,7 @@ async function upload(files){
     if(e1){ toast('Upload-Fehler: '+e1.message); return null; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
     const mediaType = isVid(f.name) ? 'video' : isGif(f.name) ? 'gif' : 'image';
-    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:[], tags:[], media_url:pub.publicUrl, media_type:mediaType, favorite:false };
+    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:[], tags:[], media_url:pub.publicUrl, media_type:mediaType};
     const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
     if(e2){ toast('DB-Fehler: '+e2.message); return null; }
     done++;
@@ -947,7 +875,7 @@ $('saveTagsBtn').onclick = () => {
 
 async function loadItems(){
   const {data,error} = await sb.from(S().table)
-    .select('id,title,moods,tags,media_url,media_type,favorite')
+    .select('id,title,moods,tags,media_url,media_type')
     .order('created_at',{ascending:false});
   if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
   S().items=data||[];
@@ -979,7 +907,7 @@ function mergeMoodsFromItems(){
 }
 async function sbUpdate(item){
   if(!item) return;
-  await sb.from(S().table).update({title:item.title||'', moods:item.moods||[], tags:item.tags||[], media_url:item.media_url, media_type:item.media_type, favorite:item.favorite||false}).eq('id',item.id);
+  await sb.from(S().table).update({title:item.title||'', moods:item.moods||[], tags:item.tags||[], media_url:item.media_url, media_type:item.media_type}).eq('id',item.id);
 }
 async function sbDeleteMany(ids){
   if(!ids.length) return;
@@ -1001,7 +929,7 @@ function isUiBusy(){
 async function refetchItems(){
   if(isUiBusy()){ scheduleSync(1500); return; }
   const {data,error} = await sb.from(S().table)
-    .select('id,title,moods,tags,media_url,media_type,favorite')
+    .select('id,title,moods,tags,media_url,media_type')
     .order('created_at',{ascending:false});
   if(error) return;
   S().items = data || [];
@@ -1047,8 +975,7 @@ function renderMoodsView(){
   const tilesHtml = moods.map((m, i) => {
     const it = pickMainItem(m);
     const count = favFilterActive
-      ? S().items.filter(i => i.favorite && (Array.isArray(i.moods) && i.moods.includes(m))).length
-      : S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
+            : S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
     const media = it
       ? (it.media_type === 'video'
           ? `<video src="${it.media_url}" muted loop playsinline autoplay preload="metadata"></video>`
