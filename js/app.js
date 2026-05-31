@@ -413,6 +413,7 @@ function renderMoodChips(){
 }
 function renderMoodChipsSheet(){ renderMoodChips(); }
 
+// ── GRID RENDERING ─────────────────────────────────────
 function renderGrid(){
   const s = S();
   // Dedup by id — guards against race conditions during concurrent uploads
@@ -509,6 +510,7 @@ function updateActionBarCount(){
     actionBarCount.textContent = selectedIds.size + ' ausgewählt';
   }
 
+// ── SELECTION MODE ──────────────────────────────────────
 function enterSelMode(){
   selMode='delete'; selectedIds.clear(); closeMenu();
   actionBarTitle.textContent = 'Bilder löschen';
@@ -780,6 +782,7 @@ fileInput.onchange = e => upload(e.target.files);
 
 
 
+// ── UPLOAD ───────────────────────────────────────────────
 async function upload(files){
   const arr = Array.from(files);
   if(!arr.length) return;
@@ -816,6 +819,7 @@ async function upload(files){
   prog(100); toast(`${results.length} Datei${results.length!==1?'en':''} hochgeladen ✓`); fileInput.value='';
 }
 
+// ── DELETE MODE ─────────────────────────────────────────
 function startDeleteMode(){
   closeMenu(); selMode='delete'; selectedIds.clear();
   actionBarTitle.textContent='Bilder löschen';
