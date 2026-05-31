@@ -415,6 +415,9 @@ function renderMoodChipsSheet(){ renderMoodChips(); }
 
 function renderGrid(){
   const s = S();
+  // Dedup by id — guards against race conditions during concurrent uploads
+  const seen = new Set();
+  s.items = s.items.filter(i => { if(seen.has(i.id)) return false; seen.add(i.id); return true; });
   // Drop any active mood filters that no longer exist in the moods list
   // (e.g. the mood was renamed/deleted on another device).
   const validMoods = new Set(s.moods);
@@ -804,10 +807,11 @@ async function upload(files){
     const batchResults = await Promise.all(batch.map(uploadOne));
     results.push(...batchResults.filter(Boolean));
   }
-  results.forEach(item => S().items.unshift(item));
   if(results.length){
+    const newIds = results.map(i => i.id);
+    await refetchItems();
     renderGrid();
-    results.forEach(item => animateNewCell(item.id));
+    newIds.forEach(id => animateNewCell(id));
   }
   prog(100); toast(`${results.length} Datei${results.length!==1?'en':''} hochgeladen ✓`); fileInput.value='';
 }
