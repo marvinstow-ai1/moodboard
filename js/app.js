@@ -782,6 +782,22 @@ fileInput.onchange = e => upload(e.target.files);
 
 
 
+// ── AUTO MOOD SUGGESTION (Gemini Vision) ─────────────────
+async function autoSuggestMoods(imageUrl) {
+  const moods = S().moods.filter(m => m !== 'All');
+  if (!moods.length) return [];
+  try {
+    const res = await fetch('/api/suggest-moods', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl, moods }),
+    });
+    if (!res.ok) return [];
+    const { moods: suggested } = await res.json();
+    return Array.isArray(suggested) ? suggested : [];
+  } catch { return []; }
+}
+
 // ── UPLOAD ───────────────────────────────────────────────
 async function upload(files){
   const arr = Array.from(files);
@@ -796,7 +812,8 @@ async function upload(files){
     if(e1){ toast('Upload-Fehler: '+e1.message); return null; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
     const mediaType = isVid(f.name) ? 'video' : isGif(f.name) ? 'gif' : 'image';
-    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:[], tags:[], media_url:pub.publicUrl, media_type:mediaType};
+    const suggestedMoods = mediaType === 'image' ? await autoSuggestMoods(pub.publicUrl) : [];
+    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:suggestedMoods, tags:[], media_url:pub.publicUrl, media_type:mediaType};
     const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
     if(e2){ toast('DB-Fehler: '+e2.message); return null; }
     done++;
