@@ -397,8 +397,6 @@ document.addEventListener('click', e => { if(!e.target.closest('#dropdown') && !
 $('boardTitle').onclick = () => {
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) hideMoodsView();
   activeMoods.clear();
-  favFilterActive = false;
-  $('favBtn').classList.remove('fav-active');
   saveFilterState();
   renderGrid();
 };
@@ -781,12 +779,6 @@ $('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
 $('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
 fileInput.onchange = e => upload(e.target.files);
 
-$('favBtn').onclick = () => {
-  favFilterActive = !favFilterActive;
-  $('favBtn').classList.toggle('fav-active', favFilterActive);
-  closeAllOverlays();
-  renderGrid();
-};
 
 
 async function upload(files){
@@ -973,8 +965,7 @@ function renderMoodsView(){
   const moods = S().moods.filter(m => m !== 'All');
   const tilesHtml = moods.map((m, i) => {
     const it = pickMainItem(m);
-    const count = favFilterActive
-            : S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
+    const count = S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
     const media = it
       ? (it.media_type === 'video'
           ? `<video src="${it.media_url}" muted loop playsinline autoplay preload="metadata"></video>`
