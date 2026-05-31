@@ -506,7 +506,6 @@ function renderGrid(){
 
 function updateActionBarCount(){
     actionBarCount.textContent = selectedIds.size + ' ausgewählt';
-    $('abFavAll').style.display = selectedIds.size > 0 ? '' : 'none';
   }
 
 function enterSelMode(){
