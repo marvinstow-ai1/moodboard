@@ -29,7 +29,6 @@ let selectedIds=new Set();
 let _observer = null;
 let favFilterActive = false;
 let sortNewest = localStorage.getItem('sort_newest') === 'true';
-let searchQuery = '';
 let _isInitialLoad = true;
 let sleepTimeout = null;
 const SLIDESHOW_INTERVAL = 5000;
@@ -438,10 +437,6 @@ function renderGrid(){
     saveFilterState();
     arr = s.items;
   }
-  // Suche
-  if(searchQuery){
-    arr = arr.filter(i => (i.title||'').toLowerCase().includes(searchQuery));
-  }
   // Sortierung: entweder zufällig (shuffle) oder nach Erstelldatum (neueste zuerst)
   if(sortNewest){
     // Items bleiben in ihrer DB-Reihenfolge (created_at DESC)
@@ -449,9 +444,6 @@ function renderGrid(){
     arr = [...arr].sort(() => Math.random()-.5);
   }
   s.currentItems = arr;
-  // Item-Count aktualisieren
-  const countEl = document.getElementById('itemCount');
-  if(countEl) countEl.textContent = arr.length > 0 ? `${arr.length}` : '';
   if(_observer){ _observer.disconnect(); _observer=null; }
   gridEl.innerHTML = arr.map(it => `
     <div class="cell" data-id="${it.id}">
@@ -1339,64 +1331,6 @@ filterBtn.onclick = e => {
 document.addEventListener('click', e => {
   if(!e.target.closest('#filterPopup') && !e.target.closest('#filterBtn'))
     filterPopup.classList.remove('show');
-});
-
-// ── Scroll-aware Topbar ────────────────────────────────────
-let _lastScrollY = 0;
-const topbarEl = document.querySelector('.topbar');
-window.addEventListener('scroll', () => {
-  const y = window.scrollY;
-  if(y > _lastScrollY && y > 100) topbarEl?.classList.add('topbar-hidden');
-  else topbarEl?.classList.remove('topbar-hidden');
-  _lastScrollY = y;
-}, {passive:true});
-
-// ── Suche ──────────────────────────────────────────────────
-const searchBtn   = document.getElementById('searchBtn');
-const searchInput = document.getElementById('searchInput');
-const searchWrap  = document.getElementById('searchWrap');
-if(searchBtn && searchInput && searchWrap){
-  searchBtn.onclick = e => {
-    e.stopPropagation();
-    const open = searchWrap.classList.toggle('search-open');
-    if(open){
-      if(typeof gsap !== 'undefined'){
-        gsap.fromTo(searchWrap, {opacity:0,width:0},{opacity:1,width:'auto',duration:0.25,ease:'power2.out'});
-      }
-      searchInput.focus();
-    } else {
-      searchQuery=''; searchInput.value=''; renderGrid();
-    }
-  };
-  searchInput.addEventListener('input', e => {
-    searchQuery = e.target.value.trim().toLowerCase();
-    renderGrid();
-  });
-  searchInput.addEventListener('keydown', e => {
-    if(e.key === 'Escape'){ searchBtn.click(); }
-  });
-  document.addEventListener('click', e => {
-    if(searchWrap.classList.contains('search-open') &&
-       !e.target.closest('#searchWrap') && !e.target.closest('#searchBtn')){
-      searchBtn.click();
-    }
-  });
-}
-
-// ── Keyboard Shortcuts ─────────────────────────────────────
-document.addEventListener('keydown', e => {
-  const tag = document.activeElement?.tagName;
-  if(tag === 'INPUT' || tag === 'TEXTAREA') return;
-  if(lightbox.classList.contains('show')) return;
-  if(e.key === 'u' || e.key === 'U'){ fileInput.click(); }
-  if(e.key === 's' || e.key === 'S'){ renderGrid(); toast('Neu gemischt 🎲'); }
-  if(e.key === '/'){ e.preventDefault(); searchBtn?.click(); }
-  if(e.key === 'f' || e.key === 'F'){
-    favFilterActive = !favFilterActive;
-    $('favBtn')?.classList.toggle('fav-active', favFilterActive);
-    renderGrid();
-    toast(favFilterActive ? 'Nur Favoriten ♥' : 'Alle anzeigen');
-  }
 });
 
 // ── Neue Items beim Upload animieren ─────────────────────
