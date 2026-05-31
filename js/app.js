@@ -29,6 +29,7 @@ let selectedIds=new Set();
 let _observer = null;
 let favFilterActive = false;
 let sortNewest = localStorage.getItem('sort_newest') === 'true';
+let _isInitialLoad = true;
 let sleepTimeout = null;
 const SLIDESHOW_INTERVAL = 5000;
 let slideshowActive = false;
@@ -320,7 +321,19 @@ function bindView(suffix){
 bindView(''); bindView('Sheet');
 
 // ── Shared Logic (same as before) ─────────────────────────
-function toast(t){ toastEl.textContent=t; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1600); }
+function toast(t){
+  toastEl.textContent=t;
+  if(typeof gsap !== 'undefined'){
+    gsap.killTweensOf(toastEl);
+    gsap.fromTo(toastEl,{opacity:0,y:10},{opacity:1,y:0,duration:0.22,ease:'power2.out'});
+    clearTimeout(toast._t);
+    toast._t=setTimeout(()=>gsap.to(toastEl,{opacity:0,y:10,duration:0.2,ease:'power2.in'}),1800);
+  } else {
+    toastEl.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t=setTimeout(()=>toastEl.classList.remove('show'),1600);
+  }
+}
 function isVid(n){ return /\.(mp4|webm|mov|m4v)$/i.test(n||''); }
 function isGif(n){ return /\.gif$/i.test(n||''); }
 function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600); }
@@ -394,8 +407,14 @@ $('boardTitle').onclick = () => {
 };
 
 function renderMoodChips(){
-  // Mood chips are rendered in the dropdown via the mood-chips element
-  // (filter popup was removed – mood filtering still works via moods view)
+  document.querySelectorAll('[data-mood-chip]').forEach(chip => {
+    const m = chip.dataset.moodChip;
+    chip.classList.toggle('active', activeMoods.has(m));
+    chip.onclick = () => {
+      if(activeMoods.has(m)) activeMoods.delete(m); else activeMoods.add(m);
+      saveFilterState(); renderGrid(); renderMoodChips();
+    };
+  });
 }
 function renderMoodChipsSheet(){ renderMoodChips(); }
 
@@ -435,6 +454,16 @@ function renderGrid(){
         ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
         : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
     </div>`).join('');
+
+  // GSAP stagger on initial load
+  if(_isInitialLoad && typeof gsap !== 'undefined' && arr.length > 0){
+    gsap.from(gridEl.querySelectorAll('.cell'), {
+      opacity: 0, scale: 0.9, duration: 0.4,
+      stagger: { amount: Math.min(0.6, arr.length * 0.04), from: 'start' },
+      ease: 'power2.out', clearProps: 'transform,opacity'
+    });
+    _isInitialLoad = false;
+  }
 
   _observer = new IntersectionObserver(entries => entries.forEach(e => {
     const v = e.target.querySelector('video'); if(!v) return;
@@ -658,6 +687,11 @@ function openLightbox(idx){
     lbInner.appendChild(img);
   }
   lightbox.classList.add('show');
+  if(typeof gsap !== 'undefined'){
+    const media = lbInner.querySelector('img,video');
+    gsap.fromTo(lightbox, {opacity:0},{opacity:1,duration:0.22,ease:'power2.out'});
+    if(media) gsap.fromTo(media,{scale:0.93,opacity:0},{scale:1,opacity:1,duration:0.3,ease:'power2.out'});
+  }
   $('lbBarHeart').classList.toggle('is-fav', !!it.favorite);
   lightbox.classList.toggle('has-video', it.media_type === 'video');
   closeLbPill();
@@ -856,7 +890,10 @@ async function upload(files){
     results.push(...batchResults.filter(Boolean));
   }
   results.forEach(item => S().items.unshift(item));
-  if(results.length) renderGrid();
+  if(results.length){
+    renderGrid();
+    results.forEach(item => animateNewCell(item.id));
+  }
   prog(100); toast(`${results.length} Datei${results.length!==1?'en':''} hochgeladen ✓`); fileInput.value='';
 }
 
@@ -895,7 +932,11 @@ function renderTagChips(){
     `<button class="tchip ${it&&Array.isArray(it.moods) && it.moods.includes(m)?'active':''}" data-m="${m}">${m}</button>`).join('');
   document.querySelectorAll('.tchip').forEach(b => b.onclick = () => {
     const it=S().items.find(x=>x.id===editId); if(!it) return;
-    it.mood=b.dataset.m; sbUpdate(it); renderGrid(); renderTagChips();
+    if(!Array.isArray(it.moods)) it.moods = [];
+    const m = b.dataset.m;
+    const idx = it.moods.indexOf(m);
+    if(idx > -1) it.moods.splice(idx, 1); else it.moods.push(m);
+    sbUpdate(it); renderGrid(); renderTagChips();
   });
 }
 $('saveTagsBtn').onclick = () => {
@@ -1291,6 +1332,14 @@ document.addEventListener('click', e => {
   if(!e.target.closest('#filterPopup') && !e.target.closest('#filterBtn'))
     filterPopup.classList.remove('show');
 });
+
+// ── Neue Items beim Upload animieren ─────────────────────
+function animateNewCell(id){
+  const cell = gridEl.querySelector(`.cell[data-id="${id}"]`);
+  if(cell && typeof gsap !== 'undefined'){
+    gsap.fromTo(cell,{opacity:0,scale:0.85},{opacity:1,scale:1,duration:0.4,ease:'back.out(1.4)'});
+  }
+}
 
 // ── "Zuletzt hinzugefügt" Sortierung ────────────────────────
 const sortNewestBtn = document.getElementById('sortNewestBtn');
