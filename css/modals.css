@@ -236,3 +236,30 @@
 .boot-spinner{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:999}
 .spinner{width:52px;height:52px;border:3.5px solid rgba(255,255,255,.15);border-top-color:rgba(255,255,255,.85);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Login Modal ─────────────────────────────────────── */
+.login-modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .25s}
+.login-modal.show{opacity:1;pointer-events:auto}
+.login-modal-inner{background:rgba(16,16,16,.98);border:1px solid var(--border);border-radius:20px;padding:32px 28px;width:min(360px,calc(100vw - 40px));display:flex;flex-direction:column;gap:14px;box-shadow:0 32px 80px rgba(0,0,0,.6)}
+.lm-title{font-size:22px;font-weight:700;color:#fff}
+.lm-sub{font-size:14px;color:rgba(255,255,255,.5);margin-top:-6px}
+.lm-input{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:15px;padding:12px 14px;outline:none;transition:.15s}
+.lm-input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.08)}
+.lm-btn{border:none;border-radius:10px;font-size:15px;font-weight:600;padding:12px;cursor:pointer;transition:.15s}
+.lm-btn.primary{background:#fff;color:#000}.lm-btn.primary:hover{background:#e5e5e5}
+.lm-btn.cancel{background:rgba(255,255,255,.06);color:rgba(255,255,255,.6)}.lm-btn.cancel:hover{background:rgba(255,255,255,.1)}
+
+/* ── Welcome Tour ────────────────────────────────────── */
+.welcome-modal{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .3s;padding-bottom:env(safe-area-inset-bottom,0)}
+.welcome-modal.show{opacity:1;pointer-events:auto}
+.welcome-inner{background:rgba(14,14,14,.98);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:36px 28px 32px;width:100%;max-width:480px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:0 -24px 60px rgba(0,0,0,.5);transform:translateY(20px);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.welcome-modal.show .welcome-inner{transform:translateY(0)}
+.welcome-icon{font-size:48px;line-height:1;margin-bottom:4px}
+.welcome-title{font-size:20px;font-weight:700;color:#fff;text-align:center}
+.welcome-text{font-size:14px;color:rgba(255,255,255,.55);text-align:center;line-height:1.6;max-width:320px}
+.welcome-dots{display:flex;gap:6px;margin:4px 0}
+.wd{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2);transition:.2s}
+.wd.active{background:#fff;width:18px;border-radius:3px}
+.welcome-btn{border:none;border-radius:12px;font-size:15px;font-weight:600;padding:13px 24px;cursor:pointer;transition:.15s;width:100%;max-width:320px}
+.welcome-btn.primary{background:#fff;color:#000;margin-top:4px}.welcome-btn.primary:hover{background:#e5e5e5}
+.welcome-btn.skip{background:transparent;color:rgba(255,255,255,.35);font-size:13px;padding:8px}
