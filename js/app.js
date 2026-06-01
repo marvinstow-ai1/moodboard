@@ -3,6 +3,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = 'https://uvfuxnwinuakbqanaxtp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2ZnV4bndpbnVha2JxYW5heHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNzg3MDIsImV4cCI6MjA5NTc1NDcwMn0.quSvaycB3Yk2JXCnQz7AQmHpyATtx6u0U8aGQXD73fo';
 const BUCKET = 'moodboard';
+const OWNER_EMAIL = 'marvin.stowermann1@gmail.com';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── AUTH STATE ───────────────────────────────────────────
@@ -53,8 +54,9 @@ function closeLoginModal() {
 }
 
 async function submitLogin() {
-  const email = ($('loginEmail')?.value || '').trim();
+  const email = ($('loginEmail')?.value || '').trim().toLowerCase();
   if (!email) { toast('Bitte E-Mail eingeben'); return; }
+  if (email !== OWNER_EMAIL) { toast('Nicht autorisiert'); return; }
   const btn = $('loginSubmit');
   btn.disabled = true;
   btn.textContent = 'Wird gesendet…';
