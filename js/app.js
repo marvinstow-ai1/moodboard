@@ -365,7 +365,7 @@ function bindView(suffix){
   const g = k => $(k + (suffix||''));
   const f = g('ddFilterBtn'); const s = g('ddShuffleBtn');
   if(f) f.onclick = () => { closeMenu(); filterPopup.classList.toggle('show'); };
-  if(s) s.onclick = () => { closeMenu(); renderGrid(); toast('Neu gemischt'); };
+  if(s) s.onclick = () => { closeMenu(); doShuffle(); };
 }
 bindView(''); bindView('Sheet');
 
@@ -490,7 +490,12 @@ function renderGrid(){
   if(sortNewest){
     // Items bleiben in ihrer DB-Reihenfolge (created_at DESC)
   } else {
-    arr = [...arr].sort(() => Math.random()-.5);
+    // Fisher-Yates shuffle
+    arr = [...arr];
+    for(let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
   }
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
@@ -827,7 +832,12 @@ document.addEventListener('keydown', e => {
   if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
 });
 
-$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); renderGrid(); };
+function doShuffle() {
+  if(sortNewest){ sortNewest = false; localStorage.setItem('sort_newest','false'); updateSortNewestUI(); }
+  renderGrid();
+  toast('Neu gemischt');
+}
+$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); doShuffle(); };
 $('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
 $('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
 fileInput.onchange = e => upload(e.target.files);
