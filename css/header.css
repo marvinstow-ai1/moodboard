@@ -7,3 +7,7 @@
 .nav-link.active{opacity:1}
 .menubtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);transition:.15s;flex-shrink:0}
 .menubtn:hover{background:rgba(255,255,255,.13)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.loginbtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(16px);transition:.15s;flex-shrink:0}
+.loginbtn:hover{background:rgba(255,255,255,.13)}
+.loginbtn.is-owner{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.35)}

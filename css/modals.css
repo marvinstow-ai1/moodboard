@@ -233,6 +233,21 @@
 }
 .moods-mgmt-btn:hover{background:rgba(255,255,255,.1)}
 .moods-mgmt-btn svg{width:18px;height:18px;display:block;flex-shrink:0}
+/* ── Login Modal ─────────────────────────────────────── */
+.login-modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
+.login-modal.show{display:flex}
+.lm-content{width:min(340px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
+.lm-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}
+.lm-input{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:12px 14px;outline:none;font-size:14px;margin-bottom:10px;box-sizing:border-box;font-family:inherit}
+.lm-input:focus{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.09)}
+.lm-actions{display:flex;gap:8px;margin-top:4px}
+.lm-btn{flex:1;border:1px solid var(--border);border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
+.lm-btn.cancel{background:rgba(255,255,255,.06);color:#fff}
+.lm-btn.cancel:hover{background:rgba(255,255,255,.12)}
+.lm-btn.confirm{background:#fff;color:#111;border-color:#fff}
+.lm-btn.confirm:hover{background:#ddd}
+.lm-btn:disabled{opacity:.4;cursor:not-allowed}
+
 .boot-spinner{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:999}
 .spinner{width:52px;height:52px;border:3.5px solid rgba(255,255,255,.15);border-top-color:rgba(255,255,255,.85);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}

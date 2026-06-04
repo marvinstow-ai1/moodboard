@@ -3,7 +3,9 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = 'https://uvfuxnwinuakbqanaxtp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2ZnV4bndpbnVha2JxYW5heHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNzg3MDIsImV4cCI6MjA5NTc1NDcwMn0.quSvaycB3Yk2JXCnQz7AQmHpyATtx6u0U8aGQXD73fo';
 const BUCKET = 'moodboard';
+const OWNER_EMAIL = 'marvin.stowermann1@gmail.com';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+let owner = false;
 
 const DEFAULT_MOODS = ['All','Summer','Winter','Cozy','Dark'];
 function loadMoodsList(){
@@ -34,6 +36,56 @@ let slideshowActive = false;
 let slideshowTimer  = null;
 
 const $ = id => document.getElementById(id);
+
+// ── AUTH ─────────────────────────────────────────────────
+function updateAdminUI() {
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = owner ? '' : 'none';
+  });
+  const btn = $('loginBtn');
+  if (btn) btn.classList.toggle('is-owner', owner);
+}
+
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  owner = !!(session && session.user.email === OWNER_EMAIL);
+  updateAdminUI();
+  sb.auth.onAuthStateChange((_e, session) => {
+    owner = !!(session && session.user.email === OWNER_EMAIL);
+    updateAdminUI();
+  });
+}
+
+function openLoginModal() {
+  $('loginModal').classList.add('show');
+  setTimeout(() => $('loginPassword')?.focus(), 60);
+}
+function closeLoginModal() {
+  $('loginModal').classList.remove('show');
+  if ($('loginPassword')) $('loginPassword').value = '';
+}
+
+async function handleLoginBtn() {
+  if (owner) {
+    await sb.auth.signOut();
+    toast('Abgemeldet');
+    return;
+  }
+  openLoginModal();
+}
+
+async function submitLogin() {
+  const email = ($('loginEmail')?.value || '').trim().toLowerCase();
+  const password = $('loginPassword')?.value || '';
+  if (!email || !password) { toast('Bitte E-Mail und Passwort eingeben'); return; }
+  const btn = $('loginSubmit');
+  btn.disabled = true; btn.textContent = 'Wird geprüft…';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Einloggen';
+  if (error) { toast('Falsches Passwort oder E-Mail'); return; }
+  closeLoginModal();
+  toast('Eingeloggt ✓');
+}
 
 // ── DOM refs ────────────────────────────────────────────
 const gridEl         = $('grid');
@@ -1247,10 +1299,26 @@ mmgInput.addEventListener('keydown', e => {
   else if(e.key === 'Escape') closeMoodsMgmt();
 });
 
-renderMoodChips();
-applyGridCols(gridCols);
-loadItems();
-subscribeRealtime();
+// ── Login-Modal-Bindings ──────────────────────────────────
+$('loginBtn').onclick = handleLoginBtn;
+$('loginSubmit').onclick = submitLogin;
+$('loginClose').onclick = closeLoginModal;
+$('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') $('loginPassword')?.focus(); });
+$('loginPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitLogin();
+  else if (e.key === 'Escape') closeLoginModal();
+});
+$('loginModal').addEventListener('click', e => { if (e.target === $('loginModal')) closeLoginModal(); });
+
+// ── App starten ───────────────────────────────────────────
+(async () => {
+  await initAuth();
+  renderMoodChips();
+  applyGridCols(gridCols);
+  loadItems();
+  subscribeRealtime();
+})();
+
 window.addEventListener('resize', () => {
   // Clamp gridCols to the new range when crossing mobile/desktop boundary
   const r = getColRange();
