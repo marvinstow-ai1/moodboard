@@ -18,17 +18,37 @@ function updateAdminUI() {
     loginBtn.title = owner ? 'Abmelden' : 'Login';
     loginBtn.classList.toggle('is-owner', owner);
   }
+  const menuBtn = $('menuBtn');
+  if (menuBtn) menuBtn.style.display = owner ? '' : 'none';
+}
+
+function cleanAuthUrl() {
+  // Token-/Error-Reste aus der URL entfernen (Magic-Link-Callback)
+  if (location.hash && /(access_token|error|refresh_token|type=)/.test(location.hash)) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
 }
 
 async function initAuth() {
+  // Fehlerhafter / abgelaufener Magic-Link → freundliche Meldung statt kaputtem Zustand
+  const hash = location.hash || '';
+  if (hash.includes('error')) {
+    const params = new URLSearchParams(hash.replace(/^#/, ''));
+    const desc = params.get('error_description');
+    toast(desc ? 'Login fehlgeschlagen: ' + decodeURIComponent(desc.replace(/\+/g, ' ')) : 'Login-Link ungültig oder abgelaufen');
+    cleanAuthUrl();
+  }
+
   const { data: { session } } = await sb.auth.getSession();
   owner = !!session;
   updateAdminUI();
+  if (owner) cleanAuthUrl();
 
   sb.auth.onAuthStateChange((_event, session) => {
+    const wasOwner = owner;
     owner = !!session;
     updateAdminUI();
-    if (owner) toast('Eingeloggt ✓');
+    if (owner && !wasOwner) { toast('Eingeloggt ✓'); cleanAuthUrl(); }
   });
 }
 
@@ -60,7 +80,7 @@ async function submitLogin() {
   const btn = $('loginSubmit');
   btn.disabled = true;
   btn.textContent = 'Wird gesendet…';
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href } });
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
   btn.disabled = false;
   btn.textContent = 'Magic Link senden';
   if (error) { toast('Fehler: ' + error.message); return; }
@@ -978,7 +998,7 @@ const boardTitle = $('boardTitle');
 
 function pickMainItem(mood) {
   const items = mb.items.filter(x => Array.isArray(x.moods) && x.moods.includes(mood));
-  return items.length ? items[Math.floor(Math.random() * items.length)] : null;
+  return items.length ? items[0] : null;
 }
 
 function renderMoodsView() {

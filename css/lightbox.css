@@ -1,10 +1,10 @@
 /* ── LIGHTBOX ────────────────────────────────────────── */
 .lightbox {
   position: fixed; inset: 0; z-index: 80;
-  background: rgba(0,0,0,.86);
+  background: rgba(0,0,0,.9);
   display: none; flex-direction: column;
   align-items: stretch;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
   touch-action: pan-y; overflow: hidden;
 }
 .lightbox.show { display: flex; }
@@ -14,13 +14,13 @@
   pointer-events: none; opacity: 0;
   transition: opacity .8s ease;
   background: radial-gradient(45% 55% at 28% 30%,var(--ambient-1,rgba(80,90,140,.55)),transparent 70%),radial-gradient(45% 55% at 72% 70%,var(--ambient-2,rgba(140,70,120,.45)),transparent 70%);
-  filter: blur(60px) saturate(1.65);
+  filter: blur(60px) saturate(2);
   will-change: opacity;
 }
 .lightbox.show .lb-ambient { opacity: 1; }
 
 .lb-topbar {
-  flex-shrink: 0; height: 64px;
+  flex-shrink: 0; height: 46px;
   display: flex; align-items: center;
   justify-content: flex-end;
   padding: 0 16px; z-index: 2; position: relative;
@@ -42,8 +42,9 @@
   max-width: 100%; max-height: 100%;
   width: auto; height: auto;
   object-fit: contain;
-  border-radius: 0; display: block;
+  border-radius: 8px; display: block;
   user-select: none;
+  box-shadow: 0 8px 48px rgba(0,0,0,.6);
 }
 .lb-inner video { pointer-events: auto; }
 
@@ -51,14 +52,14 @@
 .lb-arrow {
   position: absolute; top: 50%;
   transform: translateY(-50%); z-index: 3;
-  width: 40px; height: 40px; border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.08); color: #fff;
+  width: 44px; height: 44px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.12); color: #fff;
   font-size: 18px; cursor: pointer;
   display: grid; place-items: center;
-  backdrop-filter: blur(10px); transition: .15s;
+  backdrop-filter: blur(16px); transition: .15s;
 }
-.lb-arrow:hover { background: rgba(255,255,255,.18); }
+.lb-arrow:hover { background: rgba(255,255,255,.24); }
 .lb-arrow.prev { left: 14px; }
 .lb-arrow.next { right: 14px; }
 .lb-topbar, .lb-bottombar, .lb-arrow {
@@ -66,7 +67,7 @@
 }
 
 .lb-bottombar {
-  flex-shrink: 0; height: 72px;
+  flex-shrink: 0; height: 58px;
   display: flex; align-items: center;
   justify-content: center;
   padding: 0 20px; gap: 10px; z-index: 2;
