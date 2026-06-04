@@ -80,7 +80,7 @@ async function submitLogin() {
   const btn = $('loginSubmit');
   btn.disabled = true;
   btn.textContent = 'Wird gesendet…';
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: 'https://uvfuxnwinuakbqanaxtp.supabase.co/functions/v1/auth-callback' } });
   btn.disabled = false;
   btn.textContent = 'Magic Link senden';
   if (error) { toast('Fehler: ' + error.message); return; }
