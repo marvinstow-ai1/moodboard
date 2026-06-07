@@ -503,7 +503,7 @@ function renderGrid(){
     <div class="cell" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
       ${it.media_type==='video'
-        ? `<video src="${it.media_url}" muted loop playsinline preload="none"></video>`
+        ? `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`
         : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
     </div>`).join('');
 
@@ -672,9 +672,14 @@ function openLightbox(idx){
   lbInner.querySelectorAll('img,video').forEach(e=>e.remove());
   if(it.media_type==='video'){
     const v = document.createElement('video');
-    v.src=it.media_url; v.controls=true; v.autoplay=true; v.muted=false; v.loop=true;
+    v.src=it.media_url; v.controls=false; v.autoplay=true; v.muted=true; v.loop=true; v.playsInline=true;
+    v.addEventListener('click', () => {
+      lbIsMuted = !lbIsMuted;
+      v.muted = lbIsMuted;
+      updateMuteSvg(lbIsMuted);
+    });
     lbInner.appendChild(v);
-    lbIsMuted=false; updateMuteSvg(false);
+    lbIsMuted=true; updateMuteSvg(true);
   } else {
     const img = document.createElement('img');
     img.src=it.media_url; img.style.pointerEvents='none';
