@@ -28,7 +28,13 @@
 <div class="topbar">
   <div class="topbar-left">
     <span class="board-title" id="boardTitle">Marvin's Place</span>
-    <button class="nav-link" id="moodsNavBtn">Moods</button>
+    <div class="page-nav" id="pageNav">
+      <button class="page-nav-trigger" id="pageNavBtn">
+        <span id="pageNavLabel">Archive</span>
+        <svg class="page-nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="page-nav-menu" id="pageNavMenu"></div>
+    </div>
   </div>
   <div class="topbar-right">
     <button class="loginbtn" id="loginBtn" aria-label="Login" title="Login">
@@ -201,6 +207,10 @@
 
 <div class="moods-view" id="moodsView">
   <div class="moods-grid" id="moodsGrid"></div>
+</div>
+
+<div class="custom-page-view" id="customPageView">
+  <div class="cpv-inner" id="customPageInner"></div>
 </div>
 
 <div class="lightbox" id="lightbox">
@@ -396,6 +406,18 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   IFrameAPI.createController(el, options, () => {});
 };
 </script>
+
+<div class="mood-create-modal" id="pageCreateModal">
+  <div class="mcm-content">
+    <div class="mcm-title">Neue Seite erstellen</div>
+    <input id="pcmInput" class="mcm-input" type="text" placeholder="Seitenname (z.B. Spotify Playlists)" maxlength="40">
+    <div class="mcm-error" id="pcmError"></div>
+    <div class="mcm-actions">
+      <button id="pcmCancel" class="mcm-btn cancel">Abbrechen</button>
+      <button id="pcmConfirm" class="mcm-btn confirm">Erstellen</button>
+    </div>
+  </div>
+</div>
 
 <div class="login-modal" id="loginModal">
   <div class="lm-content">

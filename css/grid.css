@@ -53,6 +53,16 @@
 .moods-view{position:relative;padding-top:72px;visibility:hidden;background:var(--bg);transform:scale(.85) translateY(20px);opacity:0;pointer-events:none;transition:transform .5s cubic-bezier(.32,1,.23,1),opacity .5s cubic-bezier(.32,1,.23,1),visibility .5s cubic-bezier(.32,1,.23,1);transform-origin:50% 0}
 .moods-view.show{visibility:visible;transform:scale(1) translateY(0);opacity:1;pointer-events:auto}
 
+/* ── Custom Page View (leere Unterseiten) ───────────────── */
+.custom-page-view{position:relative;padding-top:72px;min-height:100vh;background:var(--bg);display:none}
+.custom-page-view.show{display:block}
+.cpv-inner{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 72px);padding:24px}
+.cpv-empty{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:rgba(255,255,255,.5)}
+.cpv-empty-title{font-size:22px;font-weight:700;color:#fff;letter-spacing:.02em}
+.cpv-empty-sub{font-size:14px;opacity:.6}
+.cpv-del-btn{margin-top:16px;border:1px solid rgba(255,77,77,.4);background:rgba(255,77,77,.12);color:#ff6b6b;border-radius:11px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
+.cpv-del-btn:hover{background:rgba(255,77,77,.22)}
+
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}

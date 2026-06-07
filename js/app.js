@@ -447,10 +447,10 @@ sheetOverlay.onclick = closeMenu;
 document.addEventListener('click', e => { if(!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show'); });
 
 $('boardTitle').onclick = () => {
-  if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) hideMoodsView();
+  goArchive();
   activeMoods.clear();
   saveFilterState();
-  renderGrid();
+  if(!moodsViewOpen) renderGrid();
 };
 
 function renderMoodChips(){
@@ -1040,7 +1040,6 @@ window.addEventListener('online', () => scheduleSync(0));
 let moodsViewOpen = false;
 const moodsView = $('moodsView');
 const moodsGrid = $('moodsGrid');
-const moodsNavBtn = $('moodsNavBtn');
 const boardTitle = $('boardTitle');
 
 // Wählt ein zufälliges Item (Bild/Video) aus einer Mood aus
@@ -1113,12 +1112,13 @@ function showMoodsView(){
     gridWrap.style.display = 'none';
     gridWrap.classList.remove('hide-view');
     moodsView.classList.add('show');
-    moodsNavBtn.classList.add('active');
     boardTitle.classList.remove('active');
     renderMoodsView();
     window.scrollTo(0, 0);
     _moodsAnimating = false;
   }, 500);
+  currentView = 'moods'; currentPageSlug = null;
+  setPageLabel('Moods'); updatePageNavActive();
 }
 function hideMoodsView(){
   if(_moodsAnimating) return;
@@ -1144,16 +1144,190 @@ function hideMoodsView(){
         _moodsAnimating = false;
       }, 500);
     });
-    moodsNavBtn.classList.remove('active');
     boardTitle.classList.add('active');
   }, 500);
+  currentView = 'archive'; currentPageSlug = null;
+  setPageLabel('Archive'); updatePageNavActive();
+}
+boardTitle.classList.add('active');
+
+// ── PAGE NAVIGATION (Dropdown + dynamische Unterseiten) ───
+let pages = [];
+let currentView = 'archive';   // 'archive' | 'moods' | 'page'
+let currentPageSlug = null;
+
+const pageNavBtn    = $('pageNavBtn');
+const pageNavLabel  = $('pageNavLabel');
+const pageNavMenu   = $('pageNavMenu');
+const customPageView  = $('customPageView');
+const customPageInner = $('customPageInner');
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function slugify(s){
+  return String(s).toLowerCase().trim()
+    .replace(/[äöü]/g, m => ({'ä':'ae','ö':'oe','ü':'ue'}[m]))
+    .replace(/ß/g,'ss')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'seite';
 }
 
-moodsNavBtn.onclick = () => {
-  if(moodsViewOpen) hideMoodsView();
-  else showMoodsView();
+function setPageLabel(name){ if(pageNavLabel) pageNavLabel.textContent = name; }
+
+function updatePageNavActive(){
+  pageNavMenu.querySelectorAll('.pn-item').forEach(el => {
+    const isActive =
+      (el.dataset.nav === 'archive' && currentView === 'archive') ||
+      (el.dataset.nav === 'moods'   && currentView === 'moods')   ||
+      (el.dataset.slug && currentView === 'page' && el.dataset.slug === currentPageSlug);
+    el.classList.toggle('active', !!isActive);
+  });
+}
+
+function renderPageNav(){
+  let html = '';
+  html += `<button class="pn-item" data-nav="archive">Archive</button>`;
+  html += `<button class="pn-item" data-nav="moods">Moods</button>`;
+  pages.forEach(p => {
+    html += `<button class="pn-item" data-slug="${escapeHtml(p.slug)}">${escapeHtml(p.name)}</button>`;
+  });
+  html += `<div class="pn-divider admin-only"></div>`;
+  html += `<button class="pn-item pn-add admin-only" id="pnAdd">+ Neue Seite</button>`;
+  pageNavMenu.innerHTML = html;
+
+  pageNavMenu.querySelectorAll('[data-nav]').forEach(el => {
+    el.onclick = () => { closePageNav(); navigate(el.dataset.nav); };
+  });
+  pageNavMenu.querySelectorAll('[data-slug]').forEach(el => {
+    el.onclick = () => { closePageNav(); navigateToPage(el.dataset.slug); };
+  });
+  const addBtn = $('pnAdd');
+  if(addBtn) addBtn.onclick = () => { closePageNav(); openPageCreate(); };
+  updatePageNavActive();
+  updateAdminUI();
+}
+
+async function loadPages(){
+  const { data, error } = await sb.from('pages').select('*').order('sort_order').order('created_at');
+  if(!error && Array.isArray(data)) pages = data;
+  renderPageNav();
+}
+
+function openPageNav(){ pageNavMenu.classList.add('show'); pageNavBtn.classList.add('open'); }
+function closePageNav(){ pageNavMenu.classList.remove('show'); pageNavBtn.classList.remove('open'); }
+
+pageNavBtn.onclick = e => {
+  e.stopPropagation();
+  if(pageNavMenu.classList.contains('show')) closePageNav();
+  else { renderPageNav(); openPageNav(); }
 };
-boardTitle.classList.add('active');
+document.addEventListener('click', e => { if(!e.target.closest('#pageNav')) closePageNav(); });
+
+// ── Navigation zwischen Views ─────────────────────────────
+function forceCloseMoods(){
+  moodsViewOpen = false; _moodsAnimating = false;
+  clearTimeout(_syncTimer);
+  moodsView.classList.remove('show');
+  document.getElementById('bottombar').classList.remove('moods-active');
+  document.getElementById('moodsMgmtBtn').classList.remove('show');
+}
+
+function navigate(target){
+  if(target === 'archive') goArchive();
+  else if(target === 'moods') goMoods();
+}
+
+function goArchive(){
+  if(currentView === 'moods'){
+    hideMoodsView();           // animiert zurück, setzt State selbst
+    return;
+  }
+  if(currentView === 'page'){
+    customPageView.classList.remove('show');
+    gridWrap.style.display = '';
+    renderGrid();
+  }
+  currentView = 'archive'; currentPageSlug = null;
+  setPageLabel('Archive'); updatePageNavActive();
+}
+
+function goMoods(){
+  if(currentView === 'moods') return;
+  if(currentView === 'page'){
+    customPageView.classList.remove('show');
+    gridWrap.style.display = '';
+  }
+  showMoodsView();             // setzt State + Label selbst
+}
+
+function navigateToPage(slug){
+  const p = pages.find(x => x.slug === slug);
+  if(!p) return;
+  if(currentView === 'moods') forceCloseMoods();
+  gridWrap.style.display = 'none';
+  moodsView.classList.remove('show');
+  customPageView.classList.add('show');
+  currentView = 'page'; currentPageSlug = slug;
+  setPageLabel(p.name); updatePageNavActive();
+  renderCustomPage(p);
+  window.scrollTo(0, 0);
+}
+
+function renderCustomPage(p){
+  customPageInner.innerHTML = `
+    <div class="cpv-empty">
+      <div class="cpv-empty-title">${escapeHtml(p.name)}</div>
+      <div class="cpv-empty-sub">Diese Seite ist noch leer.</div>
+      ${owner ? `<button class="cpv-del-btn" id="cpvDel">Seite löschen</button>` : ''}
+    </div>`;
+  const del = $('cpvDel');
+  if(del) del.onclick = () => deletePage(p);
+}
+
+// ── Seite erstellen / löschen ─────────────────────────────
+const pageCreateModal = $('pageCreateModal');
+const pcmInput   = $('pcmInput');
+const pcmError   = $('pcmError');
+
+function openPageCreate(){
+  pcmInput.value = '';
+  pcmError.classList.remove('show');
+  pageCreateModal.classList.add('show');
+  setTimeout(() => pcmInput.focus(), 60);
+}
+function closePageCreate(){ pageCreateModal.classList.remove('show'); }
+
+async function createPage(name){
+  name = name.trim();
+  if(!name){ pcmError.textContent = 'Bitte einen Namen eingeben'; pcmError.classList.add('show'); return; }
+  const slug = slugify(name) + '-' + Math.random().toString(36).slice(2,6);
+  const { data, error } = await sb.from('pages')
+    .insert({ name, slug, sort_order: pages.length })
+    .select().single();
+  if(error){ pcmError.textContent = 'Fehler: ' + error.message; pcmError.classList.add('show'); return; }
+  pages.push(data);
+  renderPageNav();
+  closePageCreate();
+  navigateToPage(data.slug);
+  toast('Seite erstellt');
+}
+
+async function deletePage(p){
+  const { error } = await sb.from('pages').delete().eq('id', p.id);
+  if(error){ toast('Fehler: ' + error.message); return; }
+  pages = pages.filter(x => x.id !== p.id);
+  renderPageNav();
+  goArchive();
+  toast('Seite gelöscht');
+}
+
+$('pcmConfirm').onclick = () => createPage(pcmInput.value);
+$('pcmCancel').onclick = closePageCreate;
+pcmInput.addEventListener('keydown', e => {
+  if(e.key === 'Enter') createPage(pcmInput.value);
+  else if(e.key === 'Escape') closePageCreate();
+});
+pageCreateModal.addEventListener('click', e => { if(e.target === pageCreateModal) closePageCreate(); });
 
 // ── Create Mood Modal ─────────────────────────────────────
 const moodCreateModal = $('moodCreateModal');
@@ -1329,6 +1503,8 @@ $('loginModal').addEventListener('click', e => { if (e.target === $('loginModal'
 (async () => {
   await initAuth();
   renderMoodChips();
+  renderPageNav();
+  loadPages();
   applyGridCols(gridCols);
   loadItems();
   subscribeRealtime();
