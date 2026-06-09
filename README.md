@@ -8,10 +8,10 @@ Personal visual moodboard app. Upload images, GIFs and videos, organize them by 
 
 ## Stack
 
-- **Frontend:** Vanilla JS (ES Modules), CSS custom properties
+- **Frontend:** Vanilla JS (ES Modules), single CSS file, minimal monochrome design
 - **Backend:** Supabase (PostgreSQL + Storage + Realtime)
 - **Hosting:** Vercel
-- **Animations:** GSAP 3 (ScrollTrigger included)
+- **Animations:** GSAP 3
 
 ## Structure
 
@@ -19,23 +19,30 @@ Personal visual moodboard app. Upload images, GIFs and videos, organize them by 
 moodboard/
 ├── index.html        # HTML structure
 ├── css/
-│   └── style.css     # All styles
+│   └── style.css     # All styles (design tokens + components)
 ├── js/
 │   └── app.js        # Application logic
+├── api/
+│   └── suggest-moods.js  # AI mood suggestion endpoint (Gemini Vision)
 └── README.md
 ```
 
 ## Features
 
-- Upload images (JPEG/PNG → WebP compressed), GIFs and videos
-- Parallel uploads (3 concurrent), max 1920px
-- Organize by mood tags
-- Favorites with double-click/tap
-- Lightbox with swipe navigation
-- Slideshow with fullscreen
+- Upload images (JPEG/PNG compressed to WebP, max 1920px), GIFs and videos
+- Parallel uploads (3 concurrent), drag and drop, paste from clipboard
+- Quick add via URL
+- AI mood suggestions on upload
+- Organize by mood tags, multi-select OR filter
+- Adjustable grid columns (slider, persisted)
+- Lightbox with swipe/keyboard navigation, ambient background, download and share deep links
+- Slideshow with fullscreen and sleep mode
+- Moods overview with cover tiles, mood management
+- Custom pages (create/delete, own navigation)
+- Selection mode with bulk delete
 - Realtime sync across devices
-- Share links (deep links)
 - Shuffle or sort by date
+- Spotify playlist player
 
 ## Database
 
@@ -51,6 +58,8 @@ moodboard/
 | media_type | text | `image`, `gif`, `video` |
 | favorite | boolean | Favorited |
 | created_at | timestamptz | Upload timestamp |
+
+**Table:** `pages` — custom sub pages (`id`, `name`, `slug`, `sort_order`, `created_at`)
 
 **Storage bucket:** `moodboard` (public)
 
