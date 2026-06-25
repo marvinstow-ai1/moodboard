@@ -3,7 +3,6 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = 'https://uvfuxnwinuakbqanaxtp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2ZnV4bndpbnVha2JxYW5heHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNzg3MDIsImV4cCI6MjA5NTc1NDcwMn0.quSvaycB3Yk2JXCnQz7AQmHpyATtx6u0U8aGQXD73fo';
 const BUCKET = 'moodboard';
-const OWNER_EMAIL = 'marvin.stowermann1@gmail.com';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 let owner = false;
 
@@ -46,23 +45,26 @@ function updateAdminUI() {
   if (btn) btn.classList.toggle('is-owner', owner);
 }
 
+function isOwnerSession(session) {
+  return !!(session && session.user.app_metadata?.role === 'owner');
+}
+
 async function initAuth() {
   const { data: { session } } = await sb.auth.getSession();
-  owner = !!(session && session.user.email === OWNER_EMAIL);
+  owner = isOwnerSession(session);
   updateAdminUI();
   sb.auth.onAuthStateChange((_e, session) => {
-    owner = !!(session && session.user.email === OWNER_EMAIL);
+    owner = isOwnerSession(session);
     updateAdminUI();
   });
 }
 
 function openLoginModal() {
   $('loginModal').classList.add('show');
-  setTimeout(() => $('loginPassword')?.focus(), 60);
+  setTimeout(() => $('loginEmail')?.focus(), 60);
 }
 function closeLoginModal() {
   $('loginModal').classList.remove('show');
-  if ($('loginPassword')) $('loginPassword').value = '';
 }
 
 async function handleLoginBtn() {
@@ -76,15 +78,17 @@ async function handleLoginBtn() {
 
 async function submitLogin() {
   const email = ($('loginEmail')?.value || '').trim().toLowerCase();
-  const password = $('loginPassword')?.value || '';
-  if (!email || !password) { toast('Bitte E-Mail und Passwort eingeben'); return; }
+  if (!email) { toast('Bitte E-Mail eingeben'); return; }
   const btn = $('loginSubmit');
-  btn.disabled = true; btn.textContent = 'Wird geprüft…';
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  btn.disabled = false; btn.textContent = 'Einloggen';
-  if (error) { toast('Falsches Passwort oder E-Mail'); return; }
+  btn.disabled = true; btn.textContent = 'Wird gesendet…';
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.origin }
+  });
+  btn.disabled = false; btn.textContent = 'Magic Link senden';
+  if (error) { toast('Fehler: ' + error.message); return; }
   closeLoginModal();
-  toast('Eingeloggt ✓');
+  toast('Magic Link wurde gesendet ✓');
 }
 
 // ── DOM refs ────────────────────────────────────────────
