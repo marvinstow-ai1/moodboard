@@ -85,7 +85,13 @@ async function submitLogin() {
   btn.disabled = true; btn.textContent = 'Wird geprüft…';
   const { error } = await sb.auth.signInWithPassword({ email, password });
   btn.disabled = false; btn.textContent = 'Einloggen';
-  if (error) { toast('Falsche E-Mail oder falsches Passwort'); return; }
+  if (error) {
+    const msg = /invalid login credentials/i.test(error.message || '')
+      ? 'Falsche E-Mail oder falsches Passwort'
+      : 'Login fehlgeschlagen: ' + (error.message || 'unbekannter Fehler');
+    toast(msg);
+    return;
+  }
   closeLoginModal();
   toast('Eingeloggt ✓');
 }
