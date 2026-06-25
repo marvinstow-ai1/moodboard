@@ -65,6 +65,7 @@ function openLoginModal() {
 }
 function closeLoginModal() {
   $('loginModal').classList.remove('show');
+  if ($('loginPassword')) $('loginPassword').value = '';
 }
 
 async function handleLoginBtn() {
@@ -78,17 +79,15 @@ async function handleLoginBtn() {
 
 async function submitLogin() {
   const email = ($('loginEmail')?.value || '').trim().toLowerCase();
-  if (!email) { toast('Bitte E-Mail eingeben'); return; }
+  const password = $('loginPassword')?.value || '';
+  if (!email || !password) { toast('Bitte E-Mail und Passwort eingeben'); return; }
   const btn = $('loginSubmit');
-  btn.disabled = true; btn.textContent = 'Wird gesendet…';
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin }
-  });
-  btn.disabled = false; btn.textContent = 'Magic Link senden';
-  if (error) { toast('Fehler: ' + error.message); return; }
+  btn.disabled = true; btn.textContent = 'Wird geprüft…';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Einloggen';
+  if (error) { toast('Falsche E-Mail oder falsches Passwort'); return; }
   closeLoginModal();
-  toast('Magic Link wurde gesendet ✓');
+  toast('Eingeloggt ✓');
 }
 
 // ── DOM refs ────────────────────────────────────────────
@@ -1496,7 +1495,8 @@ mmgInput.addEventListener('keydown', e => {
 $('loginBtn').onclick = handleLoginBtn;
 $('loginSubmit').onclick = submitLogin;
 $('loginClose').onclick = closeLoginModal;
-$('loginEmail').addEventListener('keydown', e => {
+$('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') $('loginPassword')?.focus(); });
+$('loginPassword')?.addEventListener('keydown', e => {
   if (e.key === 'Enter') submitLogin();
   else if (e.key === 'Escape') closeLoginModal();
 });
