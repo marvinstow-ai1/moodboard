@@ -1496,8 +1496,7 @@ mmgInput.addEventListener('keydown', e => {
 $('loginBtn').onclick = handleLoginBtn;
 $('loginSubmit').onclick = submitLogin;
 $('loginClose').onclick = closeLoginModal;
-$('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') $('loginPassword')?.focus(); });
-$('loginPassword').addEventListener('keydown', e => {
+$('loginEmail').addEventListener('keydown', e => {
   if (e.key === 'Enter') submitLogin();
   else if (e.key === 'Escape') closeLoginModal();
 });
