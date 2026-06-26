@@ -216,81 +216,9 @@
 <div class="lightbox" id="lightbox">
   <div class="lb-ambient" id="lbAmbient"></div>
 
-  <!-- Topbar (Mobile) -->
-  <div class="lb-topbar">
-    <button class="lb-close-btn" id="lbCloseBtn" aria-label="Schließen">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
-  </div>
-
   <!-- Stage (Bildbereich) -->
   <div class="lb-stage">
-    <button class="lb-arrow prev" id="lbPrev" aria-label="Vorheriges">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-    </button>
     <div class="lb-inner" id="lbInner"></div>
-    <button class="lb-arrow next" id="lbNext" aria-label="Nächstes">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
-    </button>
-  </div>
-
-  <!-- Bottombar (Mobile unten / Desktop rechts) -->
-  <div class="lb-bottombar">
-    <!-- Herz-Button (immer sichtbar) -->
-
-    <!-- Pill-Toggle-Button -->
-    <button class="lb-pill-toggle" id="lbPillToggle" aria-label="Mehr Aktionen">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-        <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
-      </svg>
-    </button>
-
-    <!-- Expandierende Pill -->
-    <div class="lb-pill" id="lbPill">
-      <!-- Share -->
-      <button class="lb-pill-btn" id="lbPillShare" title="Link teilen">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-        </svg>
-      </button>
-      <div class="lb-pill-div"></div>
-      <!-- Mood -->
-      <button class="lb-pill-btn" id="lbPillMood" title="Mood zuweisen">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
-          <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
-        </svg>
-      </button>
-      <div class="lb-pill-div" id="lbPillMuteDiv"></div>
-      <!-- Mute (nur bei Video) -->
-      <button class="lb-pill-btn" id="lbPillMute" title="Stumm schalten">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block" id="lbMuteSvg">
-          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-        </svg>
-      </button>
-      <!-- Slideshow -->
-      <button class="lb-pill-btn" id="lbPillSlideshow" title="Slideshow">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
-          <polygon points="5 3 19 12 5 21 5 3"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- Mood-Popup -->
-  <div class="lb-mood-popup" id="lbMoodPopup"></div>
-
-  <!-- Share-Popup -->
-  <div class="share-popup" id="sharePopup">
-    <input id="sharePopupUrl" readonly>
-    <button id="sharePopupCopy">Kopieren</button>
   </div>
 </div>
 

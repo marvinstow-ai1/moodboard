@@ -131,13 +131,6 @@ async function copyText(text){
     } catch(e2){ return false; }
   }
 }
-function openSharePopup(){
-  const it = S().currentItems[lbIndex]; if(!it) return;
-  $('sharePopupUrl').value = buildShareUrl(it);
-  $('sharePopup').classList.add('show');
-  setTimeout(() => { try { $('sharePopupUrl').select(); } catch(e){} }, 80);
-}
-function closeSharePopup(){ $('sharePopup').classList.remove('show'); }
 function parseShareHash(){
   const m = (location.hash || '').slice(1).match(/^mb=(.+)$/);
   if(!m) return null;
@@ -591,88 +584,6 @@ $('abCancel').onclick = () => { $('deleteFloatingBtn')?.remove(); exitSelMode();
 
 
 
-// ── PILL + BUTTONS VERDRAHTEN ──────────────────────────
-let lbPillOpen = false;
-
-function closeLbPill() {
-  lbPillOpen = false;
-  $('lbPill').classList.remove('open');
-  $('lbPillToggle').classList.remove('open');
-  $('lbMoodPopup').classList.remove('show');
-  closeSharePopup();
-}
-
-$('lbPillToggle').onclick = e => {
-  e.stopPropagation();
-  lbPillOpen = !lbPillOpen;
-  $('lbPill').classList.toggle('open', lbPillOpen);
-  $('lbPillToggle').classList.toggle('open', lbPillOpen);
-  if (!lbPillOpen) {
-    $('lbMoodPopup').classList.remove('show');
-    closeSharePopup();
-  }
-};
-
-$('lbPillShare').onclick = e => {
-  e.stopPropagation();
-  const moodPopup = $('lbMoodPopup');
-  moodPopup.classList.remove('show');
-  openSharePopup();
-};
-
-// Mute: identische Toggle-Logik
-$('lbPillMute').onclick = e => {
-  e.stopPropagation();
-  const v = lbInner.querySelector('video');
-  if (!v) return;
-  lbIsMuted = !lbIsMuted;
-  v.muted = lbIsMuted;
-  updateMuteSvg(lbIsMuted);
-};
-
-// Mood-Popup aus Pill:
-$('lbPillMood').onclick = e => {
-  e.stopPropagation();
-  const popup = $('lbMoodPopup');
-  if (popup.classList.contains('show')) {
-    popup.classList.remove('show'); return;
-  }
-  closeSharePopup();
-  const it = S().currentItems[lbIndex]; if (!it) return;
-  const moods = S().moods.filter(m => m !== 'All');
-  popup.innerHTML = moods.map(m => `
-    <button class="lb-mood-chip ${Array.isArray(it.moods) && it.moods.includes(m) ? 'active' : ''}" data-mood="${m}">${m}</button>
-  `).join('');
-  popup.querySelectorAll('.lb-mood-chip').forEach(chip => {
-    chip.onclick = async ev => {
-      ev.stopPropagation();
-      const mood = chip.dataset.mood;
-      const moods = Array.isArray(it.moods) ? [...it.moods] : [];
-      const idx = moods.indexOf(mood);
-      if (idx > -1) moods.splice(idx, 1);
-      else moods.push(mood);
-      it.moods = moods;
-      chip.classList.toggle('active', moods.includes(mood));
-      await sb.from(S().table).update({ moods }).eq('id', it.id);
-    };
-  });
-  popup.classList.add('show');
-};
-
-// Klick auf Stage schliesst Pill + Popups:
-$('lbPrev').addEventListener('click', e => e.stopPropagation());
-$('lbNext').addEventListener('click', e => e.stopPropagation());
-lightbox.addEventListener('click', e => {
-  if (!e.target.closest('.lb-bottombar') &&
-      !e.target.closest('.lb-topbar') &&
-      !e.target.closest('.lb-mood-popup') &&
-      !e.target.closest('.share-popup')) {
-    closeLbPill();
-  }
-});
-
-$('lbCloseBtn').onclick = closeLb;
-
 // ── Lightbox Navigation ─────────────────────────────────
 function openLightbox(idx){
   if(idx<0 || idx>=S().currentItems.length) return;
@@ -701,34 +612,22 @@ function openLightbox(idx){
     if(media) gsap.fromTo(media,{scale:0.93,opacity:0},{scale:1,opacity:1,duration:0.3,ease:'power2.out'});
   }
   lightbox.classList.toggle('has-video', it.media_type === 'video');
-  closeLbPill();
   setAmbientFor(it);
-  updateLbArrows();
   updateBodyLock();
-}
-function updateLbArrows(){
-  $('lbPrev').style.opacity = lbIndex>0 ? '1' : '0.2';
-  $('lbNext').style.opacity = lbIndex<S().currentItems.length-1 ? '1' : '0.2';
 }
 function lbNavigate(dir){
   const next=lbIndex+dir;
   if(next<0 || next>=S().currentItems.length) return;
-  closeLbPill();
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
   openLightbox(next);
 }
-$('lbPrev').onclick = e => { e.stopPropagation(); lbNavigate(-1); };
-$('lbNext').onclick = e => { e.stopPropagation(); lbNavigate(1); };
 lightbox.onclick = e => {
-  if(!e.target.closest('.lb-arrow') && !e.target.closest('video')) closeLb();
+  if(!e.target.closest('video')) closeLb();
 };
 function closeLb(){
   lightbox.classList.remove('show');
   lightbox.classList.remove('has-video');
-  if (slideshowActive) stopSlideshow();
   lightbox.classList.remove('sleep');
-  closeLbPill();
-  closeSharePopup();
   updateBodyLock();
   lbAmbient.style.opacity = '0';
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
@@ -748,76 +647,6 @@ lightbox.addEventListener('click',      wakeUp, { capture: true });
 lightbox.addEventListener('touchstart', wakeUp, { passive: true, capture: true });
 lightbox.addEventListener('mousemove',  wakeUp, { passive: true });
 
-// ── Fullscreen API ───────────────────────────────────────
-async function enterFullscreen() {
-  try {
-    const el = document.documentElement;
-    if (el.requestFullscreen) await el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-  } catch(e) {}
-}
-function exitFullscreen() {
-  try {
-    if (document.exitFullscreen && document.fullscreenElement)
-      document.exitFullscreen();
-    else if (document.webkitExitFullscreen && document.webkitFullscreenElement)
-      document.webkitExitFullscreen();
-  } catch(e) {}
-}
-document.addEventListener('fullscreenchange', () => {
-  if (!document.fullscreenElement && slideshowActive) stopSlideshow();
-});
-document.addEventListener('webkitfullscreenchange', () => {
-  if (!document.webkitFullscreenElement && slideshowActive) stopSlideshow();
-});
-
-// ── Slideshow Logik ──────────────────────────────────────
-function updateSlideshowIcon(playing) {
-  $('lbPillSlideshow').innerHTML = playing
-    ? `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
-    : `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
-}
-function startSlideshow() {
-  slideshowActive = true;
-  $('lbPillSlideshow').classList.add('active');
-  updateSlideshowIcon(true);
-  enterFullscreen();
-  closeLbPill();
-  sleepTimeout = setTimeout(() => lightbox.classList.add('sleep'), 1200);
-  slideshowTimer = setInterval(() => {
-    const next = lbIndex + 1;
-    if (next >= S().currentItems.length) lbNavigate(-(S().currentItems.length - 1));
-    else lbNavigate(1);
-  }, SLIDESHOW_INTERVAL);
-}
-function stopSlideshow() {
-  slideshowActive = false;
-  clearInterval(slideshowTimer);
-  clearTimeout(sleepTimeout);
-  slideshowTimer = null;
-  $('lbPillSlideshow').classList.remove('active');
-  updateSlideshowIcon(false);
-  lightbox.classList.remove('sleep');
-  exitFullscreen();
-}
-$('lbPillSlideshow').onclick = e => {
-  e.stopPropagation();
-  slideshowActive ? stopSlideshow() : startSlideshow();
-};
-
-// Share-Popup events
-$('sharePopup').addEventListener('click', e => e.stopPropagation());
-$('sharePopupCopy').onclick = async e => {
-  e.stopPropagation();
-  const ok = await copyText($('sharePopupUrl').value);
-  toast(ok ? 'Link kopiert ✓' : 'Kopieren fehlgeschlagen');
-  closeSharePopup();
-};
-document.addEventListener('click', e => {
-  if(!$('sharePopup').classList.contains('show')) return;
-  if(e.target.closest('#sharePopup')) return;
-  closeSharePopup();
-});
 function updateMuteSvg(muted){
   const svg = document.getElementById('lbMuteSvg');
   if(!svg) return;
