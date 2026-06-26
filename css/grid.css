@@ -67,6 +67,37 @@
 .cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
 .cell:hover img,.cell:hover video{transform:scale(1.04)}
+
+/* ── 16-Bit Retro Progress-Bar (Lade-Animation pro Bild) ───── */
+.cell.loading img{opacity:0}
+.cell.loading::after{
+  content:"";
+  position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  width:min(72%,108px);height:13px;
+  box-sizing:border-box;
+  border:2px solid rgba(255,255,255,.45);
+  box-shadow:0 0 0 2px rgba(0,0,0,.55);
+  background-color:rgba(255,255,255,.05);
+  /* Layer 1 (oben): dunkle Segment-Trenner alle 10%  */
+  /* Layer 2 (unten): weiße Füllung, deren Breite animiert wird */
+  background-image:
+    repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),rgba(0,0,0,.6) calc(10% - 2px) 10%),
+    linear-gradient(rgba(255,255,255,.92),rgba(255,255,255,.92));
+  background-repeat:no-repeat,no-repeat;
+  background-position:0 0,0 0;
+  background-size:100% 100%,0% 100%;
+  image-rendering:pixelated;
+  animation:pixLoad 1.4s steps(10,end) infinite;
+  pointer-events:none;z-index:1;
+}
+@keyframes pixLoad{
+  0%{background-size:100% 100%,0% 100%}
+  100%{background-size:100% 100%,100% 100%}
+}
+@media (prefers-reduced-motion:reduce){
+  .cell.loading::after{animation:none;background-size:100% 100%,40% 100%}
+}
 .cell.sel-highlight{outline:2px solid #fff;outline-offset:-2px}
 .selcheck{position:absolute;top:8px;left:8px;z-index:2;width:20px;height:20px;accent-color:#fff;opacity:0;pointer-events:none;cursor:pointer}
 .selcheck.visible{opacity:1;pointer-events:auto}

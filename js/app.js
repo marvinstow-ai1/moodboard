@@ -502,7 +502,7 @@ function renderGrid(){
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
   gridEl.innerHTML = arr.map(it => `
-    <div class="cell" data-id="${it.id}">
+    <div class="cell${it.media_type==='video' ? '' : ' loading'}" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
       ${it.media_type==='video'
         ? `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`
@@ -528,6 +528,16 @@ function renderGrid(){
   applyGridCols(gridCols);
   gridEl.querySelectorAll('.cell').forEach(c => {
     _observer.observe(c);
+    // 16-Bit Lade-Animation entfernen, sobald das Bild fertig (oder fehlgeschlagen) ist
+    if(c.classList.contains('loading')){
+      const im = c.querySelector('img');
+      if(im && im.complete && im.naturalWidth) c.classList.remove('loading');
+      else if(im){
+        const done = () => c.classList.remove('loading');
+        im.addEventListener('load', done, { once:true });
+        im.addEventListener('error', done, { once:true });
+      } else c.classList.remove('loading');
+    }
     const chk = c.querySelector('.selcheck');
     c.onclick = e => {
       if(selMode){
