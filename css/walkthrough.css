@@ -1,0 +1,87 @@
+/* ── Walkthrough / Driver.js — Dark-Theme passend zu den Modals ── */
+
+.driver-popover.mb-driver {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+  max-width: 320px;
+}
+
+.driver-popover.mb-driver .driver-popover-title {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.driver-popover.mb-driver .driver-popover-description {
+  color: rgba(255, 255, 255, .72);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.driver-popover.mb-driver .driver-popover-progress-text {
+  color: rgba(255, 255, 255, .45);
+  font-size: 12px;
+}
+
+/* Buttons */
+.driver-popover.mb-driver .driver-popover-footer button {
+  background: rgba(255, 255, 255, .08);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 7px 14px;
+  font-size: 13px;
+  text-shadow: none;
+}
+.driver-popover.mb-driver .driver-popover-footer button:hover {
+  background: rgba(255, 255, 255, .16);
+}
+
+/* "Weiter" / "Tour starten" / "Fertig" hervorheben */
+.driver-popover.mb-driver .driver-popover-next-btn {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+.driver-popover.mb-driver .driver-popover-next-btn:hover {
+  background: rgba(255, 255, 255, .85);
+}
+
+/* Expliziter Skip-Button im Intro ("Ich kenn mich aus") als dezenter Text-Link */
+.driver-popover.mb-driver .mb-driver-skip {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, .55);
+  text-decoration: underline;
+  padding: 7px 6px;
+  margin-right: auto;          /* nach links schieben, Hauptbutton bleibt rechts */
+  cursor: pointer;
+}
+.driver-popover.mb-driver .mb-driver-skip:hover {
+  color: var(--text);
+}
+
+/* Schließen-X */
+.driver-popover.mb-driver .driver-popover-close-btn {
+  color: rgba(255, 255, 255, .6);
+}
+.driver-popover.mb-driver .driver-popover-close-btn:hover {
+  color: var(--text);
+}
+
+/* Pfeil in Panel-Farbe */
+.driver-popover.mb-driver .driver-popover-arrow-side-left.driver-popover-arrow {
+  border-left-color: var(--panel);
+}
+.driver-popover.mb-driver .driver-popover-arrow-side-right.driver-popover-arrow {
+  border-right-color: var(--panel);
+}
+.driver-popover.mb-driver .driver-popover-arrow-side-top.driver-popover-arrow {
+  border-top-color: var(--panel);
+}
+.driver-popover.mb-driver .driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-bottom-color: var(--panel);
+}
