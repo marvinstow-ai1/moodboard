@@ -16,8 +16,8 @@ const steps = [
   // 1) Intro: Zweck der App + Datenschutz-Hinweis (zentriert, ohne Element)
   {
     popover: {
-      title: '[ÜBERSCHRIFT — Zweck der App]',
-      description: '[BESCHREIBUNG — was diese Seite ist + Datenschutz-Hinweis: keine Daten, kein Tracking, kein Login]',
+      title: 'Willkommen bei Marvin’s Place',
+      description: 'Das hier ist mein Moodboard – einfach Bilder, die grad meinen Vibe treffen. Kein Login, kein Tracking, keine Daten von dir. Du klickst dich einfach durch. Wenn du magst, zeig ich dir kurz, was die Buttons unten machen.',
       showButtons: ['next'],          // nur "Tour starten" (+ manueller Skip-Button)
       nextBtnText: 'Tour starten',
       align: 'center',
@@ -25,19 +25,19 @@ const steps = [
   },
   {
     element: '#spotifyBtn',
-    popover: { title: '[TITEL — Spotify]', description: '[TEXT]' },
+    popover: { title: 'Musik dazu', description: 'Tipp drauf und meine Playlist läuft – passt perfekt zum Durchscrollen.' },
   },
   {
     element: '#shuffleBtn',
-    popover: { title: '[TITEL — Zufällig anordnen]', description: '[TEXT]' },
+    popover: { title: 'Neu mischen', description: 'Würfelt die Bilder neu durch – jedes Mal ’ne andere Anordnung.' },
   },
   {
     element: '#filterBtn',
-    popover: { title: '[TITEL — Kachelgröße]', description: '[TEXT]' },
+    popover: { title: 'Kachelgröße', description: 'Macht die Kacheln größer oder kleiner – ganz wie du’s magst.' },
   },
   {
     element: '#moodsMgmtBtn',
-    popover: { title: '[TITEL — Moods verwalten]', description: '[TEXT]' },
+    popover: { title: 'Moods filtern', description: 'Hier sortier ich die Bilder nach Stimmung. Such dir ’nen Mood aus und du siehst nur das, was dazu passt.' },
   },
 ];
 
