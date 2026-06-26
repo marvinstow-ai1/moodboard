@@ -468,6 +468,72 @@ function renderMoodChips(){
 function renderMoodChipsSheet(){ renderMoodChips(); }
 
 // ── GRID RENDERING ─────────────────────────────────────
+// Zell-Cache: Wir behalten die einmal erstellten DOM-Knoten (inkl. der
+// bereits geladenen <img>/<video>) und sortieren sie beim Shuffle/Filter
+// nur um, statt sie via innerHTML komplett neu zu bauen. Dadurch lädt der
+// Browser bereits geladene Bilder nicht erneut und es flackert nicht.
+const _cellCache = new Map();
+
+function createCell(it){
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  cell.dataset.id = it.id;
+
+  const chk = document.createElement('input');
+  chk.className = 'selcheck';
+  chk.type = 'checkbox';
+  chk.dataset.id = it.id;
+  cell.appendChild(chk);
+
+  let media;
+  if(it.media_type === 'video'){
+    media = document.createElement('video');
+    media.src = it.media_url;
+    media.muted = true; media.loop = true; media.playsInline = true;
+    media.setAttribute('playsinline', '');
+    media.preload = 'metadata';
+  } else {
+    media = document.createElement('img');
+    media.src = it.media_url;
+    media.loading = 'lazy';
+    media.decoding = 'async';
+    media.alt = '';
+  }
+  cell.appendChild(media);
+
+  // Listener einmalig binden (Knoten wird wiederverwendet, nicht neu erstellt).
+  // selMode/selectedIds sind modul-scoped → die Closures lesen immer den
+  // aktuellen Stand zur Klickzeit.
+  cell.onclick = e => {
+    if(selMode){
+      const id = cell.dataset.id;
+      if(e.target !== chk) chk.checked = !chk.checked;
+      chk.checked ? selectedIds.add(id) : selectedIds.delete(id);
+      cell.classList.toggle('sel-highlight', chk.checked);
+      updateActionBarCount();
+      return;
+    }
+    if(isAnyOverlayOpen()){ closeAllOverlays(); e.stopPropagation(); return; }
+    const idx = S().currentItems.findIndex(x => x.id === cell.dataset.id);
+    openLightbox(idx);
+  };
+  cell.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(cell.dataset.id); };
+  cell.addEventListener('dblclick', e => {
+    if(selMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  // Mobile: doppeltes Tippen (touchend-Heuristik)
+  let lastTap = 0;
+  cell.addEventListener('touchend', e => {
+    const now = Date.now();
+    if(now - lastTap < 300){ e.preventDefault(); lastTap = 0; }
+    else lastTap = now;
+  }, { passive: false });
+
+  return cell;
+}
+
 function renderGrid(){
   const s = S();
   // Dedup by id — guards against race conditions during concurrent uploads
@@ -501,13 +567,23 @@ function renderGrid(){
   }
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
-  gridEl.innerHTML = arr.map(it => `
-    <div class="cell" data-id="${it.id}">
-      <input class="selcheck" type="checkbox" data-id="${it.id}">
-      ${it.media_type==='video'
-        ? `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`
-        : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
-    </div>`).join('');
+
+  // Grid aus wiederverwendeten Knoten zusammenbauen: bereits geladene
+  // Bilder/Videos werden beim Shuffle nur umsortiert, nicht neu geladen.
+  // Cache-Knoten von Items, die es nicht mehr gibt (gelöscht), aufräumen.
+  const validIds = new Set(s.items.map(i => i.id));
+  for(const [id, cell] of _cellCache){
+    if(!validIds.has(id)){ cell.remove(); _cellCache.delete(id); }
+  }
+  // In neuer Reihenfolge einsammeln (vorhandene Knoten werden verschoben,
+  // herausgefilterte bleiben im Cache, nur vom DOM gelöst).
+  const frag = document.createDocumentFragment();
+  for(const it of arr){
+    let cell = _cellCache.get(it.id);
+    if(!cell){ cell = createCell(it); _cellCache.set(it.id, cell); }
+    frag.appendChild(cell);
+  }
+  gridEl.replaceChildren(frag);
 
   // GSAP stagger on initial load
   if(_isInitialLoad && typeof gsap !== 'undefined' && arr.length > 0){
@@ -526,40 +602,21 @@ function renderGrid(){
   }), { threshold:0.25, rootMargin:'100px' });
 
   applyGridCols(gridCols);
+  // Listener sind bereits in createCell gebunden – hier nur Observer
+  // anhängen und die Selektions-Visuals pro Render aktualisieren.
   gridEl.querySelectorAll('.cell').forEach(c => {
     _observer.observe(c);
     const chk = c.querySelector('.selcheck');
-    c.onclick = e => {
-      if(selMode){
-        const id = c.dataset.id;
-        if(e.target !== chk) chk.checked = !chk.checked;
-        chk.checked ? selectedIds.add(id) : selectedIds.delete(id);
-        c.classList.toggle('sel-highlight', chk.checked);
-        updateActionBarCount();
-        return;
-      }
-      if(isAnyOverlayOpen()){ closeAllOverlays(); e.stopPropagation(); return; }
-      const idx = S().currentItems.findIndex(x => x.id===c.dataset.id); openLightbox(idx);
-    };
-    c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
-    if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
-    // Doppelklick-Favorit
-    let lastTap = 0;
-    c.addEventListener('dblclick', e => {
-      if (selMode) return;
-      e.preventDefault();
-      e.stopPropagation();
-    });
-    // Mobile: doppeltes Tippen (touchend-Heuristik)
-    c.addEventListener('touchend', e => {
-      const now = Date.now();
-      if (now - lastTap < 300) {
-        e.preventDefault();
-        lastTap = 0;
-      } else {
-        lastTap = now;
-      }
-    }, { passive: false });
+    if(selMode){
+      chk.classList.add('visible');
+      const isSel = selectedIds.has(c.dataset.id);
+      chk.checked = isSel;
+      c.classList.toggle('sel-highlight', isSel);
+    } else {
+      chk.classList.remove('visible');
+      chk.checked = false;
+      c.classList.remove('sel-highlight');
+    }
   });
 }
 
