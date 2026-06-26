@@ -27,7 +27,7 @@ const S = () => state[currentPage];
 let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
 let selectedIds=new Set();
 let _observer = null;
-let sortNewest = localStorage.getItem('sort_newest') === 'true';
+let sortNewest = false;
 let _isInitialLoad = true;
 let sleepTimeout = null;
 const SLIDESHOW_INTERVAL = 5000;
@@ -676,7 +676,12 @@ document.addEventListener('keydown', e => {
 });
 
 function doShuffle() {
-  if(sortNewest){ sortNewest = false; localStorage.setItem('sort_newest','false'); updateSortNewestUI(); }
+  sortNewest = false;
+  // Shuffle ist die Archiv-Ansicht: aus "Zuletzt hinzugefügt" zurückwechseln
+  if(currentView === 'recent'){
+    currentView = 'archive'; currentPageSlug = null;
+    setPageLabel('Archive'); updatePageNavActive();
+  }
   renderGrid();
   toast('Neu gemischt');
 }
@@ -958,8 +963,9 @@ function showMoodsView(){
   currentView = 'moods'; currentPageSlug = null;
   setPageLabel('Moods'); updatePageNavActive();
 }
-function hideMoodsView(){
+function hideMoodsView(target){
   if(_moodsAnimating) return;
+  target = (target === 'recent') ? 'recent' : 'archive';
   _moodsAnimating = true;
   moodsViewOpen = false;
   // Ausstehenden Sync abbrechen – kein renderGrid() während der Animation
@@ -972,7 +978,7 @@ function hideMoodsView(){
   // Nach der Ausblend-Animation: GridWrap einblenden
   setTimeout(() => {
     gridWrap.style.display = '';
-    renderGrid(); // Immer shufflen beim Zurückkehren zur Main-Ansicht
+    renderGrid(); // sortNewest steuert: shuffle (Archive) bzw. neueste zuerst (Recent)
     // Animation starten: kurz warten bis display gesetzt ist
     requestAnimationFrame(() => {
       gridWrap.classList.add('show-view');
@@ -984,14 +990,15 @@ function hideMoodsView(){
     });
     boardTitle.classList.add('active');
   }, 500);
-  currentView = 'archive'; currentPageSlug = null;
-  setPageLabel('Archive'); updatePageNavActive();
+  currentView = target; currentPageSlug = null;
+  setPageLabel(target === 'recent' ? 'Zuletzt hinzugefügt' : 'Archive');
+  updatePageNavActive();
 }
 boardTitle.classList.add('active');
 
 // ── PAGE NAVIGATION (Dropdown + dynamische Unterseiten) ───
 let pages = [];
-let currentView = 'archive';   // 'archive' | 'moods' | 'page'
+let currentView = 'archive';   // 'archive' | 'recent' | 'moods' | 'page'
 let currentPageSlug = null;
 
 const pageNavBtn    = $('pageNavBtn');
@@ -1016,6 +1023,7 @@ function updatePageNavActive(){
   pageNavMenu.querySelectorAll('.pn-item').forEach(el => {
     const isActive =
       (el.dataset.nav === 'archive' && currentView === 'archive') ||
+      (el.dataset.nav === 'recent'  && currentView === 'recent')  ||
       (el.dataset.nav === 'moods'   && currentView === 'moods')   ||
       (el.dataset.slug && currentView === 'page' && el.dataset.slug === currentPageSlug);
     el.classList.toggle('active', !!isActive);
@@ -1025,6 +1033,7 @@ function updatePageNavActive(){
 function renderPageNav(){
   let html = '';
   html += `<button class="pn-item" data-nav="archive">Archive</button>`;
+  html += `<button class="pn-item" data-nav="recent">Zuletzt hinzugefügt</button>`;
   html += `<button class="pn-item" data-nav="moods">Moods</button>`;
   pages.forEach(p => {
     html += `<button class="pn-item" data-slug="${escapeHtml(p.slug)}">${escapeHtml(p.name)}</button>`;
@@ -1072,22 +1081,30 @@ function forceCloseMoods(){
 
 function navigate(target){
   if(target === 'archive') goArchive();
+  else if(target === 'recent') goRecent();
   else if(target === 'moods') goMoods();
 }
 
-function goArchive(){
+// Gemeinsame Logik für die beiden Grid-Ansichten:
+// 'archive' = zufällige Anordnung, 'recent' = zuletzt hinzugefügt zuerst
+function showGridView(view){
+  sortNewest = (view === 'recent');
+  const label = view === 'recent' ? 'Zuletzt hinzugefügt' : 'Archive';
   if(currentView === 'moods'){
-    hideMoodsView();           // animiert zurück, setzt State selbst
+    hideMoodsView(view);       // animiert zurück, setzt State selbst
     return;
   }
   if(currentView === 'page'){
     customPageView.classList.remove('show');
     gridWrap.style.display = '';
-    renderGrid();
   }
-  currentView = 'archive'; currentPageSlug = null;
-  setPageLabel('Archive'); updatePageNavActive();
+  currentView = view; currentPageSlug = null;
+  setPageLabel(label); updatePageNavActive();
+  renderGrid();
 }
+
+function goArchive(){ showGridView('archive'); }
+function goRecent(){ showGridView('recent'); }
 
 function goMoods(){
   if(currentView === 'moods') return;
@@ -1376,16 +1393,3 @@ function animateNewCell(id){
   }
 }
 
-// ── "Zuletzt hinzugefügt" Sortierung ────────────────────────
-const sortNewestBtn = document.getElementById('sortNewestBtn');
-function updateSortNewestUI(){
-  sortNewestBtn.classList.toggle('active', sortNewest);
-}
-sortNewestBtn.onclick = () => {
-  sortNewest = !sortNewest;
-  localStorage.setItem('sort_newest', sortNewest);
-  updateSortNewestUI();
-  renderGrid();
-  toast(sortNewest ? 'Sortiert: Zuletzt hinzugefügt' : 'Zufällige Anordnung');
-};
-updateSortNewestUI();

@@ -110,12 +110,6 @@
 .filter-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:35;width:280px;display:none;flex-direction:column;gap:14px;padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
 .filter-popup.show{display:flex}
 .fp-header{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;text-align:center}
-.fp-divider{height:1px;background:rgba(255,255,255,.07);margin:8px 0}
-.fp-sort-btn{width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px;border-radius:10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px;transition:.12s}
-.fp-sort-btn:hover{background:rgba(255,255,255,.08)}
-.fp-sort-btn.active{background:rgba(255,255,255,.12)}
-.fp-sort-btn .fp-sort-icon{font-size:15px;opacity:.6;width:18px;text-align:center}
-.fp-sort-btn.active .fp-sort-icon{opacity:1}
 
 /* ── Swipe Control (inside popup) ──────────────────────── */
 .swipe-control{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;width:100%;height:44px}
