@@ -1,87 +1,158 @@
-/* ── Walkthrough / Driver.js — Dark-Theme passend zu den Modals ── */
+/* ── Walkthrough / Driver.js — dunkles Glas-Theme, smooth ── */
 
+/* Overlay weicher ein-/ausblenden */
+.driver-overlay,
+svg.driver-overlay {
+  transition: opacity .45s cubic-bezier(.16, 1, .3, 1) !important;
+}
+
+/* Hervorgehobenes Element bekommt einen sanften Glow */
+.driver-active-element,
+.driver-active-element:focus {
+  outline: none !important;
+  transition: box-shadow .4s cubic-bezier(.16, 1, .3, 1) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .14),
+              0 0 28px 2px rgba(255, 255, 255, .10) !important;
+}
+
+/* ── Popover ────────────────────────────────────────────── */
 .driver-popover.mb-driver {
-  background: var(--panel);
+  --mb-radius: 18px;
+  background: linear-gradient(165deg, rgba(22, 22, 24, .96), rgba(10, 10, 11, .96));
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
-  max-width: 320px;
+  border: 1px solid rgba(255, 255, 255, .10);
+  border-radius: var(--mb-radius);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .06) inset,
+    0 24px 70px -12px rgba(0, 0, 0, .75),
+    0 8px 24px -8px rgba(0, 0, 0, .6);
+  padding: 22px 22px 18px;
+  max-width: 330px;
+  animation: mbPopIn .42s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@keyframes mbPopIn {
+  from { opacity: 0; transform: translateY(10px) scale(.965); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
 .driver-popover.mb-driver .driver-popover-title {
-  color: var(--text);
-  font-size: 16px;
+  color: #fff;
+  font-size: 17px;
   font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.3;
+  margin: 0 0 8px;
 }
 
 .driver-popover.mb-driver .driver-popover-description {
-  color: rgba(255, 255, 255, .72);
+  color: rgba(255, 255, 255, .64);
   font-size: 13.5px;
-  line-height: 1.5;
+  line-height: 1.62;
+  margin: 0;
+}
+
+/* Footer */
+.driver-popover.mb-driver .driver-popover-footer {
+  margin-top: 18px;
+  gap: 8px;
+  align-items: center;
 }
 
 .driver-popover.mb-driver .driver-popover-progress-text {
-  color: rgba(255, 255, 255, .45);
-  font-size: 12px;
+  color: rgba(255, 255, 255, .40);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
 
-/* Buttons */
+/* ── Buttons (Pills mit Hover-Lift) ─────────────────────── */
 .driver-popover.mb-driver .driver-popover-footer button {
-  background: rgba(255, 255, 255, .08);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 7px 14px;
+  background: rgba(255, 255, 255, .07);
+  color: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  padding: 8px 17px;
   font-size: 13px;
+  font-weight: 500;
   text-shadow: none;
+  cursor: pointer;
+  transition: transform .18s cubic-bezier(.16, 1, .3, 1),
+              background .18s ease, border-color .18s ease, box-shadow .18s ease;
 }
 .driver-popover.mb-driver .driver-popover-footer button:hover {
-  background: rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .13);
+  border-color: rgba(255, 255, 255, .2);
+  transform: translateY(-1px);
+}
+.driver-popover.mb-driver .driver-popover-footer button:active {
+  transform: translateY(0) scale(.98);
 }
 
-/* "Weiter" / "Tour starten" / "Fertig" hervorheben */
+/* Primärbutton: "Tour starten" / "Weiter" / "Fertig" */
 .driver-popover.mb-driver .driver-popover-next-btn {
-  background: var(--text);
-  color: var(--bg);
-  border-color: var(--text);
+  background: #fff;
+  color: #0a0a0a;
+  border-color: #fff;
+  box-shadow: 0 6px 18px -6px rgba(255, 255, 255, .45);
 }
 .driver-popover.mb-driver .driver-popover-next-btn:hover {
-  background: rgba(255, 255, 255, .85);
+  background: #fff;
+  border-color: #fff;
+  box-shadow: 0 10px 26px -8px rgba(255, 255, 255, .6);
 }
 
-/* Expliziter Skip-Button im Intro ("Ich kenn mich aus") als dezenter Text-Link */
-.driver-popover.mb-driver .mb-driver-skip {
+/* "Zurück" dezenter */
+.driver-popover.mb-driver .driver-popover-prev-btn {
   background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, .55);
-  text-decoration: underline;
-  padding: 7px 6px;
-  margin-right: auto;          /* nach links schieben, Hauptbutton bleibt rechts */
-  cursor: pointer;
+  border-color: rgba(255, 255, 255, .14);
+}
+
+/* Skip-Link im Intro ("Ich kenn mich aus") */
+.driver-popover.mb-driver .mb-driver-skip {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, .42);
+  padding: 8px 4px;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-right: auto;          /* nach links, Primärbutton bleibt rechts */
+  transition: color .18s ease;
 }
 .driver-popover.mb-driver .mb-driver-skip:hover {
-  color: var(--text);
+  color: rgba(255, 255, 255, .85);
+  transform: none !important;
 }
 
 /* Schließen-X */
 .driver-popover.mb-driver .driver-popover-close-btn {
-  color: rgba(255, 255, 255, .6);
+  color: rgba(255, 255, 255, .5);
+  transition: color .18s ease, transform .18s ease;
 }
 .driver-popover.mb-driver .driver-popover-close-btn:hover {
-  color: var(--text);
+  color: #fff;
+  transform: scale(1.12) rotate(90deg);
 }
 
-/* Pfeil in Panel-Farbe */
+/* Pfeil in Popover-Farbe */
 .driver-popover.mb-driver .driver-popover-arrow-side-left.driver-popover-arrow {
-  border-left-color: var(--panel);
+  border-left-color: rgba(16, 16, 18, .96);
 }
 .driver-popover.mb-driver .driver-popover-arrow-side-right.driver-popover-arrow {
-  border-right-color: var(--panel);
+  border-right-color: rgba(16, 16, 18, .96);
 }
 .driver-popover.mb-driver .driver-popover-arrow-side-top.driver-popover-arrow {
-  border-top-color: var(--panel);
+  border-top-color: rgba(22, 22, 24, .96);
 }
 .driver-popover.mb-driver .driver-popover-arrow-side-bottom.driver-popover-arrow {
-  border-bottom-color: var(--panel);
+  border-bottom-color: rgba(16, 16, 18, .96);
+}
+
+/* Reduced motion respektieren */
+@media (prefers-reduced-motion: reduce) {
+  .driver-popover.mb-driver { animation: none; }
+  .driver-popover.mb-driver .driver-popover-footer button:hover { transform: none; }
 }

@@ -49,10 +49,21 @@ function run() {
     nextBtnText: 'Weiter',
     prevBtnText: 'Zurück',
     doneBtnText: 'Fertig',
+    // Bewegung / Optik
+    animate: true,
+    smoothScroll: true,
+    overlayColor: '#050505',
+    overlayOpacity: 0.74,
+    stagePadding: 10,
+    stageRadius: 16,
+    popoverOffset: 14,
+    disableActiveInteraction: true,
     onDestroyed: markSeen,            // Abschluss ODER Skip ODER X = gesehen
     onPopoverRender: (popover, { state }) => {
-      // Im Intro-Schritt einen expliziten "Ich kenn mich aus"-Button ergänzen
-      if (state.activeIndex !== 0) return;
+      // Im Intro-Schritt: Fortschritt ausblenden + expliziten Skip-Button
+      const isIntro = state.activeIndex === 0;
+      if (popover.progress) popover.progress.style.display = isIntro ? 'none' : '';
+      if (!isIntro) return;
       const skip = document.createElement('button');
       skip.type = 'button';
       skip.textContent = 'Ich kenn mich aus';
