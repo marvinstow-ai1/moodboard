@@ -506,7 +506,7 @@ function renderGrid(){
       <input class="selcheck" type="checkbox" data-id="${it.id}">
       ${it.media_type==='video'
         ? `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`
-        : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`}
+        : `<img src="${it.media_url}" loading="lazy" decoding="async" alt=""><div class="brick-loader" aria-hidden="true"><i></i><i></i><i></i></div>`}
     </div>`).join('');
 
   // GSAP stagger on initial load
