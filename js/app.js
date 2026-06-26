@@ -587,6 +587,10 @@ $('abCancel').onclick = () => { $('deleteFloatingBtn')?.remove(); exitSelMode();
 // ── Lightbox Navigation ─────────────────────────────────
 function openLightbox(idx){
   if(idx<0 || idx>=S().currentItems.length) return;
+  // Unterscheide echtes Öffnen vom Weiterblättern (Swipe/Pfeile):
+  // beim Blättern darf NICHT die ganze Lightbox kurz transparent werden,
+  // sonst blitzt die Archiv-Seite samt Pill im Hintergrund auf.
+  const isOpening = !lightbox.classList.contains('show');
   lbIndex = idx;
   const it = S().currentItems[idx];
   lbInner.querySelectorAll('img,video').forEach(e=>e.remove());
@@ -608,7 +612,9 @@ function openLightbox(idx){
   lightbox.classList.add('show');
   if(typeof gsap !== 'undefined'){
     const media = lbInner.querySelector('img,video');
-    gsap.fromTo(lightbox, {opacity:0},{opacity:1,duration:0.22,ease:'power2.out'});
+    // Ganze Lightbox nur beim ersten Öffnen einblenden, nicht beim Blättern.
+    if(isOpening) gsap.fromTo(lightbox, {opacity:0},{opacity:1,duration:0.22,ease:'power2.out'});
+    else gsap.set(lightbox, {opacity:1});
     if(media) gsap.fromTo(media,{scale:0.93,opacity:0},{scale:1,opacity:1,duration:0.3,ease:'power2.out'});
   }
   lightbox.classList.toggle('has-video', it.media_type === 'video');
