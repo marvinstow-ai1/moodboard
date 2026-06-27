@@ -36,6 +36,7 @@ moodboard/
 - Realtime sync across devices
 - Share links (deep links)
 - Shuffle or sort by date
+- **Mood-Chat search** — type a mood/wish, get matching images (see below)
 
 ## Database
 
@@ -78,6 +79,32 @@ runs **server-side in Supabase**, so no app/frontend code is involved:
   within ~1 minute — no change to the upload flow, no added latency.
 
 The full, reproducible SQL setup lives in [`db/ai_tagging.sql`](db/ai_tagging.sql).
+
+### Mood-Chat search
+
+A compact "Stimmung" view (via the page-nav dropdown) lets users type a short
+mood or wish — e.g. *"Bock auf Urlaub"*, *"hab schlechte Laune"*,
+*"ich bin gestresst"* — and get the best-matching images. **No image is
+re-analysed per request**; it matches against the pre-computed `ai_tags`.
+
+The text → search-tags translation has three layers
+([`js/mood-chat.js`](js/mood-chat.js)):
+
+- **Layer A** — keyword & synonym mappings (`TRIGGERS`): maps intents/moods to
+  search tags (e.g. `urlaub` → `urlaub, reise, sonne, strand, meer`).
+- **Layer B** — rule-based normalisation: lowercasing, umlaut/accent folding
+  (so `gemütlich`/`grün` still match), tokenisation and stop-word removal.
+- **Layer C** — *optional* cheap LLM ([`api/mood-tags.js`](api/mood-tags.js),
+  OpenRouter via `OPENROUTER_API_KEY`). It only kicks in when the rules yield
+  little, and returns `[]` when no key is set — **the app works fully without
+  any paid AI** (Layers A + B alone).
+
+Matching ([`rankImages`](js/mood-chat.js)) scores each image by tag overlap
+(exact match weighted high, substring/similar matches low) and ranks the most
+relevant first. The tagged-image list is fetched once per session and cached.
+For true semantic search later, `rankImages` can be swapped for a pgvector
+similarity query — the `textToTags` → match interface stays the same (see the
+note in the source).
 
 ## Environment
 

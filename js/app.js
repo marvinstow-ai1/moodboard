@@ -1041,6 +1041,7 @@ function updatePageNavActive(){
       (el.dataset.nav === 'archive' && currentView === 'archive') ||
       (el.dataset.nav === 'recent'  && currentView === 'recent')  ||
       (el.dataset.nav === 'moods'   && currentView === 'moods')   ||
+      (el.dataset.nav === 'mood'    && currentView === 'mood')    ||
       (el.dataset.slug && currentView === 'page' && el.dataset.slug === currentPageSlug);
     el.classList.toggle('active', !!isActive);
   });
@@ -1051,6 +1052,7 @@ function renderPageNav(){
   html += `<button class="pn-item" data-nav="archive">Archive</button>`;
   html += `<button class="pn-item" data-nav="recent">Zuletzt hinzugefügt</button>`;
   html += `<button class="pn-item" data-nav="moods">Moods</button>`;
+  html += `<button class="pn-item" data-nav="mood">Stimmung</button>`;
   pages.forEach(p => {
     html += `<button class="pn-item" data-slug="${escapeHtml(p.slug)}">${escapeHtml(p.name)}</button>`;
   });
@@ -1099,6 +1101,30 @@ function navigate(target){
   if(target === 'archive') goArchive();
   else if(target === 'recent') goRecent();
   else if(target === 'moods') goMoods();
+  else if(target === 'mood') goMoodChat();
+}
+
+// ── Mood-Chat View (Stimmung) ─────────────────────────────
+// Eigene Overlay-View wie custom-page-view. Die eigentliche Such-/Tag-Logik
+// liegt in js/mood-chat.js; hier nur die Navigation.
+const moodChatView = $('moodChatView');
+function goMoodChat(){
+  if(currentView === 'mood') return;
+  if(currentView === 'moods') forceCloseMoods();
+  gridWrap.style.display = 'none';
+  moodsView.classList.remove('show');
+  customPageView.classList.remove('show');
+  moodChatView.classList.add('show');
+  currentView = 'mood'; currentPageSlug = null;
+  setPageLabel('Stimmung'); updatePageNavActive();
+  window.scrollTo(0, 0);
+  window.MoodChat?.prefetch?.();
+  window.MoodChat?.focus?.();
+}
+function leaveMoodChat(){
+  if(currentView !== 'mood') return;
+  moodChatView.classList.remove('show');
+  gridWrap.style.display = '';
 }
 
 // Gemeinsame Logik für die beiden Grid-Ansichten:
@@ -1106,6 +1132,7 @@ function navigate(target){
 function showGridView(view){
   sortNewest = (view === 'recent');
   const label = view === 'recent' ? 'Zuletzt hinzugefügt' : 'Archive';
+  leaveMoodChat();
   if(currentView === 'moods'){
     hideMoodsView(view);       // animiert zurück, setzt State selbst
     return;
@@ -1124,6 +1151,7 @@ function goRecent(){ showGridView('recent'); }
 
 function goMoods(){
   if(currentView === 'moods') return;
+  leaveMoodChat();
   if(currentView === 'page'){
     customPageView.classList.remove('show');
     gridWrap.style.display = '';
@@ -1134,6 +1162,7 @@ function goMoods(){
 function navigateToPage(slug){
   const p = pages.find(x => x.slug === slug);
   if(!p) return;
+  leaveMoodChat();
   if(currentView === 'moods') forceCloseMoods();
   gridWrap.style.display = 'none';
   moodsView.classList.remove('show');
@@ -1369,6 +1398,16 @@ $('loginPassword')?.addEventListener('keydown', e => {
   else if (e.key === 'Escape') closeLoginModal();
 });
 $('loginModal').addEventListener('click', e => { if (e.target === $('loginModal')) closeLoginModal(); });
+
+// ── Brücke für den Mood-Chat (js/mood-chat.js) ────────────
+// Erlaubt dem Chat-Modul, die bestehende Lightbox (inkl. Swipe/Ambient)
+// für seine Suchergebnisse wiederzuverwenden.
+window.MB = {
+  openItems(items, idx){
+    state.moodboard.currentItems = items;
+    openLightbox(idx);
+  }
+};
 
 // ── App starten ───────────────────────────────────────────
 (async () => {
