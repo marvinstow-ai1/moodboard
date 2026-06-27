@@ -59,12 +59,22 @@ moodboard/
 
 ### Background auto-tagging
 
-On upload, images are analysed in the background (`/api/auto-tag` → Gemini 2.0
-Flash) and a rich set of detailed German tags (mood + content, e.g. `urlaub`,
-`sonnig`, `gute laune`, `strand`, `meer`) is written to `ai_tags`. These tags
-exist only so a chatbot can find images by mood/topic — they are **not** shown
-in the grid, lightbox or editor. A gentle owner-only backfill tags older images
-over time and retries failures. Requires `GEMINI_API_KEY` (server-side only).
+On upload, images are analysed in the background (`/api/auto-tag`) and a rich
+set of detailed German tags (mood + content, e.g. `urlaub`, `sonnig`,
+`gute laune`, `strand`, `meer`) is written to `ai_tags`. These tags exist only
+so a chatbot can find images by mood/topic — they are **not** shown in the grid,
+lightbox or editor. A gentle owner-only backfill tags older images over time and
+retries failures.
+
+**Provider** (server-side env, pick one):
+
+- `OPENROUTER_API_KEY` — preferred. OpenAI-compatible vision via OpenRouter.
+  Model overridable with `OPENROUTER_MODEL` (default
+  `google/gemini-2.0-flash-exp:free`).
+- `GEMINI_API_KEY` — fallback, direct Google Gemini 2.0 Flash.
+
+If neither is set, tagging stays idle (rows remain `pending`) and starts
+automatically once a key is added.
 
 ## Environment
 
