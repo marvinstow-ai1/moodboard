@@ -57,24 +57,27 @@ moodboard/
 
 **Storage bucket:** `moodboard` (public)
 
-### Background auto-tagging
+### Background auto-tagging (chatbot)
 
-On upload, images are analysed in the background (`/api/auto-tag`) and a rich
-set of detailed German tags (mood + content, e.g. `urlaub`, `sonnig`,
-`gute laune`, `strand`, `meer`) is written to `ai_tags`. These tags exist only
-so a chatbot can find images by mood/topic — they are **not** shown in the grid,
-lightbox or editor. A gentle owner-only backfill tags older images over time and
-retries failures.
+Images get a rich set of detailed German tags (mood + content, e.g. `urlaub`,
+`sonnig`, `gute laune`, `strand`, `meer`) in the hidden `ai_tags` column. These
+exist only so a chatbot can find images by mood/topic — they are **not** shown
+in the grid, lightbox or editor, and the frontend never reads them. Everything
+runs **server-side in Supabase**, so no app/frontend code is involved:
 
-**Provider** (server-side env, pick one):
+- **Vision model:** OpenRouter (`google/gemini-2.5-flash-lite`), called directly
+  from Postgres via the `http` extension. The API key lives encrypted in
+  **Supabase Vault** (`openrouter_api_key`) — never in the repo or frontend.
+  The model is overridable via a Vault secret `openrouter_model`.
+- **Tagging function:** `public.ai_tag_image(uuid)` reads the key from Vault,
+  calls the model, normalises the result and writes `ai_tags` /
+  `ai_status` / `ai_tagged_at`. It is owner/service-role only.
+- **Automation (`pg_cron`):** `auto-tag-pending` tags new `pending` images every
+  minute; `auto-tag-retry` retries `failed` images every 15 minutes. New uploads
+  are inserted with `ai_status='pending'` (the column default) and get tagged
+  within ~1 minute — no change to the upload flow, no added latency.
 
-- `OPENROUTER_API_KEY` — preferred. OpenAI-compatible vision via OpenRouter.
-  Model overridable with `OPENROUTER_MODEL` (default
-  `google/gemini-2.0-flash-exp:free`).
-- `GEMINI_API_KEY` — fallback, direct Google Gemini 2.0 Flash.
-
-If neither is set, tagging stays idle (rows remain `pending`) and starts
-automatically once a key is added.
+The full, reproducible SQL setup lives in [`db/ai_tagging.sql`](db/ai_tagging.sql).
 
 ## Environment
 

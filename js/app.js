@@ -53,11 +53,9 @@ async function initAuth() {
   const { data: { session } } = await sb.auth.getSession();
   owner = isOwnerSession(session);
   updateAdminUI();
-  if (owner) backfillAutoTags();
   sb.auth.onAuthStateChange((_e, session) => {
     owner = isOwnerSession(session);
     updateAdminUI();
-    if (owner) backfillAutoTags();
   });
 }
 
@@ -726,65 +724,6 @@ async function autoSuggestMoods(imageUrl) {
   } catch { return []; }
 }
 
-// ── BACKGROUND AUTO-TAGGING (chatbot only, never shown in UI) ─────────────
-// Generates many detailed tags for an image and stores them in the hidden
-// `ai_tags` column. Runs fire-and-forget after upload and via backfill below.
-// Nothing here touches the grid, lightbox or local item state on purpose.
-async function autoTagImage(id, imageUrl){
-  if(!id || !imageUrl) return 'failed';
-  let tags = [], providerMissing = false;
-  try{
-    const res = await fetch('/api/auto-tag', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageUrl }),
-    });
-    const data = res.ok ? await res.json() : {};
-    if(data && data.error === 'no_provider') providerMissing = true;
-    if(Array.isArray(data?.tags)) tags = data.tags;
-    if(!res.ok && !providerMissing) throw new Error('http_'+res.status);
-  }catch(e){
-    // Network/endpoint error → mark failed so backfill can retry later.
-    try{ await sb.from(S().table).update({ ai_status: 'failed' }).eq('id', id); }catch(_){}
-    return 'failed';
-  }
-  if(providerMissing){
-    // No AI key configured yet — leave as pending, don't burn retries.
-    return 'no_provider';
-  }
-  try{
-    await sb.from(S().table).update({
-      ai_tags: tags,
-      ai_status: 'processed',
-      ai_tagged_at: new Date().toISOString(),
-    }).eq('id', id);
-  }catch(_){ return 'failed'; }
-  return 'processed';
-}
-
-// Gentle owner-only backfill: tag any image that isn't processed yet.
-// Resumes across sessions (processed rows are skipped) and retries failures.
-let _backfillRan = false;
-async function backfillAutoTags(){
-  if(_backfillRan || !owner) return;
-  _backfillRan = true;
-  let rows = [];
-  try{
-    const { data, error } = await sb.from(S().table)
-      .select('id, media_url, media_type, ai_status')
-      .eq('media_type', 'image')
-      .neq('ai_status', 'processed')
-      .limit(80);              // cap per session; rest continues next time
-    if(error || !Array.isArray(data)) return;
-    rows = data.filter(r => r.media_url && r.ai_status !== 'processed');
-  }catch(e){ return; }
-  for(const r of rows){
-    const result = await autoTagImage(r.id, r.media_url);
-    if(result === 'no_provider') return;   // pointless to continue without a key
-    await new Promise(res => setTimeout(res, 1500)); // stay within free-tier limits
-  }
-}
-
 // ── UPLOAD ───────────────────────────────────────────────
 async function upload(files){
   const arr = Array.from(files);
@@ -803,8 +742,6 @@ async function upload(files){
     const item = { title:f.name.replace(/\.[^.]+$/,''), moods:suggestedMoods, tags:[], media_url:pub.publicUrl, media_type:mediaType};
     const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
     if(e2){ toast('DB-Fehler: '+e2.message); return null; }
-    // Background chatbot tagging — invisible, never blocks the upload.
-    if(mediaType === 'image') autoTagImage(ins.id, pub.publicUrl);
     done++;
     prog(Math.round(done/arr.length*90));
     return {...item, id:ins.id};
