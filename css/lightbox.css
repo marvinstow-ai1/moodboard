@@ -58,7 +58,6 @@
   display: grid; place-items: center;
   backdrop-filter: blur(10px); transition: .15s;
 }
-.lb-arrow:hover { background: rgba(255,255,255,.18); }
 .lb-arrow.prev { left: 14px; }
 .lb-arrow.next { right: 14px; }
 .lb-topbar, .lb-bottombar, .lb-arrow {
@@ -101,7 +100,6 @@
   cursor: pointer; display: grid; place-items: center;
   transition: background .15s; flex-shrink: 0;
 }
-.lb-pill-btn:hover { background: rgba(255,255,255,.1); }
 .lb-pill-div {
   width: 1px; height: 18px;
   background: rgba(255,255,255,.1);
@@ -159,5 +157,4 @@
   cursor: pointer; display: grid; place-items: center;
   backdrop-filter: blur(16px); transition: background .15s;
 }
-.lb-close-btn:hover { background: rgba(255,255,255,.18); }
 

@@ -1,0 +1,60 @@
+/* ── Einheitliches Button-Press-Feedback ─────────────────────────────────
+   Buttons reagieren nur auf Druck (kein Hover mehr): sie werden beim Drücken
+   sofort heller bzw. dunkler + minimal kleiner und faden beim Loslassen smooth
+   zurück. Das fühlt sich responsiver und weniger "abgehakt" an.
+
+   Diese Datei wird NACH allen Komponenten-Styles geladen, damit die gemeinsame
+   Press-Mechanik (Transition + :active) überall greift. */
+
+/* Grund-Transition: langsames, weiches Zurückfaden nach dem Loslassen. */
+.menubtn,.loginbtn,.dd-tab,.dd-btn,.ab-chip,.ab-act,
+.lb-arrow,.lb-pill-btn,.lb-close-btn,
+.mc-panel-close,.mc-send,.mc-chip,.mc-quick-chip,.mc-status .mc-reset,
+.share-popup button,.swipe-arrow,.mood-tile,.mood-tile-create,
+.mcm-btn,.cfm-close,.cfm-btn,.mmg-item,.mmg-item .mmg-del,.mmg-add-row button,.mmg-close,
+.lm-btn{
+  transition:background-color .35s cubic-bezier(.32,1,.23,1),
+             border-color     .35s cubic-bezier(.32,1,.23,1),
+             color            .35s cubic-bezier(.32,1,.23,1),
+             transform        .35s cubic-bezier(.32,1,.23,1),
+             filter           .35s cubic-bezier(.32,1,.23,1),
+             opacity          .35s cubic-bezier(.32,1,.23,1);
+}
+
+/* Translucente Buttons (weißes Overlay) → beim Druck heller. */
+.menubtn:active,.loginbtn:active,.dd-tab:active,.dd-btn:active,.ab-chip:active,
+.lb-arrow:active,.lb-pill-btn:active,.lb-close-btn:active,.mc-panel-close:active,
+.mc-chip:active,.mc-quick-chip:active,.mc-status .mc-reset:active,.swipe-arrow:active,
+.mcm-btn.cancel:active,.cfm-close:active,.cfm-btn.cancel:active,.ab-act.cancel:active,
+.mmg-item:active,.mmg-add-row button:active,.mmg-close:active,.lm-btn.cancel:active{
+  background:rgba(255,255,255,.2);
+  transform:scale(.94);
+  transition:background-color .04s ease,transform .04s ease;
+}
+
+/* Solide/helle Buttons (weiß bzw. farbig) → beim Druck kurz abdunkeln. */
+.mc-send:active,.share-popup button:active,.mcm-btn.confirm:active,
+.ab-act.confirm:active,.lm-btn.confirm:active,.cfm-btn.confirm:active{
+  filter:brightness(.88);
+  transform:scale(.94);
+  transition:filter .04s ease,transform .04s ease;
+}
+
+/* Destruktive (rote) Buttons. */
+.ab-act.remove:active,.mmg-item .mmg-del:active{
+  background:rgba(255,60,60,.38);
+  transform:scale(.94);
+  transition:background-color .04s ease,transform .04s ease;
+}
+
+/* Große Kacheln: nur dezenter Press, kein starker Scale. */
+.mood-tile:active{
+  transform:scale(.985);
+  transition:transform .05s ease;
+}
+.mood-tile-create:active{
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.4);
+  transform:scale(.985);
+  transition:background-color .05s ease,border-color .05s ease,transform .05s ease;
+}

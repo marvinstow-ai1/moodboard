@@ -31,7 +31,6 @@
   font-size:12px; font-weight:600; cursor:pointer;
   flex-shrink:0; transition:.15s;
 }
-.share-popup button:hover { background:#ddd; }
 
 /* Sleep-Mode: UI ausblenden */
 .lightbox.sleep .lb-topbar,
@@ -114,7 +113,6 @@
 /* ── Swipe Control (inside popup) ──────────────────────── */
 .swipe-control{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;width:100%;height:44px}
 .swipe-arrow{width:28px;height:28px;border-radius:999px;border:none;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:13px;display:grid;place-items:center;transition:.12s;flex-shrink:0;padding:0;line-height:1}
-.swipe-arrow:hover{background:rgba(255,255,255,.18)}
 .swipe-arrow:active{transform:scale(.9)}
 .swipe-track-wrap{flex:1;position:relative;height:36px;display:flex;align-items:center}
 .swipe-track{position:relative;width:100%;height:4px;background:rgba(255,255,255,.12);border-radius:999px;overflow:visible}
@@ -125,7 +123,6 @@
 /* ── Moods View ───────────────────────────────────────── */
 .moods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px;padding:2px}
 .mood-tile{position:relative;overflow:hidden;background:#111;cursor:pointer;transition:transform .2s, box-shadow .2s;contain:strict;aspect-ratio:1}
-.mood-tile:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.5)}
 .mood-tile img,.mood-tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;background:#111}
 .mood-tile .mt-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.78) 0%,rgba(0,0,0,.25) 45%,rgba(0,0,0,0) 70%);pointer-events:none}
 .mood-tile .mt-label{position:absolute;left:14px;right:14px;bottom:12px;color:#fff;font-size:15px;font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:8px;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.6)}
@@ -139,7 +136,6 @@
 
 /* ── Create Mood Tile + Modal ─────────────────────────── */
 .mood-tile-create{background:rgba(255,255,255,.04);border:1.5px dashed rgba(255,255,255,.18);cursor:pointer;display:grid;place-items:center;transition:background .18s,border-color .18s,transform .18s}
-.mood-tile-create:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.4);transform:translateY(-2px)}
 .mood-tile-create .mtc-inner{display:flex;flex-direction:column;align-items:center;gap:6px;color:rgba(255,255,255,.7);pointer-events:none}
 .mood-tile-create .mtc-plus{width:48px;height:48px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;font-size:26px;display:grid;place-items:center;backdrop-filter:blur(16px);font-weight:300;line-height:1}
 .mood-tile-create .mtc-label{font-size:13px;font-weight:600;letter-spacing:.02em;opacity:.85}
@@ -154,9 +150,7 @@
 .mcm-actions{display:flex;gap:8px}
 .mcm-btn{flex:1;border:1px solid var(--border);border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
 .mcm-btn.cancel{background:rgba(255,255,255,.06);color:#fff}
-.mcm-btn.cancel:hover{background:rgba(255,255,255,.12)}
 .mcm-btn.confirm{background:#fff;color:#111;border-color:#fff}
-.mcm-btn.confirm:hover{background:#ddd}
 .mcm-btn:disabled{opacity:.4;cursor:not-allowed}
 .mcm-error{font-size:12px;color:#ff7373;margin-top:-8px;margin-bottom:12px;min-height:14px;opacity:0;transition:opacity .15s}
 .mcm-error.show{opacity:1}
@@ -165,16 +159,13 @@
 .confirm-popup.show{display:flex}
 .cfm-content{width:min(360px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:28px 20px 20px;box-shadow:0 24px 60px rgba(0,0,0,.7);position:relative}
 .cfm-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:13px;display:grid;place-items:center;transition:.15s;flex-shrink:0;padding:0;line-height:1}
-.cfm-close:hover{background:rgba(255,255,255,.13)}
 .cfm-close svg{width:16px;height:16px;display:block}
 .cfm-text{font-size:15px;font-weight:500;line-height:1.5;margin:10px 0 22px;text-align:center;letter-spacing:.01em}
 .cfm-text .cfm-mood-name{font-weight:700;color:#fff}
 .cfm-actions{display:flex;gap:10px}
 .cfm-btn{flex:1;border:1px solid var(--border);border-radius:11px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
 .cfm-btn.cancel{background:rgba(255,255,255,.06);color:#fff}
-.cfm-btn.cancel:hover{background:rgba(255,255,255,.12)}
 .cfm-btn.confirm{background:#ff4d4d;color:#fff;border-color:#ff4d4d}
-.cfm-btn.confirm:hover{background:#e04444}
 /* ── Moods Management Popup ──────────────────────────── */
 .moods-mgmt-popup{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
 .moods-mgmt-popup.show{display:flex}
@@ -182,20 +173,16 @@
 .mmg-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}
 .mmg-list{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
 .mmg-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid transparent;transition:.12s}
-.mmg-item:hover{background:rgba(255,255,255,.08)}
 .mmg-item .mmg-icon{font-size:18px;width:24px;text-align:center}
 .mmg-item .mmg-name{flex:1;font-size:14px;font-weight:500}
 .mmg-item .mmg-count{font-size:11px;opacity:.5}
 .mmg-item .mmg-del{width:28px;height:28px;border-radius:999px;border:none;background:rgba(255,60,60,.15);color:#ff6b6b;cursor:pointer;font-size:14px;display:grid;place-items:center;transition:.12s;flex-shrink:0}
-.mmg-item .mmg-del:hover{background:rgba(255,60,60,.3)}
 .mmg-add-row{display:flex;gap:6px;margin-bottom:14px}
 /* font-size:16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus. */
 .mmg-add-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:10px 12px;outline:none;font-size:16px}
 .mmg-add-row input:focus{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.09)}
 .mmg-add-row button{border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;transition:.12s}
-.mmg-add-row button:hover{background:rgba(255,255,255,.15)}
 .mmg-close{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
-.mmg-close:hover{background:rgba(255,255,255,.12)}
 
 /* ── Bottombar extended (moods active) ──────────────── */
 .bottombar.moods-active{padding:6px 10px;transition:padding .45s cubic-bezier(.32,1,.23,1)}
@@ -240,9 +227,7 @@
 .lm-actions{display:flex;gap:8px;margin-top:4px}
 .lm-btn{flex:1;border:1px solid var(--border);border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 .lm-btn.cancel{background:rgba(255,255,255,.06);color:#fff}
-.lm-btn.cancel:hover{background:rgba(255,255,255,.12)}
 .lm-btn.confirm{background:#fff;color:#111;border-color:#fff}
-.lm-btn.confirm:hover{background:#ddd}
 .lm-btn:disabled{opacity:.4;cursor:not-allowed}
 
 .boot-spinner{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:999}

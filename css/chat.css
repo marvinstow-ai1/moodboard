@@ -22,7 +22,6 @@
 .mc-panel-title{font-size:14px;font-weight:600;color:#fff;letter-spacing:.01em}
 .mc-panel-close{width:28px;height:28px;border-radius:999px;border:0;background:rgba(255,255,255,.06);
   color:rgba(255,255,255,.7);cursor:pointer;display:grid;place-items:center;transition:.15s;flex-shrink:0}
-.mc-panel-close:hover{background:rgba(255,255,255,.14);color:#fff}
 
 /* Pill + runder Button — Button-Höhe == Pill-Höhe (über --mc-h gekoppelt) */
 .mc-bar{--mc-h:52px;display:flex;align-items:stretch;gap:10px;width:100%}
@@ -36,7 +35,6 @@
   border:1px solid rgba(255,255,255,.18);background:#fff;color:#0a0a0a;cursor:pointer;
   display:grid;place-items:center;transition:transform .12s ease,box-shadow .2s ease;
   box-shadow:0 8px 24px rgba(0,0,0,.35)}
-.mc-send:hover{transform:scale(1.06)}
 .mc-send:active{transform:scale(.94)}
 .mc-send svg{width:21px;height:21px;display:block}
 .mc-send.is-busy{pointer-events:none;opacity:.7}
@@ -48,7 +46,6 @@
   border-radius:999px;font-size:20px;line-height:1;font-family:inherit;cursor:pointer;
   transition:transform .12s ease,background .15s,border-color .15s}
 .mc-chip span{font-size:20px;line-height:1}
-.mc-chip:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
 .mc-chip:active{transform:scale(.92)}
 
 /* Quick-Chip unter den Emojis: wechselt zur Ansicht „Zuletzt hinzugefügt" */
@@ -58,7 +55,6 @@
   border-radius:999px;font-size:13.5px;font-weight:500;line-height:1;color:rgba(255,255,255,.85);
   font-family:inherit;cursor:pointer;transition:transform .12s ease,background .15s,border-color .15s}
 .mc-quick-chip svg{width:16px;height:16px;display:block;flex-shrink:0;opacity:.85}
-.mc-quick-chip:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:#fff}
 .mc-quick-chip:active{transform:scale(.96)}
 
 /* Status-Zeile (Treffer / leer / Fehler) + „Alle anzeigen" */
@@ -67,7 +63,6 @@
 .mc-status.is-error{color:#ff8080}
 .mc-status .mc-reset{margin-left:auto;border:1px solid var(--border);background:rgba(255,255,255,.06);
   color:rgba(255,255,255,.85);border-radius:999px;padding:5px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;transition:.15s}
-.mc-status .mc-reset:hover{background:rgba(255,255,255,.14);color:#fff}
 .mc-status .mc-spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.18);
   border-top-color:rgba(255,255,255,.7);animation:mcSpin .8s linear infinite;flex-shrink:0}
 @keyframes mcSpin{to{transform:rotate(360deg)}}

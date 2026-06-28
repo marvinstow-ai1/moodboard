@@ -8,7 +8,6 @@
 .dd-section{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:8px 8px 4px}
 .dd-tabs{display:flex;gap:2px;padding:3px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
 .dd-tab{flex:1;border:0;background:transparent;color:#fff;opacity:.55;border-radius:9px;padding:7px 4px;font-size:10.5px;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;transition:.15s}
-.dd-tab:hover{opacity:.85;background:rgba(255,255,255,.04)}
 .dd-tab.active{background:rgba(255,255,255,.12);opacity:1}
 .dd-panel{display:none;flex-direction:column;gap:2px}
 .dd-panel.show{display:flex}
@@ -18,7 +17,6 @@
 .bottom-sheet:has(.editor-wrap.show) .dd-panel{display:none}
 .dd-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
 .dd-btn{width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px;border-radius:10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px}
-.dd-btn:hover{background:rgba(255,255,255,.08)}
 .dd-btn .icon{width:18px;text-align:center;opacity:.6;font-size:15px}
 .dd-input-row{display:flex;gap:6px;padding:4px 2px 6px}
 /* font-size:16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus. */
@@ -87,15 +85,11 @@
 .action-bar-title{font-size:11px;opacity:.5;text-transform:uppercase;letter-spacing:.08em}
 .action-bar-moods{display:flex;flex-wrap:wrap;gap:6px}
 .ab-chip{border:1px solid var(--border);background:rgba(255,255,255,.07);color:#fff;border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer;transition:.15s;font-weight:500}
-.ab-chip:hover{background:rgba(255,255,255,.15)}
 .ab-chip.sel{background:#fff;color:#111;border-color:#fff}
 .action-bar-actions{display:flex;gap:8px}
 .ab-act{flex:1;border:1px solid var(--border);border-radius:12px;padding:11px;font-size:13px;cursor:pointer;font-weight:600;transition:.15s}
 .ab-act.confirm{background:#fff;color:#111;border-color:#fff}
-.ab-act.confirm:hover{background:#ddd}
 .ab-act.cancel{background:rgba(255,255,255,.06);color:#fff}
-.ab-act.cancel:hover{background:rgba(255,255,255,.12)}
 .ab-act.remove{background:rgba(255,60,60,.15);color:#ff6b6b;border-color:rgba(255,60,60,.3)}
-.ab-act.remove:hover{background:rgba(255,60,60,.25)}
 .ab-count{font-size:12px;opacity:.5}
 
