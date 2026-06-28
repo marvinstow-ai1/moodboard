@@ -153,59 +153,75 @@ window.addEventListener('hashchange', () => {
 });
 
 // ── Ambient Mode (lightbox background glow) ─────────────
-const ambientCache = new Map();
-const AMBIENT_DEFAULT_1 = 'rgba(80,90,140,.5)';
-const AMBIENT_DEFAULT_2 = 'rgba(140,70,120,.45)';
-function getDominantColor(url){
-  if(ambientCache.has(url)) return Promise.resolve(ambientCache.get(url));
-  return new Promise(resolve => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      try {
-        const W=16, H=16;
-        const c = document.createElement('canvas');
-        c.width=W; c.height=H;
-        const ctx = c.getContext('2d');
-        ctx.drawImage(img, 0, 0, W, H);
-        const d = ctx.getImageData(0,0,W,H).data;
-        let r=0,g=0,b=0,n=0;
-        for(let i=0; i<d.length; i+=4){
-          if(d[i+3] < 128) continue;
-          // skip near-black/near-white pixels to avoid muddy averages
-          const lum = (d[i]+d[i+1]+d[i+2])/3;
-          if(lum < 18 || lum > 240) continue;
-          r += d[i]; g += d[i+1]; b += d[i+2]; n++;
-        }
-        const color = n ? [Math.round(r/n), Math.round(g/n), Math.round(b/n)] : null;
-        ambientCache.set(url, color);
-        resolve(color);
-      } catch(e){ ambientCache.set(url, null); resolve(null); }
-    };
-    img.onerror = () => { ambientCache.set(url, null); resolve(null); };
-    img.src = url;
-  });
+// Der Hintergrund spiegelt das aktuelle Medium wider: eine stark
+// vergrößerte, unscharfe & gesättigte Kopie des Bildes/Videos sorgt für
+// kräftige Farben rund um das scharfe Motiv ("knallig" außen, scharf
+// innen). Es wird KEIN Canvas mehr ausgelesen – dadurch entfällt der
+// CORS-/Taint-Fehler, der bisher fast immer auf die lila Default-Farbe
+// zurückfiel. Zwei Ebenen werden weich überblendet, damit beim Blättern
+// nichts flackert.
+const AMBIENT_FALLBACK =
+  'radial-gradient(45% 55% at 28% 30%, rgba(90,100,150,.55), transparent 70%),'+
+  'radial-gradient(45% 55% at 72% 70%, rgba(150,80,130,.5), transparent 70%)';
+
+let ambientLayers = null;
+let ambientActive = 0;
+let ambientToken  = 0;
+
+function ensureAmbientLayers(){
+  if(ambientLayers) return ambientLayers;
+  const a = document.createElement('div');
+  const b = document.createElement('div');
+  a.className = b.className = 'lb-ambient-layer';
+  lbAmbient.append(a, b);
+  ambientLayers = [a, b];
+  return ambientLayers;
 }
-function applyAmbient(c1, c2){
-  lbAmbient.style.setProperty('--ambient-1', c1);
-  lbAmbient.style.setProperty('--ambient-2', c2);
-}
-async function setAmbientFor(it){
-  // fade out before swap so transitions feel intentional
-  lbAmbient.style.opacity = '0';
-  let c1 = AMBIENT_DEFAULT_1, c2 = AMBIENT_DEFAULT_2;
-  if(it.media_type !== 'video'){
-    const color = await getDominantColor(it.media_url);
-    if(color){
-      const [r,g,b] = color;
-      c1 = `rgba(${r},${g},${b},.6)`;
-      c2 = `rgba(${Math.min(255,r+35)},${Math.max(0,g-10)},${Math.min(255,b+50)},.5)`;
+
+// Blendet auf die inaktive Ebene über und räumt die alte danach auf.
+function ambientSwap(fill){
+  const layers = ensureAmbientLayers();
+  const curr = layers[ambientActive];
+  const next = layers[ambientActive ^ 1];
+  next.innerHTML = '';
+  next.style.backgroundImage = '';
+  fill(next);
+  next.classList.add('active');
+  curr.classList.remove('active');
+  ambientActive ^= 1;
+  setTimeout(() => {
+    if(!curr.classList.contains('active')){
+      curr.querySelectorAll('video').forEach(v => { try{ v.pause(); }catch(e){} v.removeAttribute('src'); v.load(); });
+      curr.innerHTML = '';
+      curr.style.backgroundImage = '';
     }
+  }, 700);
+}
+
+function setAmbientFor(it){
+  const token = ++ambientToken;
+  lbAmbient.style.opacity = '';
+  if(it.media_type === 'video'){
+    ambientSwap(layer => {
+      const v = document.createElement('video');
+      v.src = it.media_url; v.muted = true; v.loop = true;
+      v.autoplay = true; v.playsInline = true; v.preload = 'auto';
+      const p = v.play(); if(p && p.catch) p.catch(() => {});
+      layer.appendChild(v);
+    });
+    return;
   }
-  // bail if user navigated away
-  if(!lightbox.classList.contains('show') || S().currentItems[lbIndex] !== it) return;
-  applyAmbient(c1, c2);
-  requestAnimationFrame(() => { lbAmbient.style.opacity = ''; });
+  // Bild vorab laden, damit die Überblendung ohne Flackern startet.
+  const pre = new Image();
+  pre.onload = () => {
+    if(token !== ambientToken || !lightbox.classList.contains('show')) return;
+    ambientSwap(layer => { layer.style.backgroundImage = `url("${it.media_url}")`; });
+  };
+  pre.onerror = () => {
+    if(token !== ambientToken) return;
+    ambientSwap(layer => { layer.style.backgroundImage = AMBIENT_FALLBACK; });
+  };
+  pre.src = it.media_url;
 }
 
 // ── Mood Icon Map (Platzhalter – später anpassen) ────────
