@@ -385,6 +385,43 @@ function initMoodChat() {
     };
   }
 
+  // ── Dynamische Placeholder-Vorschau ──
+  // Tippt im leeren Eingabefeld nacheinander Vorschläge als Placeholder ein
+  // (Buchstabe für Buchstabe), löscht sie wieder und loopt über die Liste.
+  // Sobald der Nutzer selbst etwas tippt, ruht die Animation und der
+  // Placeholder bleibt leer.
+  const PLACEHOLDER_PHRASES = ['Bock auf Urlaub', 'Gute Laune', 'Fußball'];
+  let _phTimer = null;
+  function stopPlaceholder() {
+    if (_phTimer) { clearTimeout(_phTimer); _phTimer = null; }
+  }
+  function startPlaceholder() {
+    stopPlaceholder();
+    let phrase = 0, char = 0, deleting = false;
+    const tick = () => {
+      // Pausieren, solange der Nutzer eigenen Text im Feld hat.
+      if (input.value) { input.placeholder = ''; _phTimer = setTimeout(tick, 400); return; }
+      const full = PLACEHOLDER_PHRASES[phrase];
+      if (!deleting) {
+        char++;
+        input.placeholder = full.slice(0, char);
+        if (char >= full.length) { deleting = true; _phTimer = setTimeout(tick, 1500); return; }
+        _phTimer = setTimeout(tick, 90);
+      } else {
+        char--;
+        input.placeholder = full.slice(0, char);
+        if (char <= 0) {
+          deleting = false;
+          phrase = (phrase + 1) % PLACEHOLDER_PHRASES.length;
+          _phTimer = setTimeout(tick, 350);
+          return;
+        }
+        _phTimer = setTimeout(tick, 45);
+      }
+    };
+    tick();
+  }
+
   // ── Tastatur-Handling (iOS) ──
   // Statt die Seite beim Fokus reinzuzoomen (verhindert über font-size:16px am
   // Input) lassen wir das Panel sanft über die eingeblendete Apple-Tastatur
@@ -412,12 +449,14 @@ function initMoodChat() {
     panel.setAttribute('aria-hidden', 'false');
     chatBtn.classList.add('active');
     loadTaggedImages().catch(() => {}); // schon mal vorladen
+    startPlaceholder();                 // Tipp-Vorschau im Eingabefeld starten
     setTimeout(() => input.focus(), 220);
   }
   function closePanel() {
     panel.classList.remove('show');
     panel.setAttribute('aria-hidden', 'true');
     chatBtn.classList.remove('active');
+    stopPlaceholder();
     panel.style.setProperty('--mc-kb', '0px'); // Tastatur-Offset zurücksetzen
   }
   function togglePanel() {
