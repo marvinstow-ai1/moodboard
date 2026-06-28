@@ -115,6 +115,7 @@ const actionBarCount = $('actionBarCount');
 const actionBarTitle = $('actionBarTitle');
 const lbAmbient      = $('lbAmbient');
 const MAX_PX         = 1920;
+const THUMB_PX       = 600;   // Kantenlänge der Grid-Thumbnails
 
 // ── Share Link (deep link to a single item) ─────────────
 function buildShareUrl(it){
@@ -435,6 +436,24 @@ function compress(file, maxPx=MAX_PX, q=0.88){
     img.src=url;
   });
 }
+// Kleines Grid-Thumbnail (WebP) aus einer Bilddatei erzeugen. Bewusst nur für
+// statische Bilder gedacht – GIFs/Videos werden nie hierdurch geschickt, damit
+// die Animation erhalten bleibt. Gibt bei Fehlern null zurück (Fallback: Volldatei).
+function makeThumb(file, maxPx=THUMB_PX, q=0.7){
+  return new Promise(res=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const scale=Math.min(1, maxPx/Math.max(img.width, img.height));
+      const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      c.toBlob(b=>res(b ? new File([b],'thumb.webp',{type:'image/webp'}) : null),'image/webp',q);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(null); };
+    img.src=url;
+  });
+}
 let _lockedScrollY = 0;
 function updateBodyLock(){
   const lock = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'))
@@ -542,13 +561,33 @@ function renderGrid(){
   }
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
-  gridEl.innerHTML = arr.map(it => `
+  // Erste ~3 Reihen sofort & priorisiert laden (statt pauschal "lazy"), damit
+  // der sichtbare Bereich direkt nach dem Boot-Spinner gefüllt ist; der Rest
+  // bleibt lazy.
+  const eagerCount = Math.min(arr.length, Math.max(gridCols * 3, 6));
+  gridEl.innerHTML = arr.map((it, idx) => {
+    const eager = idx < eagerCount;
+    const loadAttr = eager
+      ? 'loading="eager" fetchpriority="high" data-eager="1"'
+      : 'loading="lazy" fetchpriority="low"';
+    let media;
+    if(it.media_type==='video'){
+      media = `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`;
+    } else {
+      // Statische Bilder nutzen das kleine Thumbnail (falls vorhanden); GIFs
+      // immer die Originaldatei, damit sie animiert bleiben (autoplay). Fällt
+      // ein Thumbnail aus, wird transparent auf die Volldatei zurückgeschaltet.
+      const useThumb = it.media_type==='image' && it.thumb_url;
+      const src = useThumb ? it.thumb_url : it.media_url;
+      const onErr = useThumb ? ` onerror="this.onerror=null;this.src='${it.media_url}'"` : '';
+      media = `<img src="${src}" ${loadAttr} decoding="async" alt=""${onErr}><div class="grid-spinner" aria-hidden="true"></div>`;
+    }
+    return `
     <div class="cell${it.media_type==='video' ? '' : ' loading'}" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
-      ${it.media_type==='video'
-        ? `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`
-        : `<img src="${it.media_url}" loading="lazy" decoding="async" alt=""><div class="grid-spinner" aria-hidden="true"></div>`}
-    </div>`).join('');
+      ${media}
+    </div>`;
+  }).join('');
 
   // GSAP stagger on initial load
   if(_isInitialLoad && typeof gsap !== 'undefined' && arr.length > 0){
@@ -789,8 +828,19 @@ async function upload(files){
     if(e1){ toast('Upload-Fehler: '+e1.message); return null; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
     const mediaType = isVid(f.name) ? 'video' : isGif(f.name) ? 'gif' : 'image';
+    // Nur für statische Bilder ein kleines Thumbnail erzeugen & hochladen.
+    // GIFs/Videos bleiben unangetastet (thumb_url = null → Grid nutzt media_url).
+    let thumbUrl = null;
+    if(mediaType === 'image'){
+      const tf = await makeThumb(cf);
+      if(tf){
+        const tpath = `thumb/${path}`;
+        const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, {upsert:false, contentType:'image/webp'});
+        if(!te) thumbUrl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
+      }
+    }
     const suggestedMoods = mediaType === 'image' ? await autoSuggestMoods(pub.publicUrl) : [];
-    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:suggestedMoods, tags:[], media_url:pub.publicUrl, media_type:mediaType};
+    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:suggestedMoods, tags:[], media_url:pub.publicUrl, media_type:mediaType, thumb_url:thumbUrl};
     const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
     if(e2){ toast('DB-Fehler: '+e2.message); return null; }
     done++;
@@ -837,6 +887,47 @@ function startDeleteMode(){
 $('pickDeleteBtn').onclick = startDeleteMode;
 $('pickDeleteBtnSheet').onclick = startDeleteMode;
 
+// ── THUMBNAIL-BACKFILL (Owner) ───────────────────────────
+// Erzeugt für bestehende Bilder ohne thumb_url nachträglich ein kleines
+// Grid-Thumbnail (lädt Volldatei → verkleinert → lädt hoch → speichert URL).
+// Nur statische Bilder; GIFs/Videos werden übersprungen (bleiben animiert).
+async function backfillThumbs(){
+  if(!owner){ toast('Nur als Owner möglich'); return; }
+  const todo = S().items.filter(it => it.media_type === 'image' && !it.thumb_url);
+  if(todo.length === 0){ toast('Alle Bilder haben schon ein Thumbnail ✓'); return; }
+  if(!window.confirm(`${todo.length} Bilder ohne Thumbnail.\nJetzt erzeugen? Das kann etwas dauern.`)) return;
+  closeMenu();
+  const marker = `/public/${BUCKET}/`;
+  let done = 0, failed = 0;
+  toast(`Erzeuge Thumbnails… 0/${todo.length}`);
+  for(const it of todo){
+    try{
+      const i = it.media_url.indexOf(marker);
+      if(i < 0) throw new Error('path');
+      const path = it.media_url.slice(i + marker.length).split('?')[0];
+      const resp = await fetch(it.media_url);
+      if(!resp.ok) throw new Error('fetch');
+      const blob = await resp.blob();
+      const tf = await makeThumb(new File([blob], 'src', { type: blob.type || 'image/webp' }));
+      if(!tf) throw new Error('thumb');
+      const tpath = `thumb/${path}`;
+      const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, { upsert:true, contentType:'image/webp' });
+      if(te) throw te;
+      const turl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
+      const {error:ue} = await sb.from(S().table).update({ thumb_url: turl }).eq('id', it.id);
+      if(ue) throw ue;
+      it.thumb_url = turl;
+    }catch(e){ failed++; }
+    done++;
+    prog(Math.round(done / todo.length * 100));
+    if(done % 5 === 0 || done === todo.length) toast(`Erzeuge Thumbnails… ${done}/${todo.length}`);
+  }
+  renderGrid();
+  toast(`Thumbnails fertig ✓ (${todo.length - failed} ok${failed ? `, ${failed} Fehler` : ''})`);
+}
+$('thumbBackfillBtn')?.addEventListener('click', backfillThumbs);
+$('thumbBackfillBtnSheet')?.addEventListener('click', backfillThumbs);
+
 function openEditor(id){
   editId=id; const it=S().items.find(x=>x.id===id); if(!it) return;
   $('editorTitle').textContent = it.title||'Item';
@@ -862,14 +953,35 @@ $('saveTagsBtn').onclick = () => {
   sbUpdate(it); renderGrid(); toast('Tags gespeichert');
 };
 
+// Den großen Boot-Spinner erst entfernen, wenn die sofort sichtbaren Kacheln
+// (die "eager" geladenen der ersten Reihen) wirklich geladen sind. So sieht man
+// beim Verschwinden echte Bilder statt leerer Platzhalter, die "nochmal" laden.
+// Sicherheits-Timeout, damit der Spinner nie hängen bleibt (langsames Netz/Fehler).
+function revealWhenReady(){
+  const boot = $('bootMsg');
+  if(!boot) return;
+  const imgs = [...gridEl.querySelectorAll('img[data-eager="1"]')];
+  let done = false;
+  const finish = () => { if(done) return; done = true; boot.remove(); };
+  if(imgs.length === 0){ finish(); return; }
+  let pending = imgs.length;
+  const tick = () => { if(--pending <= 0) finish(); };
+  imgs.forEach(im => {
+    if(im.complete && im.naturalWidth){ tick(); return; }
+    im.addEventListener('load', tick, { once:true });
+    im.addEventListener('error', tick, { once:true });
+  });
+  setTimeout(finish, 2500);
+}
+
 async function loadItems(){
   const {data,error} = await sb.from(S().table)
-    .select('id,title,moods,tags,media_url,media_type')
+    .select('id,title,moods,tags,media_url,media_type,thumb_url')
     .order('created_at',{ascending:false});
-  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; return; }
+  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; $('bootMsg')?.remove(); return; }
   S().items=data||[];
   mergeMoodsFromItems();
-  renderGrid(); $('bootMsg')?.remove();
+  renderGrid(); revealWhenReady();
   renderMoodChips();
   if(typeof moodsViewOpen !== 'undefined' && moodsViewOpen) renderMoodsView();
   tryOpenPendingShare();
@@ -918,7 +1030,7 @@ function isUiBusy(){
 async function refetchItems(){
   if(isUiBusy()){ scheduleSync(1500); return; }
   const {data,error} = await sb.from(S().table)
-    .select('id,title,moods,tags,media_url,media_type')
+    .select('id,title,moods,tags,media_url,media_type,thumb_url')
     .order('created_at',{ascending:false});
   if(error) return;
   S().items = data || [];
