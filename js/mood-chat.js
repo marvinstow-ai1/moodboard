@@ -220,7 +220,7 @@ async function loadTaggedImages() {
     const { data, error } = await sb
       .from('moodboard_items')
       .select('id,media_url,media_type,ai_tags')
-      .eq('media_type', 'image')
+      .in('media_type', ['image', 'gif'])
       .eq('ai_status', 'processed')
       .order('created_at', { ascending: false });
     if (error) throw error;
