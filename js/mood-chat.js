@@ -345,7 +345,6 @@ const SUGGESTIONS = [
     label: 'Movies / Anime / Manga' },
   { emoji: '🏆', q: 'zeig mir was Motivierendes', label: 'Motivierendes' },
   { emoji: '🧘', q: 'was Beruhigendes',           label: 'Beruhigendes' },
-  { emoji: '📼', q: 'Nostalgie',                   label: 'Nostalgie' },
   { emoji: '⚽️', cat: ['fussball', 'trikot', 'stadion', 'torjubel', 'torjäger', 'messi', 'ronaldo', 'champions league'],
     label: 'Fußball' },
 ];
@@ -391,7 +390,7 @@ function initMoodChat() {
   // (Buchstabe für Buchstabe), löscht sie wieder und loopt über die Liste.
   // Sobald der Nutzer selbst etwas tippt, ruht die Animation und der
   // Placeholder bleibt leer.
-  const PLACEHOLDER_PHRASES = ['Bock auf Urlaub', 'Gute Laune', 'Fußball'];
+  const PLACEHOLDER_PHRASES = ['Bock auf Urlaub', 'Gute Laune', 'Fußball', 'Nostalgie'];
   let _phTimer = null;
   function stopPlaceholder() {
     if (_phTimer) { clearTimeout(_phTimer); _phTimer = null; }
