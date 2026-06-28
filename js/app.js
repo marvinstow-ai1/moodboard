@@ -28,6 +28,7 @@ let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
 let selectedIds=new Set();
 let _observer = null;
 let sortNewest = false;
+let chatResultIds = null;   // Mood-Chat: aktive Treffer-IDs (oder null = aus)
 let _isInitialLoad = true;
 let sleepTimeout = null;
 const SLIDESHOW_INTERVAL = 5000;
@@ -473,30 +474,38 @@ function renderGrid(){
   // Dedup by id — guards against race conditions during concurrent uploads
   const seen = new Set();
   s.items = s.items.filter(i => { if(seen.has(i.id)) return false; seen.add(i.id); return true; });
-  // Drop any active mood filters that no longer exist in the moods list
-  // (e.g. the mood was renamed/deleted on another device).
-  const validMoods = new Set(s.moods);
-  for(const m of [...activeMoods]) if(!validMoods.has(m)) activeMoods.delete(m);
-  // Filter: if activeMoods has entries, show items matching ANY selected mood (OR)
-  let arr = activeMoods.size > 0
-    ? s.items.filter(i => (Array.isArray(i.moods) && i.moods.some(m => activeMoods.has(m))))
-    : s.items;
-  // If a filter is active but matches nothing (e.g. items were retagged on
-  // another device), drop the filter so the user always sees content.
-  if(activeMoods.size > 0 && arr.length === 0 && s.items.length > 0){
-    activeMoods.clear();
-    saveFilterState();
-    arr = s.items;
-  }
-  // Sortierung: entweder zufällig (shuffle) oder nach Erstelldatum (neueste zuerst)
-  if(sortNewest){
-    // Items bleiben in ihrer DB-Reihenfolge (created_at DESC)
+  let arr;
+  if(chatResultIds){
+    // Mood-Chat aktiv: nur die Treffer in Ranking-Reihenfolge zeigen
+    // (Mood-Filter und Shuffle werden hier bewusst übersprungen).
+    const byId = new Map(s.items.map(i => [i.id, i]));
+    arr = chatResultIds.map(id => byId.get(id)).filter(Boolean);
   } else {
-    // Fisher-Yates shuffle
-    arr = [...arr];
-    for(let i = arr.length - 1; i > 0; i--){
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+    // Drop any active mood filters that no longer exist in the moods list
+    // (e.g. the mood was renamed/deleted on another device).
+    const validMoods = new Set(s.moods);
+    for(const m of [...activeMoods]) if(!validMoods.has(m)) activeMoods.delete(m);
+    // Filter: if activeMoods has entries, show items matching ANY selected mood (OR)
+    arr = activeMoods.size > 0
+      ? s.items.filter(i => (Array.isArray(i.moods) && i.moods.some(m => activeMoods.has(m))))
+      : s.items;
+    // If a filter is active but matches nothing (e.g. items were retagged on
+    // another device), drop the filter so the user always sees content.
+    if(activeMoods.size > 0 && arr.length === 0 && s.items.length > 0){
+      activeMoods.clear();
+      saveFilterState();
+      arr = s.items;
+    }
+    // Sortierung: entweder zufällig (shuffle) oder nach Erstelldatum (neueste zuerst)
+    if(sortNewest){
+      // Items bleiben in ihrer DB-Reihenfolge (created_at DESC)
+    } else {
+      // Fisher-Yates shuffle
+      arr = [...arr];
+      for(let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
     }
   }
   s.currentItems = arr;
@@ -693,6 +702,7 @@ document.addEventListener('keydown', e => {
 
 function doShuffle() {
   sortNewest = false;
+  chatResultIds = null;   // Shuffle hebt eine aktive Mood-Chat-Suche auf
   // Shuffle ist die Archiv-Ansicht: aus "Zuletzt hinzugefügt" zurückwechseln
   if(currentView === 'recent'){
     currentView = 'archive'; currentPageSlug = null;
@@ -1106,6 +1116,7 @@ function navigate(target){
 function showGridView(view){
   sortNewest = (view === 'recent');
   const label = view === 'recent' ? 'Zuletzt hinzugefügt' : 'Archive';
+  clearChatResults();
   if(currentView === 'moods'){
     hideMoodsView(view);       // animiert zurück, setzt State selbst
     return;
@@ -1124,6 +1135,7 @@ function goRecent(){ showGridView('recent'); }
 
 function goMoods(){
   if(currentView === 'moods') return;
+  clearChatResults();
   if(currentView === 'page'){
     customPageView.classList.remove('show');
     gridWrap.style.display = '';
@@ -1134,6 +1146,7 @@ function goMoods(){
 function navigateToPage(slug){
   const p = pages.find(x => x.slug === slug);
   if(!p) return;
+  clearChatResults();
   if(currentView === 'moods') forceCloseMoods();
   gridWrap.style.display = 'none';
   moodsView.classList.remove('show');
@@ -1369,6 +1382,33 @@ $('loginPassword')?.addEventListener('keydown', e => {
   else if (e.key === 'Escape') closeLoginModal();
 });
 $('loginModal').addEventListener('click', e => { if (e.target === $('loginModal')) closeLoginModal(); });
+
+// ── Brücke für den Mood-Chat (js/mood-chat.js) ────────────
+// Der Chat ermittelt passende Bild-IDs (aus ai_tags) und übergibt sie hier.
+// Die Treffer werden direkt im Haupt-Grid angezeigt – keine Extraseite.
+function clearChatResults(){
+  if(chatResultIds === null) return;
+  chatResultIds = null;
+  renderGrid();
+}
+function showChatResults(ids){
+  // Erst auf eine Grid-Ansicht wechseln (goArchive räumt evtl. Chat-State ab),
+  // DANN die Treffer setzen und rendern – sonst würde goArchive sie löschen.
+  if(currentView === 'moods' || currentView === 'page') goArchive();
+  chatResultIds = Array.isArray(ids) ? ids : null;
+  renderGrid();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  return S().currentItems.length;   // tatsächlich sichtbare Treffer
+}
+window.MB = {
+  showChatResults,
+  clearChatResults,
+  // Lightbox der Haupt-App wiederverwenden (Swipe/Ambient inklusive).
+  openItems(items, idx){
+    state.moodboard.currentItems = items;
+    openLightbox(idx);
+  }
+};
 
 // ── App starten ───────────────────────────────────────────
 (async () => {
