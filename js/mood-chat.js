@@ -62,6 +62,9 @@ const TRIGGERS = {
   'sommer': ['sommer', 'sonne', 'strand', 'warm', 'gute laune'],
   'winter': ['winter', 'schnee', 'kalt', 'gemutlich'],
   'schnee': ['schnee', 'winter', 'weiss', 'kalt'],
+  'weihnacht': ['winter', 'schnee', 'gemutlich', 'cozy', 'warm', 'kalt'],
+  'xmas': ['winter', 'schnee', 'gemutlich', 'cozy', 'warm'],
+  'herbst': ['herbst', 'natur', 'wald', 'gemutlich', 'warm'],
   'regen': ['regen', 'grau', 'melancholisch', 'gemutlich'],
   'strand': ['strand', 'meer', 'sand', 'sonne'],
   'meer': ['meer', 'wasser', 'strand', 'blau', 'weite'],
@@ -262,10 +265,17 @@ function rankImages(query, items) {
   // kleine Bestände). Was häufiger ist, ist faktisch eine breite Kategorie.
   const specificThreshold = Math.max(4, Math.ceil(N * 0.12));
   const literal = new Set((query.literal || []).map(fold));
+  // Nur eigene Tipp-Wörter, die im Bestand SELTEN, aber ÜBERHAUPT vorhanden
+  // sind, gelten als „spezifisches Ziel". Wichtig: df muss ≥ 1 sein. Ein Wort,
+  // das in KEINEM Bild als Tag steckt (z. B. das Kompositum „weihnachtsbilder"
+  // oder „sommerbilder"), kann nicht hart filtern – sonst würde der harte
+  // Filter unten ausnahmslos ALLE Bilder verwerfen und das Grid bliebe leer.
+  // Solche Wörter fallen daher in die breite Suche zurück, sodass eine erneute
+  // Suche immer aus dem GESAMTEN Bestand passende (Stimmungs-)Bilder findet.
   const specificTags = all.filter(s => {
     if (!literal.has(s)) return false;           // nur eigene Tipp-Wörter zählen
     const dfc = stats.df.get(s) || 0;
-    return dfc === 0 || dfc <= specificThreshold; // selten (oder gar nicht da)
+    return dfc >= 1 && dfc <= specificThreshold; // selten, aber tatsächlich da
   });
   const isSpecific = specificTags.length > 0;
 
