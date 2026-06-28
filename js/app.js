@@ -413,18 +413,25 @@ function isGif(n){ return /\.gif$/i.test(n||''); }
 function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600); }
 function compress(file, maxPx=MAX_PX, q=0.88){
   return new Promise(res=>{
+    // Videos und (animierte) GIFs nicht anfassen: Ein Canvas würde bei GIFs nur
+    // den ersten Frame erfassen und die Animation zerstören – animiertes WebP
+    // lässt sich clientseitig nicht erzeugen.
     if(isVid(file.name) || isGif(file.name)){ res(file); return; }
     const img=new Image(), url=URL.createObjectURL(file);
     img.onload=()=>{
       URL.revokeObjectURL(url);
       let w=img.width, h=img.height;
-      if(w<=maxPx && h<=maxPx){ res(file); return; }
-      const r=Math.min(maxPx/w, maxPx/h); w=Math.round(w*r); h=Math.round(h*r);
+      // Nur verkleinern, wenn nötig – aber immer zu WebP re-enkodieren.
+      if(w>maxPx || h>maxPx){
+        const r=Math.min(maxPx/w, maxPx/h); w=Math.round(w*r); h=Math.round(h*r);
+      }
       const c=document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
       const outType='image/webp', outName=file.name.replace(/\.[^.]+$/,'.webp');
-      c.toBlob(b=>res(new File([b],outName,{type:outType})),outType,q);
+      // Fallback: schlägt die Umwandlung fehl, die Originaldatei behalten.
+      c.toBlob(b=>res(b ? new File([b],outName,{type:outType}) : file),outType,q);
     };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(file); };
     img.src=url;
   });
 }
