@@ -370,6 +370,10 @@ function initMoodChat() {
 
   // ── Panel öffnen / schließen ──
   function openPanel() {
+    // Immer frisch starten: alte Eingabe und Status verwerfen, damit beim
+    // erneuten Öffnen nicht der letzte Suchbegriff stehen bleibt.
+    input.value = '';
+    clearStatus();
     panel.classList.add('show');
     panel.setAttribute('aria-hidden', 'false');
     chatBtn.classList.add('active');
@@ -442,19 +446,17 @@ function initMoodChat() {
       return;
     }
     if (!ids.length) {
-      setStatus('empty', `Nichts zu „${q}" gefunden. Probier eine andere Stimmung 👀`);
+      setStatus('empty', `Nichts zu „${escapeHtmlLite(q)}" gefunden. Probier eine andere Stimmung 👀`);
       return;
     }
 
-    // Treffer ans Haupt-Grid übergeben (keine Extraseite).
-    const shown = window.MB?.showChatResults?.(ids) ?? ids.length;
-    setStatus('', `<span>${shown} ${shown === 1 ? 'Bild' : 'Bilder'} zu „${escapeHtmlLite(q)}"</span>` +
-      `<button class="mc-reset" type="button">Alle anzeigen</button>`);
-
-    // Es gibt Treffer → Tastatur schließen, damit die Ergebnisse frei sichtbar
-    // sind. Bei „nichts gefunden" (oben mit return) bleibt der Fokus erhalten,
-    // sodass man direkt etwas anderes eintippen kann.
+    // Es gibt Treffer → ans Haupt-Grid übergeben und den Chat komplett
+    // schließen, damit man voll auf die Ergebnisse fokussiert ist. Beim
+    // „nichts gefunden"-Fall (oben mit return) bleibt der Chat samt Tastatur
+    // offen, sodass man direkt etwas anderes eintippen kann.
+    window.MB?.showChatResults?.(ids);
     input.blur();
+    closePanel();
   }
 
   form.addEventListener('submit', e => { e.preventDefault(); runSearch(); });
