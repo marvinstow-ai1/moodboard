@@ -137,6 +137,15 @@ const TRIGGERS = {
 // Vorberechnete Liste für schnellen Durchlauf.
 const TRIGGER_ENTRIES = Object.entries(TRIGGERS).map(([k, v]) => [fold(k), v.map(fold)]);
 
+// Gesamter Stimmungs-Wortschatz (alle Auslöser + alle gemappten Tags). Wörter
+// hieraus sind generische Mood-/Themen-Begriffe – also NIE ein „spezifisches"
+// Suchziel wie ein Eigenname. Wird unten zur Intent-Erkennung gebraucht.
+const MOOD_VOCAB = new Set();
+for (const [k, v] of Object.entries(TRIGGERS)) {
+  MOOD_VOCAB.add(fold(k));
+  v.forEach(x => MOOD_VOCAB.add(fold(x)));
+}
+
 // ── Ebene C: optionale KI-Anbindung ────────────────────────────────────────
 // Ruft die Supabase-Funktion `mood_text_to_tags` auf, die Such-Tags aus dem
 // Freitext erzeugt. Der API-Key liegt server-seitig im Supabase Vault (kein
@@ -153,50 +162,128 @@ async function aiTags(text) {
 }
 
 // ── Texteingabe → Such-Tags ────────────────────────────────────────────────
+// Liefert ein strukturiertes Objekt zurück statt nur einer flachen Tag-Liste:
+//   all     — alle Such-Tags (Stimmung + konkrete Wörter), fürs Scoring
+//   literal — die vom Nutzer SELBST getippten konkreten Wörter (keine bekannten
+//             Mood-Begriffe). Das sind die Kandidaten für ein „spezifisches"
+//             Suchziel (z. B. ein Eigenname / ein konkretes Motiv).
+// Diese Trennung erlaubt rankImages, automatisch zu erkennen, ob jemand breit
+// nach einer Stimmung oder gezielt nach einer bestimmten Sache sucht.
 async function textToTags(text) {
   const norm = fold(text);
-  const tags = new Set();
+  const all = new Set();
+  const literal = new Set();
 
-  // Ebene A: Synonym-/Keyword-Auslöser
+  // Ebene A: Synonym-/Keyword-Auslöser → breite Stimmungs-/Themen-Tags
   for (const [trigger, mapped] of TRIGGER_ENTRIES) {
-    if (norm.includes(trigger)) mapped.forEach(t => tags.add(t));
+    if (norm.includes(trigger)) mapped.forEach(t => all.add(t));
   }
 
-  // Ebene B: zusätzlich aussagekräftige Eigenwörter als rohe Tags übernehmen
-  // (z. B. „palmen", „kaffee") — Stoppwörter und zu kurze Tokens raus.
+  // Ebene B: aussagekräftige Eigenwörter als rohe Tags übernehmen
+  // (z. B. „palmen", „messi") — Stoppwörter und zu kurze Tokens raus.
+  // Wörter, die NICHT zum Stimmungs-Wortschatz gehören, sind potenzielle
+  // konkrete Suchziele und kommen zusätzlich nach `literal`.
   for (const w of norm.split(/[^a-z0-9]+/)) {
-    if (w.length >= 4 && !STOPWORDS.has(w)) tags.add(w);
+    if (w.length < 4 || STOPWORDS.has(w)) continue;
+    all.add(w);
+    if (!MOOD_VOCAB.has(w)) literal.add(w);
   }
 
-  // Ebene C: nur ergänzen, wenn die Regeln wenig hergeben (spart Kosten/Latenz)
-  if (tags.size < 2) {
+  // Ebene C: nur ergänzen, wenn die Regeln wenig hergeben (spart Kosten/Latenz).
+  // KI-Tags landen NUR in `all` (fürs Ranking), nie in `literal` – sie sollen
+  // eine gezielte Suche nicht heimlich verbreitern.
+  if (all.size < 2) {
     const ai = await aiTags(text);
-    ai.forEach(t => tags.add(fold(t)));
+    ai.forEach(t => all.add(fold(t)));
   }
 
-  return [...tags];
+  return { all: [...all], literal: [...literal] };
+}
+
+// ── Korpus-Statistik (Tag-Häufigkeiten) ────────────────────────────────────
+// Zählt, in wie vielen Bildern jeder Tag vorkommt (document frequency). Daraus
+// leiten wir ab, wie „spezifisch" ein Tag ist: Ein Eigenname wie „drogba" steckt
+// in sehr wenigen Bildern, ein generischer Tag wie „fussball" oder „cozy" in
+// vielen. Wird einmal pro Bild-Bestand berechnet und gecacht.
+let _stats = null;
+function corpusStats(items) {
+  if (_stats && _stats.n === items.length) return _stats;
+  const df = new Map();
+  for (const it of items) {
+    const seen = new Set((it.ai_tags || []).map(fold).filter(Boolean));
+    for (const t of seen) df.set(t, (df.get(t) || 0) + 1);
+  }
+  _stats = { n: items.length, df };
+  return _stats;
+}
+
+// Treffer eines Such-Tags gegen einen Bild-Tag — wortgenau, nicht als blinder
+// Substring. So matcht „drogba" auch den Bild-Tag „didier drogba" (ganzes Wort),
+// aber NICHT zufällige Teilstrings, die sonst fremde Bilder reinziehen würden.
+function tagHit(imageTag, s) {
+  if (imageTag === s) return true;
+  const iw = imageTag.split(/[^a-z0-9]+/);
+  if (iw.includes(s)) return true;                 // s ist ein ganzes Wort im Bild-Tag
+  const sw = s.split(/[^a-z0-9]+/);
+  if (sw.length > 1 && sw.every(x => iw.includes(x))) return true;
+  return false;
 }
 
 // ── Bild-Matching / Ranking ────────────────────────────────────────────────
-// Score je Bild: exakter Tag-Treffer zählt stark, Teil-/Ähnlichkeitstreffer
-// (Substring in beide Richtungen) zählt schwach — so greifen bei wenigen
-// exakten Treffern auch ähnliche Tags.
+// Erkennt automatisch, OB der Nutzer breit (Stimmung/Kategorie) oder gezielt
+// (konkretes Motiv/Eigenname) sucht, und filtert entsprechend:
 //
-// Hinweis für später: Für semantische Suche (statt reinem String-Match) ließe
-// sich hier pgvector einsetzen — Bild-Tags + Eingabe als Embeddings ablegen und
-// per Cosine-Distanz ranken. Die Schnittstelle (textToTags + rankImages) bliebe
-// gleich; nur rankImages würde gegen eine RPC `match_images(embedding)` tauschen.
-function rankImages(searchTags, items) {
-  const st = [...new Set(searchTags.map(fold))].filter(Boolean);
-  if (!st.length) return [];
+//   • SPEZIFISCH — Mindestens eines der vom Nutzer getippten konkreten Wörter
+//     (`literal`) ist im Bestand selten (kommt in wenigen Bildern vor). Dann
+//     will der Nutzer genau diese Sache → es werden NUR Bilder gezeigt, die
+//     dieses seltene Ziel wirklich enthalten. Generische Tags (fussball, sport)
+//     ziehen keine fremden Motive mehr rein. Mehrere konkrete Ziele werden
+//     vereinigt („messi und ronaldo" → beide).
+//
+//   • BREIT — Es gibt kein seltenes konkretes Ziel (z. B. „cozy vibes",
+//     „bock auf urlaub"). Dann werden wie gewohnt viele passende Bilder gezeigt.
+//
+// In beiden Fällen wird per IDF gewichtet: seltene Tags zählen stärker als
+// allgegenwärtige, damit das relevanteste Bild oben steht.
+//
+// Hinweis für später: Für echte semantische Suche ließe sich hier pgvector
+// einsetzen — Bild-Tags + Eingabe als Embeddings ablegen und per Cosine-Distanz
+// ranken. Die Schnittstelle (textToTags + rankImages) bliebe gleich.
+function rankImages(query, items) {
+  const all = [...new Set((query.all || []).map(fold))].filter(Boolean);
+  if (!all.length) return [];
+
+  const stats = corpusStats(items);
+  const N = stats.n || 1;
+  const idf = s => Math.log((N + 1) / ((stats.df.get(s) || 0) + 1)) + 1;
+
+  // Schwelle: Ein konkretes Wort gilt als „spezifisches Ziel", wenn es in
+  // höchstens ~12 % der Bilder vorkommt (mit kleinem absoluten Mindestwert für
+  // kleine Bestände). Was häufiger ist, ist faktisch eine breite Kategorie.
+  const specificThreshold = Math.max(4, Math.ceil(N * 0.12));
+  const literal = new Set((query.literal || []).map(fold));
+  const specificTags = all.filter(s => {
+    if (!literal.has(s)) return false;           // nur eigene Tipp-Wörter zählen
+    const dfc = stats.df.get(s) || 0;
+    return dfc === 0 || dfc <= specificThreshold; // selten (oder gar nicht da)
+  });
+  const isSpecific = specificTags.length > 0;
+
   const scored = [];
   for (const it of items) {
     const tags = (it.ai_tags || []).map(fold);
     if (!tags.length) continue;
+
+    // Spezifische Suche: Bild MUSS mindestens ein konkretes Ziel enthalten.
+    if (isSpecific && !specificTags.some(s => tags.some(t => tagHit(t, s)))) continue;
+
     let score = 0;
-    for (const s of st) {
-      if (tags.includes(s)) score += 3;
-      else if (tags.some(t => t.includes(s) || s.includes(t))) score += 1;
+    for (const s of all) {
+      const w = idf(s);
+      if (tags.includes(s)) score += 3 * w;                       // exakter Treffer
+      else if (tags.some(t => tagHit(t, s))) score += 2 * w;      // wortgenauer Treffer
+      else if (s.length >= 5 && tags.some(t => t.includes(s) || s.includes(t)))
+        score += 0.5 * w;                                         // schwache Ähnlichkeit
     }
     if (score > 0) scored.push({ it, score });
   }
@@ -312,9 +399,9 @@ function initMoodChat() {
     sendBtn.classList.add('is-busy');
     setStatus('loading', '<span class="mc-spin"></span><span>Suche passende Bilder …</span>');
 
-    let imgs, searchTags;
+    let imgs, query;
     try {
-      [imgs, searchTags] = await Promise.all([loadTaggedImages(), textToTags(q)]);
+      [imgs, query] = await Promise.all([loadTaggedImages(), textToTags(q)]);
     } catch (e) {
       if (token !== _runToken) return;
       sendBtn.classList.remove('is-busy');
@@ -324,7 +411,7 @@ function initMoodChat() {
     if (token !== _runToken) return; // veraltete Antwort verwerfen
     sendBtn.classList.remove('is-busy');
 
-    const matched = rankImages(searchTags, imgs);
+    const matched = rankImages(query, imgs);
     const ids = matched.map(it => it.id);
 
     if (!imgs.length) {

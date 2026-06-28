@@ -108,12 +108,23 @@ The text → search-tags translation has three layers
   and returns `[]` on any error — **the app works fully without any paid AI**
   (Layers A + B alone).
 
-Matching ([`rankImages`](js/mood-chat.js)) scores each image by tag overlap
-(exact match weighted high, substring/similar matches low) and ranks the most
-relevant first. The tagged-image list is fetched once per session and cached.
-For true semantic search later, `rankImages` can be swapped for a pgvector
-similarity query — the `textToTags` → match interface stays the same (see the
-note in the source).
+Matching ([`rankImages`](js/mood-chat.js)) **auto-detects search intent** from
+how rare each tag is across the whole library (a tag's document frequency):
+
+- **Specific search** — when one of the words you typed yourself is rare in the
+  library (e.g. a named entity like `drogba`, present in only a few images),
+  only images that actually contain that target are shown. Generic shared tags
+  (`fussball`, `sport`) no longer drag in unrelated subjects. Multiple specific
+  targets are unioned (`messi und ronaldo` → both).
+- **Broad search** — when there's no rare target (e.g. `cozy vibes`,
+  `bock auf urlaub`), many matching images are shown, as before.
+
+Either way, scoring is IDF-weighted (rare tags count more than ubiquitous ones)
+so the most relevant image ranks first, and tag hits are matched word-by-word
+rather than as blind substrings. The tagged-image list is fetched once per
+session and cached. For true semantic search later, `rankImages` can be swapped
+for a pgvector similarity query — the `textToTags` → match interface stays the
+same (see the note in the source).
 
 ## Environment
 
