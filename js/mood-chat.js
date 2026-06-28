@@ -331,13 +331,22 @@ async function loadTaggedImages() {
 // Vorschläge als Emoji-Chips: nur ein passendes Apple-Emoji ist sichtbar,
 // die eigentliche Such-Anfrage (`q`) und ein Label fürs Vorlesen/Tooltip
 // stecken in den Datenattributen. Alle Chips passen in eine Reihe.
+// Chips sind zweierlei Art:
+//   • Stimmung  (`q`)   — Freitext, der durch die normale Fuzzy-Suche läuft.
+//   • Kategorie (`cat`) — feste Liste von Tag-Bausteinen; es werden NUR Bilder
+//                         gezeigt, deren ai_tags einen dieser Bausteine als
+//                         Teilstring enthalten. So ist die Kategorie exklusiv
+//                         (z. B. „Fußball" zeigt wirklich nur Fußball, nicht
+//                         allgemeinen Sport).
 const SUGGESTIONS = [
   { emoji: '🏖️', q: 'Bock auf Urlaub',           label: 'Bock auf Urlaub' },
   { emoji: '🌧️', q: 'hab schlechte Laune',        label: 'Schlechte Laune' },
-  { emoji: '😮‍💨', q: 'ich bin gestresst',          label: 'Gestresst' },
+  { emoji: '🎬', cat: ['anime', 'manga', 'film', 'kino', 'cartoon', 'comic', 'movie', 'serie'],
+    label: 'Movies / Anime / Manga' },
   { emoji: '🏆', q: 'zeig mir was Motivierendes', label: 'Motivierendes' },
   { emoji: '🧘', q: 'was Beruhigendes',           label: 'Beruhigendes' },
-  { emoji: '🕯️', q: 'cozy Vibes',                 label: 'Cozy Vibes' },
+  { emoji: '⚽️', cat: ['fussball', 'trikot', 'stadion', 'torjubel', 'torjäger', 'messi', 'ronaldo', 'champions league'],
+    label: 'Fußball' },
 ];
 
 function initMoodChat() {
@@ -351,14 +360,18 @@ function initMoodChat() {
   const suggestEl = $('mcSuggest');
   const statusEl = $('mcStatus');
 
-  // Vorschlags-Chips rendern (Emoji sichtbar, Anfrage im data-Attribut)
+  // Vorschlags-Chips rendern (Emoji sichtbar, Label im aria-label/title)
   suggestEl.innerHTML = SUGGESTIONS
-    .map(s => `<button class="mc-chip" type="button" data-q="${s.q.replace(/"/g, '&quot;')}" ` +
+    .map((s, i) => `<button class="mc-chip" type="button" data-i="${i}" ` +
       `aria-label="${s.label.replace(/"/g, '&quot;')}" title="${s.label.replace(/"/g, '&quot;')}">` +
       `<span aria-hidden="true">${s.emoji}</span></button>`)
     .join('');
   suggestEl.querySelectorAll('.mc-chip').forEach(btn => {
-    btn.onclick = () => { input.value = btn.dataset.q; runSearch(btn.dataset.q); };
+    btn.onclick = () => {
+      const s = SUGGESTIONS[+btn.dataset.i];
+      if (s.cat) { runCategory(s.cat, s.label); }
+      else { input.value = s.q; runSearch(s.q); }
+    };
   });
 
   // Quick-Chip „Zuletzt hinzugefügt": wechselt direkt zur Recent-Ansicht
@@ -480,6 +493,49 @@ function initMoodChat() {
     // schließen, damit man voll auf die Ergebnisse fokussiert ist. Beim
     // „nichts gefunden"-Fall (oben mit return) bleibt der Chat samt Tastatur
     // offen, sodass man direkt etwas anderes eintippen kann.
+    window.MB?.showChatResults?.(ids);
+    input.blur();
+    closePanel();
+  }
+
+  // ── Kategorie-Suche ────────────────────────────────────────────────────────
+  // Zeigt ausschließlich Bilder, deren ai_tags einen der Kategorie-Bausteine als
+  // Teilstring enthalten (z. B. „fussball" matcht auch „fussballspieler"). Keine
+  // Fuzzy-/Stimmungslogik, damit die Kategorie wirklich exklusiv bleibt.
+  async function runCategory(tags, label) {
+    const token = ++_runToken;
+    sendBtn.classList.add('is-busy');
+    setStatus('loading', '<span class="mc-spin"></span><span>Suche passende Bilder …</span>');
+
+    let imgs;
+    try {
+      imgs = await loadTaggedImages();
+    } catch (e) {
+      if (token !== _runToken) return;
+      sendBtn.classList.remove('is-busy');
+      setStatus('error', 'Konnte gerade nicht laden. Versuch es nochmal.');
+      return;
+    }
+    if (token !== _runToken) return; // veraltete Antwort verwerfen
+    sendBtn.classList.remove('is-busy');
+
+    const needles = tags.map(fold);
+    const ids = imgs
+      .filter(it => (it.ai_tags || []).some(t => {
+        const ft = fold(t);
+        return needles.some(n => ft.includes(n));
+      }))
+      .map(it => it.id);
+
+    if (!imgs.length) {
+      setStatus('empty', 'Noch keine getaggten Bilder vorhanden.');
+      return;
+    }
+    if (!ids.length) {
+      setStatus('empty', `Keine Bilder in „${escapeHtmlLite(label)}" gefunden 👀`);
+      return;
+    }
+
     window.MB?.showChatResults?.(ids);
     input.blur();
     closePanel();
