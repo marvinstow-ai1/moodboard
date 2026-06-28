@@ -59,23 +59,29 @@ moodboard/
 
 ### Background auto-tagging (chatbot)
 
-Images get a rich set of detailed German tags (mood + content, e.g. `urlaub`,
-`sonnig`, `gute laune`, `strand`, `meer`) in the hidden `ai_tags` column. These
-exist only so a chatbot can find images by mood/topic — they are **not** shown
-in the grid, lightbox or editor, and the frontend never reads them. Everything
-runs **server-side in Supabase**, so no app/frontend code is involved:
+Images **and GIFs** get a rich set of detailed tags (25–40 each) in the hidden
+`ai_tags` column. These exist only so a chatbot can find media by mood, topic
+**and concrete names** — they are **not** shown in the grid, lightbox or editor,
+and the frontend never reads them. Everything runs **server-side in Supabase**,
+so no app/frontend code is involved:
 
-- **Vision model:** OpenRouter (`google/gemini-2.5-flash-lite`), called directly
-  from Postgres via the `http` extension. The API key lives encrypted in
-  **Supabase Vault** (`openrouter_api_key`) — never in the repo or frontend.
-  The model is overridable via a Vault secret `openrouter_model`.
+- **What gets tagged:** named entities when clearly recognisable (people, clubs,
+  brands, places, movies/characters/memes — e.g. `victor osimhen`, `ssc napoli`,
+  `rush hour`), descriptive content (objects, colours, season, activity), mood
+  words, and colloquial Gen-Z slang (`goat`, `drip`, `vibes`, `legende`). The
+  model is told **not to guess names** when unsure, to avoid false IDs.
+- **Vision model:** OpenRouter (`google/gemini-2.5-flash`), called directly from
+  Postgres via the `http` extension. The API key lives encrypted in **Supabase
+  Vault** (`openrouter_api_key`) — never in the repo or frontend. The model is
+  overridable via a Vault secret `openrouter_model`.
 - **Tagging function:** `public.ai_tag_image(uuid)` reads the key from Vault,
-  calls the model, normalises the result and writes `ai_tags` /
-  `ai_status` / `ai_tagged_at`. It is owner/service-role only.
-- **Automation (`pg_cron`):** `auto-tag-pending` tags new `pending` images every
-  minute; `auto-tag-retry` retries `failed` images every 15 minutes. New uploads
-  are inserted with `ai_status='pending'` (the column default) and get tagged
-  within ~1 minute — no change to the upload flow, no added latency.
+  calls the model, normalises the result and writes `ai_tags` / `ai_status` /
+  `ai_tagged_at`. It is owner/service-role only.
+- **Automation (`pg_cron`):** `auto-tag-pending` tags new `pending` media every
+  minute (self-parallelising via `for update skip locked`); `auto-tag-retry`
+  retries `failed` media every 15 minutes. New uploads are inserted with
+  `ai_status='pending'` (the column default) and get tagged within ~1 minute —
+  no change to the upload flow, no added latency.
 
 The full, reproducible SQL setup lives in [`db/ai_tagging.sql`](db/ai_tagging.sql).
 

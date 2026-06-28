@@ -1,8 +1,8 @@
 -- ============================================================================
--- Background image auto-tagging for the chatbot
+-- Background image/GIF auto-tagging for the chatbot
 -- ----------------------------------------------------------------------------
 -- Tags are stored in moodboard_items.ai_tags and are NEVER shown in the UI;
--- they only let a chatbot find images by mood/topic. Everything runs
+-- they only let a chatbot find images by mood/topic/name. Everything runs
 -- server-side in Supabase (no frontend code involved).
 --
 -- This file documents the full setup so it can be reproduced. It is applied to
@@ -31,13 +31,13 @@ end $$;
 -- 2) Secrets in Vault --------------------------------------------------------
 -- Run ONCE with your real key (kept out of git):
 --   select vault.create_secret('sk-or-v1-...', 'openrouter_api_key', 'OpenRouter API key');
--- Optional model override (defaults to google/gemini-2.5-flash-lite):
---   select vault.create_secret('google/gemini-2.5-flash-lite', 'openrouter_model');
+-- Optional model override (defaults to google/gemini-2.5-flash):
+--   select vault.create_secret('google/gemini-2.5-flash', 'openrouter_model');
 
 -- 3) Extensions --------------------------------------------------------------
-create extension if not exists supabase_vault;          -- encrypted secrets
+create extension if not exists supabase_vault;               -- encrypted secrets
 create extension if not exists http with schema extensions;  -- outbound calls
-create extension if not exists pg_cron;                 -- scheduling
+create extension if not exists pg_cron;                      -- scheduling
 
 -- 4) Service-role-only reader for Vault secrets ------------------------------
 create or replace function public.get_secret(secret_name text)
@@ -52,8 +52,10 @@ revoke all on function public.get_secret(text) from public, anon, authenticated;
 grant execute on function public.get_secret(text) to service_role;
 
 -- 5) The tagging function ----------------------------------------------------
--- Reads the key from Vault, calls the vision model and writes the tags.
--- Owner-only when invoked through PostgREST; open to direct/cron/service calls.
+-- Reads the key from Vault, calls a strong vision model (gemini-2.5-flash,
+-- which recognises famous people / clubs / brands / movies by name) and writes
+-- a rich set of German + slang tags. Owner-only via PostgREST; open to
+-- direct/cron/service calls. Works for both images and GIFs.
 create or replace function public.ai_tag_image(p_id uuid)
 returns text[]
 language plpgsql
@@ -70,7 +72,15 @@ declare
   v_text    text;
   v_arr     text;
   v_tags    text[];
-  v_prompt  text := $p$Du bist ein Bild-Tagging-System fuer eine Moodboard-App. Analysiere das Bild und gib viele detaillierte deutsche Schlagwoerter zurueck, damit ein Chatbot das Bild spaeter nach Stimmung und Inhalt finden kann. Gib eine Mischung aus 1-3 Stimmungs-/Mood-Woertern (z. B. urlaub, gute laune, sonnig, entspannt, cozy, natur, melancholisch, energiegeladen) und vielen beschreibenden Tags zu Motiv, Objekten, Ort, Farben, Jahreszeit, Tageszeit und Aktivitaet (z. B. strand, meer, palmen, himmel, sonnenuntergang, berge, kaffee, stadt, nacht, blau). Regeln: nur deutsche Woerter, alles klein, einzelne Begriffe (max. 2 Woerter), 12 bis 22 Tags, keine Doppelungen, keine Saetze, keine Emojis. Antworte AUSSCHLIESSLICH mit einem JSON-Array von Strings.$p$;
+  v_prompt  text := $p$Du bist ein praezises Bild-Tagging-System fuer eine Moodboard-App. Erkenne moeglichst genau, WAS und WER auf dem Bild ist, und gib SEHR VIELE detaillierte Tags zurueck, damit ein Chatbot das Bild nach Stimmung, Inhalt und konkreten Namen finden kann.
+
+Gib eine Mischung aus:
+1) Eigennamen, wenn klar erkennbar: konkrete Personen/Promis/Sportler (z. B. lionel messi, mario balotelli), Vereine/Teams/Nationen, Marken/Logos/Sponsoren, Orte/Staedte/Laender/Stadien, Filme/Serien/Games/Charaktere/Memes.
+2) Beschreibung: Motiv, Objekte, Kleidung/Trikot, Ort, Farben, Jahreszeit, Tageszeit, Aktivitaet, Trikotnummer.
+3) Stimmung/Mood (z. B. urlaub, gute laune, sonnig, entspannt, cozy, melancholisch, energiegeladen, episch).
+4) Umgangssprachliche Jugendsprache / Gen-Z Slang, wenn passend (z. B. goat, vibes, drip, aura, sigma, based, banger, legende, hart, fire, wholesome, cringe, icon, w, mood).
+
+Regeln: ueberwiegend deutsch, gaengige englische Slang-/Markenbegriffe erlaubt; alles klein; einzelne Begriffe oder kurze Eigennamen (max. 3 Woerter); 25 bis 40 Tags insgesamt; keine Doppelungen, keine Saetze, keine Emojis, keine Hashtags. WICHTIG: Wenn du eine Person/Sache nicht sicher erkennst, RATE den Namen NICHT, sondern beschreibe nur. Antworte AUSSCHLIESSLICH mit einem JSON-Array von Strings.$p$;
 begin
   v_claims := current_setting('request.jwt.claims', true);
   if v_claims is not null and v_claims <> '' then
@@ -87,10 +97,10 @@ begin
 
   v_model := coalesce(
     (select decrypted_secret from vault.decrypted_secrets where name = 'openrouter_model'),
-    'google/gemini-2.5-flash-lite'
+    'google/gemini-2.5-flash'
   );
 
-  perform extensions.http_set_curlopt('CURLOPT_TIMEOUT_MS', '20000');
+  perform extensions.http_set_curlopt('CURLOPT_TIMEOUT_MS', '30000');
 
   select r.status, r.content
     into v_status, v_content
@@ -105,8 +115,8 @@ begin
     'application/json',
     json_build_object(
       'model', v_model,
-      'temperature', 0.2,
-      'max_tokens', 300,
+      'temperature', 0.3,
+      'max_tokens', 600,
       'messages', json_build_array(json_build_object(
         'role', 'user',
         'content', json_build_array(
@@ -132,8 +142,8 @@ begin
   select array_agg(t) into v_tags from (
     select distinct lower(btrim(value)) as t
     from jsonb_array_elements_text(v_arr::jsonb) as e(value)
-    where btrim(value) <> '' and length(btrim(value)) <= 40
-    limit 30
+    where btrim(value) <> '' and length(btrim(value)) <= 50
+    limit 45
   ) s;
 
   v_tags := coalesce(v_tags, '{}');
@@ -153,29 +163,31 @@ revoke all on function public.ai_tag_image(uuid) from public, anon;
 grant execute on function public.ai_tag_image(uuid) to authenticated, service_role;
 
 -- 6) Scheduling --------------------------------------------------------------
+-- Images AND gifs. `for update skip locked` lets overlapping runs process
+-- disjoint rows safely, so the job self-parallelises and drains backlogs fast.
 select cron.unschedule(jobid) from cron.job where jobname in ('auto-tag-pending','auto-tag-retry');
 
--- New uploads (ai_status defaults to 'pending') get tagged within ~1 minute.
 select cron.schedule('auto-tag-pending', '* * * * *', $$
   select public.ai_tag_image(id) from (
     select id from public.moodboard_items
-    where media_type = 'image' and ai_status = 'pending'
-    order by created_at desc limit 15
+    where media_type in ('image','gif') and ai_status = 'pending'
+    order by created_at desc limit 18 for update skip locked
   ) s
 $$);
 
--- Transient failures are retried every 15 minutes.
 select cron.schedule('auto-tag-retry', '*/15 * * * *', $$
   select public.ai_tag_image(id) from (
     select id from public.moodboard_items
-    where media_type = 'image' and ai_status = 'failed'
+    where media_type in ('image','gif') and ai_status = 'failed'
     order by created_at desc limit 10
   ) s
 $$);
 
--- One-off backfill of existing images (run manually in batches):
+-- One-off backfill / re-tag of existing media (run manually in batches):
+--   update public.moodboard_items set ai_status='pending'
+--     where media_type in ('image','gif');           -- to re-tag everything
 --   select public.ai_tag_image(id) from (
 --     select id from public.moodboard_items
---     where media_type='image' and ai_status <> 'processed'
---     order by created_at desc limit 20
+--     where media_type in ('image','gif') and ai_status <> 'processed'
+--     order by created_at desc limit 16 for update skip locked
 --   ) s;
