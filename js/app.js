@@ -381,12 +381,11 @@ function toast(t){
   toastEl.textContent=t;
   if(typeof gsap !== 'undefined'){
     gsap.killTweensOf(toastEl);
-    // xPercent:-50 hält die Zentrierung breitenrelativ – sonst cached GSAP beim
-    // Animieren von y einen Pixel-x-Wert eines vorherigen (anders breiten) Toasts
-    // und der Hinweis verrutscht (z. B. bei "Neu gemischt").
-    gsap.fromTo(toastEl,{opacity:0,y:10,xPercent:-50},{opacity:1,y:0,xPercent:-50,duration:0.22,ease:'power2.out'});
+    // Zentrierung läuft rein über CSS (left/right:0 + margin:auto), darum animiert
+    // GSAP hier nur opacity/y – der transform verschiebt nichts mehr horizontal.
+    gsap.fromTo(toastEl,{opacity:0,y:10},{opacity:1,y:0,duration:0.22,ease:'power2.out'});
     clearTimeout(toast._t);
-    toast._t=setTimeout(()=>gsap.to(toastEl,{opacity:0,y:10,xPercent:-50,duration:0.2,ease:'power2.in'}),1800);
+    toast._t=setTimeout(()=>gsap.to(toastEl,{opacity:0,y:10,duration:0.2,ease:'power2.in'}),1800);
   } else {
     toastEl.classList.add('show');
     clearTimeout(toast._t);
@@ -726,6 +725,8 @@ function doShuffle() {
   // Shuffle ist die Archiv-Ansicht: aus "Zuletzt hinzugefügt" zurückwechseln
   if(currentView === 'recent') currentView = 'archive';
   renderGrid();
+  // Nach dem Mischen wieder ganz nach oben – egal wie weit man vorher gescrollt hat.
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   toast('Neu gemischt');
 }
 $('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); doShuffle(); };
