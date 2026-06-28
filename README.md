@@ -82,10 +82,12 @@ The full, reproducible SQL setup lives in [`db/ai_tagging.sql`](db/ai_tagging.sq
 
 ### Mood-Chat search
 
-A compact "Stimmung" view (via the page-nav dropdown) lets users type a short
+A round chat button in the bottom bar opens a small chat panel. Type a short
 mood or wish — e.g. *"Bock auf Urlaub"*, *"hab schlechte Laune"*,
-*"ich bin gestresst"* — and get the best-matching images. **No image is
-re-analysed per request**; it matches against the pre-computed `ai_tags`.
+*"ich bin gestresst"* — and the best-matching images appear **directly in the
+main grid** (no separate page). A "Alle anzeigen" button resets the grid.
+**No image is re-analysed per request**; it matches against the pre-computed
+`ai_tags`.
 
 The text → search-tags translation has three layers
 ([`js/mood-chat.js`](js/mood-chat.js)):

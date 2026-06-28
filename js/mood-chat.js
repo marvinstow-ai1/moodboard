@@ -244,18 +244,16 @@ const SUGGESTIONS = [
   'cozy Vibes',
 ];
 
-const RESULT_LIMIT = 60;
-
 function initMoodChat() {
-  const view = $('moodChatView');
-  if (!view) return;
+  const panel = $('moodChatPanel');
+  const chatBtn = $('chatBtn');
+  if (!panel || !chatBtn) return;
 
   const form = $('mcForm');
   const input = $('mcInput');
-  const tagsEl = $('mcTags');
-  const resultsEl = $('mcResults');
-  const stateEl = $('mcState');
+  const sendBtn = $('mcSend');
   const suggestEl = $('mcSuggest');
+  const statusEl = $('mcStatus');
 
   // Vorschlags-Chips rendern
   suggestEl.innerHTML = SUGGESTIONS
@@ -265,27 +263,48 @@ function initMoodChat() {
     btn.onclick = () => { input.value = btn.dataset.q; runSearch(btn.dataset.q); };
   });
 
-  function setState(kind, html) {
-    stateEl.className = 'mc-state' + (kind ? ' is-' + kind : '');
-    stateEl.innerHTML = html || '';
+  // ── Panel öffnen / schließen ──
+  function openPanel() {
+    panel.classList.add('show');
+    panel.setAttribute('aria-hidden', 'false');
+    chatBtn.classList.add('active');
+    loadTaggedImages().catch(() => {}); // schon mal vorladen
+    setTimeout(() => input.focus(), 220);
+  }
+  function closePanel() {
+    panel.classList.remove('show');
+    panel.setAttribute('aria-hidden', 'true');
+    chatBtn.classList.remove('active');
+  }
+  function togglePanel() {
+    panel.classList.contains('show') ? closePanel() : openPanel();
   }
 
-  function renderResults(items) {
-    resultsEl.innerHTML = items.map((it, i) => `
-      <div class="mc-cell" data-idx="${i}">
-        <img src="${it.media_url}" loading="lazy" decoding="async" alt="">
-      </div>`).join('');
-    resultsEl.querySelectorAll('.mc-cell').forEach(cell => {
-      cell.onclick = () => {
-        const idx = +cell.dataset.idx;
-        // Lightbox der Haupt-App wiederverwenden (Swipe/Ambient inklusive).
-        if (window.MB && typeof window.MB.openItems === 'function') {
-          window.MB.openItems(items, idx);
-        } else {
-          window.open(items[idx].media_url, '_blank');
-        }
-      };
-    });
+  chatBtn.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
+  $('mcClose').addEventListener('click', closePanel);
+  // Klick außerhalb schließt das Panel (aber nicht beim Tippen darin / Button)
+  document.addEventListener('click', e => {
+    if (!panel.classList.contains('show')) return;
+    if (e.target.closest('#moodChatPanel') || e.target.closest('#chatBtn')) return;
+    closePanel();
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+  // ── Status-Zeile ──
+  function setStatus(kind, html) {
+    statusEl.className = 'mc-status show' + (kind ? ' is-' + kind : '');
+    statusEl.innerHTML = html || '';
+    const reset = statusEl.querySelector('.mc-reset');
+    if (reset) reset.onclick = resetGrid;
+  }
+  function clearStatus() {
+    statusEl.className = 'mc-status';
+    statusEl.innerHTML = '';
+  }
+  function resetGrid() {
+    clearStatus();
+    input.value = '';
+    window.MB?.clearChatResults?.();
   }
 
   let _runToken = 0;
@@ -294,47 +313,45 @@ function initMoodChat() {
     if (!q) { input.focus(); return; }
     const token = ++_runToken;
 
-    tagsEl.innerHTML = '';
-    resultsEl.innerHTML = '';
-    setState('loading', '<div class="mc-spinner"></div><span>Suche passende Bilder …</span>');
+    sendBtn.classList.add('is-busy');
+    setStatus('loading', '<span class="mc-spin"></span><span>Suche passende Bilder …</span>');
 
     let imgs, searchTags;
     try {
       [imgs, searchTags] = await Promise.all([loadTaggedImages(), textToTags(q)]);
     } catch (e) {
       if (token !== _runToken) return;
-      setState('error', 'Konnte gerade nicht laden. Versuch es nochmal.');
+      sendBtn.classList.remove('is-busy');
+      setStatus('error', 'Konnte gerade nicht laden. Versuch es nochmal.');
       return;
     }
     if (token !== _runToken) return; // veraltete Antwort verwerfen
+    sendBtn.classList.remove('is-busy');
 
-    // Ermittelte Tags anzeigen (kleine Transparenz, was gesucht wurde)
-    if (searchTags.length) {
-      tagsEl.innerHTML = '<span class="mc-tags-label">Tags:</span>' +
-        searchTags.slice(0, 10).map(t => `<span class="mc-tag">${t}</span>`).join('');
-    }
-
-    const matched = rankImages(searchTags, imgs).slice(0, RESULT_LIMIT);
+    const matched = rankImages(searchTags, imgs);
+    const ids = matched.map(it => it.id);
 
     if (!imgs.length) {
-      setState('empty', 'Noch keine getaggten Bilder vorhanden.');
+      setStatus('empty', 'Noch keine getaggten Bilder vorhanden.');
       return;
     }
-    if (!matched.length) {
-      setState('empty', `Nichts Passendes zu „${q}" gefunden. Probier eine andere Stimmung 👀`);
+    if (!ids.length) {
+      setStatus('empty', `Nichts zu „${q}" gefunden. Probier eine andere Stimmung 👀`);
       return;
     }
-    setState('');
-    renderResults(matched);
+
+    // Treffer ans Haupt-Grid übergeben (keine Extraseite).
+    const shown = window.MB?.showChatResults?.(ids) ?? ids.length;
+    setStatus('', `<span>${shown} ${shown === 1 ? 'Bild' : 'Bilder'} zu „${escapeHtmlLite(q)}"</span>` +
+      `<button class="mc-reset" type="button">Alle anzeigen</button>`);
   }
 
   form.addEventListener('submit', e => { e.preventDefault(); runSearch(); });
+}
 
-  // Von der App aufrufbar, wenn die View geöffnet wird.
-  window.MoodChat = {
-    focus() { setTimeout(() => input.focus(), 250); },
-    prefetch() { loadTaggedImages().catch(() => {}); },
-  };
+// Minimaler HTML-Escape für die Statuszeile.
+function escapeHtmlLite(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
 if (document.readyState === 'loading') {
