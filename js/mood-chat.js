@@ -325,7 +325,7 @@ const SUGGESTIONS = [
   { emoji: '🏖️', q: 'Bock auf Urlaub',           label: 'Bock auf Urlaub' },
   { emoji: '🌧️', q: 'hab schlechte Laune',        label: 'Schlechte Laune' },
   { emoji: '😮‍💨', q: 'ich bin gestresst',          label: 'Gestresst' },
-  { emoji: '🔥', q: 'zeig mir was Motivierendes', label: 'Motivierendes' },
+  { emoji: '🏆', q: 'zeig mir was Motivierendes', label: 'Motivierendes' },
   { emoji: '🧘', q: 'was Beruhigendes',           label: 'Beruhigendes' },
   { emoji: '🕯️', q: 'cozy Vibes',                 label: 'Cozy Vibes' },
 ];
