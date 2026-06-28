@@ -1,10 +1,12 @@
 /* ── LIGHTBOX ────────────────────────────────────────── */
 .lightbox {
   position: fixed; inset: 0; z-index: 80;
-  background: rgba(0,0,0,.86);
+  background: rgba(0,0,0,.92);
   display: none; flex-direction: column;
   align-items: stretch;
-  backdrop-filter: blur(10px);
+  /* Kein backdrop-filter: Der Hintergrund ist ohnehin fast deckend schwarz und
+     wird komplett von den Ambient-Ebenen verdeckt – ein Vollbild-Backdrop-Blur
+     pro Frame wäre reine GPU-Verschwendung und ließ das Öffnen ruckeln. */
   touch-action: pan-y; overflow: hidden;
 }
 .lightbox.show { display: flex; }
@@ -26,11 +28,15 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  transform: scale(1.35);
-  filter: blur(75px) saturate(2) brightness(1.06);
+  transform: scale(1.35) translateZ(0);
+  /* Geringerer Blur-Radius (vorher 75px) bei gleicher "knalliger" Wirkung –
+     der Gauss-Blur skaliert ungefähr quadratisch mit dem Radius, daher ist das
+     der größte einzelne Performance-Gewinn beim Überblenden. */
+  filter: blur(48px) saturate(1.9) brightness(1.06);
   opacity: 0;
-  transition: opacity .65s ease;
+  transition: opacity .55s ease;
   will-change: opacity;
+  contain: layout paint;
 }
 .lb-ambient-layer.active { opacity: 1; }
 .lb-ambient-layer video {
