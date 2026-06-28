@@ -7,8 +7,10 @@
 .mc-panel{
   position:fixed;left:50%;
   /* --mc-kb = Höhe der eingeblendeten Tastatur (per JS gesetzt). Das Panel
-     fährt dadurch sanft über die Apple-Tastatur, statt dass die Seite zoomt. */
-  bottom:calc(78px + env(safe-area-inset-bottom) + var(--mc-kb, 0px));
+     fährt dadurch sanft über die Apple-Tastatur, statt dass die Seite zoomt.
+     bottom:80px deckt sich exakt mit dem Spotify- und dem Kachelgrößen-Popup,
+     damit alle drei auf derselben Höhe über der Bottom-Bar sitzen. */
+  bottom:calc(80px + var(--mc-kb, 0px));
   transform:translateX(-50%) translateY(12px);
   z-index:31;width:min(520px,calc(100vw - 24px));
   background:var(--panel);border:1px solid var(--border);border-radius:20px;

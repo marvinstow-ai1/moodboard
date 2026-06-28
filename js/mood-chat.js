@@ -445,6 +445,9 @@ function initMoodChat() {
     // erneuten Öffnen nicht der letzte Suchbegriff stehen bleibt.
     input.value = '';
     clearStatus();
+    // Andere Bottom-Bar-Popups (Spotify, Kachelgröße) sanft schließen, damit
+    // nichts übereinander aufgeht.
+    window.MB?.closeOtherPopups?.('chat');
     panel.classList.add('show');
     panel.setAttribute('aria-hidden', 'false');
     chatBtn.classList.add('active');

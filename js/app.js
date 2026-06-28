@@ -367,7 +367,11 @@ bindQuickAdd(''); bindQuickAdd('Sheet');
 function bindView(suffix){
   const g = k => $(k + (suffix||''));
   const f = g('ddFilterBtn'); const s = g('ddShuffleBtn');
-  if(f) f.onclick = () => { closeMenu(); filterPopup.classList.toggle('show'); };
+  if(f) f.onclick = () => {
+    closeMenu();
+    if(!filterPopup.classList.contains('show')) window.MB.closeOtherPopups?.('filter');
+    filterPopup.classList.toggle('show');
+  };
   if(s) s.onclick = () => { closeMenu(); doShuffle(); };
 }
 bindView(''); bindView('Sheet');
@@ -1250,7 +1254,9 @@ function showRecentView(){
   goRecent();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-window.MB = {
+// Object.assign statt Zuweisung: bewahrt Helfer, die zuvor gesetzt wurden
+// (z. B. window.MB.closeSpotify aus dem Inline-Script in index.html).
+window.MB = Object.assign(window.MB || {}, {
   showChatResults,
   clearChatResults,
   showRecentView,
@@ -1259,6 +1265,16 @@ window.MB = {
     state.moodboard.currentItems = items;
     openLightbox(idx);
   }
+});
+
+// ── Bottom-Bar-Popups gegenseitig ausschließen ─────────────
+// Spotify, Kachelgröße (Filter) und Chat teilen sich denselben Platz über der
+// Bottom-Bar. Öffnet man eins, schließen die anderen – per CSS-Transition
+// entsteht so eine sanfte Überblendung statt eines Übereinanderstapelns.
+window.MB.closeOtherPopups = function(except){
+  if(except !== 'spotify') window.MB.closeSpotify?.();
+  if(except !== 'filter')  window.MB.closeFilter?.();
+  if(except !== 'chat')    window.MB.closeChat?.();
 };
 
 // ── App starten ───────────────────────────────────────────
@@ -1281,8 +1297,11 @@ window.addEventListener('resize', () => {
 // ── Filter popup open/close ────────────────────────────────
 const filterPopup = document.getElementById('filterPopup');
 const filterBtn   = document.getElementById('filterBtn');
+window.MB.closeFilter = () => { filterPopup.classList.remove('show'); };
 filterBtn.onclick = e => {
   e.stopPropagation();
+  const willOpen = !filterPopup.classList.contains('show');
+  if(willOpen) window.MB.closeOtherPopups?.('filter');
   filterPopup.classList.toggle('show');
 };
 document.addEventListener('click', e => {
