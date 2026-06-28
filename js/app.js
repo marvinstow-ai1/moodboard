@@ -437,13 +437,17 @@ function closeAllOverlays(){
   editorWrap.classList.remove('show');
   const sp = document.getElementById('spotifyPopup');
   if(sp){ sp.classList.remove('show'); document.getElementById('spotifyBtn').classList.remove('active'); }
+  if(typeof closePageNav === 'function') closePageNav();
+  window.MB?.closeChat?.();
 }
 function isAnyOverlayOpen(){
   return dropdown.classList.contains('show') ||
          bottomSheet.classList.contains('show') ||
          filterPopup.classList.contains('show') ||
          editorWrap.classList.contains('show') ||
-         !!document.getElementById('spotifyPopup')?.classList.contains('show');
+         !!document.getElementById('spotifyPopup')?.classList.contains('show') ||
+         !!document.getElementById('pageNavMenu')?.classList.contains('show') ||
+         !!document.getElementById('moodChatPanel')?.classList.contains('show');
 }
 $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
 sheetOverlay.onclick = closeMenu;

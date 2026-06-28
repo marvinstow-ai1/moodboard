@@ -400,6 +400,11 @@ function initMoodChat() {
     panel.classList.contains('show') ? closePanel() : openPanel();
   }
 
+  // Schließen von außen erreichbar machen (z. B. damit ein Klick auf ein Bild
+  // bei offenem Panel zuerst nur das Panel schließt, statt das Bild zu öffnen).
+  window.MB = window.MB || {};
+  window.MB.closeChat = closePanel;
+
   chatBtn.addEventListener('click', e => { e.stopPropagation(); togglePanel(); });
   $('mcClose').addEventListener('click', closePanel);
   // Klick außerhalb schließt das Panel (aber nicht beim Tippen darin / Button)
