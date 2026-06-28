@@ -202,7 +202,7 @@
 
 /* ── Bottombar Button Animation (grow/shrink) ──────── */
 .bottombar-btn, .bottombar-divider, .moods-mgmt-btn {
-  transition:transform .45s cubic-bezier(.32,1,.23,1),opacity .45s cubic-bezier(.32,1,.23,1),width .45s cubic-bezier(.32,1,.23,1),margin .45s cubic-bezier(.32,1,.23,1);
+  transition:transform .45s cubic-bezier(.32,1,.23,1),opacity .45s cubic-bezier(.32,1,.23,1),width .45s cubic-bezier(.32,1,.23,1),margin .45s cubic-bezier(.32,1,.23,1),background-color .45s cubic-bezier(.32,1,.23,1);
 }
 .bottombar.moods-active #shuffleBtn,
 .bottombar.moods-active #filterBtn {
@@ -227,7 +227,7 @@
   transform:scale(1);opacity:1;max-width:200px;
   padding:0 12px;pointer-events:auto;visibility:visible;
 }
-.moods-mgmt-btn:hover{background:rgba(255,255,255,.1)}
+.moods-mgmt-btn:active{background:rgba(255,255,255,.22);transform:scale(.97);transition:background-color .05s ease,transform .05s ease}
 .moods-mgmt-btn svg{width:18px;height:18px;display:block;flex-shrink:0}
 /* ── Login Modal ─────────────────────────────────────── */
 .login-modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}

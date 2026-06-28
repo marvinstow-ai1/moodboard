@@ -377,9 +377,12 @@ function toast(t){
   toastEl.textContent=t;
   if(typeof gsap !== 'undefined'){
     gsap.killTweensOf(toastEl);
-    gsap.fromTo(toastEl,{opacity:0,y:10},{opacity:1,y:0,duration:0.22,ease:'power2.out'});
+    // xPercent:-50 hält die Zentrierung breitenrelativ – sonst cached GSAP beim
+    // Animieren von y einen Pixel-x-Wert eines vorherigen (anders breiten) Toasts
+    // und der Hinweis verrutscht (z. B. bei "Neu gemischt").
+    gsap.fromTo(toastEl,{opacity:0,y:10,xPercent:-50},{opacity:1,y:0,xPercent:-50,duration:0.22,ease:'power2.out'});
     clearTimeout(toast._t);
-    toast._t=setTimeout(()=>gsap.to(toastEl,{opacity:0,y:10,duration:0.2,ease:'power2.in'}),1800);
+    toast._t=setTimeout(()=>gsap.to(toastEl,{opacity:0,y:10,xPercent:-50,duration:0.2,ease:'power2.in'}),1800);
   } else {
     toastEl.classList.add('show');
     clearTimeout(toast._t);
