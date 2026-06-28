@@ -191,3 +191,83 @@ $$);
 --     where media_type in ('image','gif') and ai_status <> 'processed'
 --     order by created_at desc limit 16 for update skip locked
 --   ) s;
+
+-- 7) Chatbot Layer C: free text -> search tags -------------------------------
+-- Public (anon) callable, key from Vault, globally rate-limited so the search
+-- box can't be abused to burn the API key. Used by js/mood-chat.js (aiTags).
+create table if not exists public.ai_rate (
+  id int primary key,
+  minute timestamptz not null default date_trunc('minute', now()),
+  cnt int not null default 0
+);
+insert into public.ai_rate(id) values (1) on conflict (id) do nothing;
+alter table public.ai_rate enable row level security;  -- only the definer fn touches it
+
+create or replace function public.mood_text_to_tags(p_text text)
+returns text[]
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+declare
+  v_key text; v_model text; v_cnt int; v_status int; v_content text;
+  v_text text; v_arr text; v_tags text[]; v_prompt text;
+begin
+  if p_text is null or btrim(p_text) = '' then return '{}'; end if;
+  p_text := left(p_text, 300);
+
+  update public.ai_rate
+     set cnt = case when minute = date_trunc('minute', now()) then cnt + 1 else 1 end,
+         minute = date_trunc('minute', now())
+   where id = 1
+   returning cnt into v_cnt;
+  if v_cnt > 30 then return '{}'; end if;   -- max 30 LLM calls/minute globally
+
+  select decrypted_secret into v_key from vault.decrypted_secrets where name = 'openrouter_api_key';
+  if v_key is null then return '{}'; end if;
+
+  v_model := coalesce(
+    (select decrypted_secret from vault.decrypted_secrets where name = 'openrouter_text_model'),
+    'google/gemini-2.5-flash-lite'
+  );
+
+  v_prompt := 'Wandle die folgende Nutzereingabe in 4-8 deutsche Such-Tags fuer eine Bild-Moodboard-Suche um. Gib eine Mischung aus Stimmung/Mood und Motiv/Thema. Erlaube auch gaengige Eigennamen/Slang, wenn sinnvoll. Regeln: ueberwiegend deutsch, alles klein, einzelne Begriffe, keine Saetze, keine Emojis. Antworte AUSSCHLIESSLICH mit einem JSON-Array von Strings.' || E'\n\nEingabe: "' || p_text || '"';
+
+  perform extensions.http_set_curlopt('CURLOPT_TIMEOUT_MS', '15000');
+
+  select r.status, r.content into v_status, v_content
+  from extensions.http((
+    'POST',
+    'https://openrouter.ai/api/v1/chat/completions',
+    array[
+      extensions.http_header('Authorization', 'Bearer ' || v_key),
+      extensions.http_header('HTTP-Referer', 'https://moodboard-nine-bay.vercel.app'),
+      extensions.http_header('X-Title', 'Marvins Place Moodboard')
+    ],
+    'application/json',
+    json_build_object(
+      'model', v_model, 'temperature', 0.3, 'max_tokens', 120,
+      'messages', json_build_array(json_build_object('role','user','content', v_prompt))
+    )::text
+  )::extensions.http_request) as r;
+
+  if v_status is distinct from 200 then return '{}'; end if;
+
+  v_text := v_content::jsonb -> 'choices' -> 0 -> 'message' ->> 'content';
+  v_arr  := (regexp_match(coalesce(v_text,''), '\[.*\]', 's'))[1];
+  if v_arr is null then return '{}'; end if;
+
+  select array_agg(t) into v_tags from (
+    select distinct lower(btrim(value)) as t
+    from jsonb_array_elements_text(v_arr::jsonb) as e(value)
+    where btrim(value) <> '' and length(btrim(value)) <= 40
+    limit 8
+  ) s;
+
+  return coalesce(v_tags, '{}');
+exception when others then
+  return '{}';
+end
+$fn$;
+revoke all on function public.mood_text_to_tags(text) from public;
+grant execute on function public.mood_text_to_tags(text) to anon, authenticated, service_role;

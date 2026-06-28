@@ -102,10 +102,11 @@ The text → search-tags translation has three layers
   search tags (e.g. `urlaub` → `urlaub, reise, sonne, strand, meer`).
 - **Layer B** — rule-based normalisation: lowercasing, umlaut/accent folding
   (so `gemütlich`/`grün` still match), tokenisation and stop-word removal.
-- **Layer C** — *optional* cheap LLM ([`api/mood-tags.js`](api/mood-tags.js),
-  OpenRouter via `OPENROUTER_API_KEY`). It only kicks in when the rules yield
-  little, and returns `[]` when no key is set — **the app works fully without
-  any paid AI** (Layers A + B alone).
+- **Layer C** — *optional* cheap LLM via the Supabase function
+  `mood_text_to_tags` (OpenRouter, key read from **Vault** — no Vercel env
+  needed; globally rate-limited). It only kicks in when the rules yield little,
+  and returns `[]` on any error — **the app works fully without any paid AI**
+  (Layers A + B alone).
 
 Matching ([`rankImages`](js/mood-chat.js)) scores each image by tag overlap
 (exact match weighted high, substring/similar matches low) and ranks the most

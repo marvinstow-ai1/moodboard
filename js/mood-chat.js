@@ -138,19 +138,15 @@ const TRIGGERS = {
 const TRIGGER_ENTRIES = Object.entries(TRIGGERS).map(([k, v]) => [fold(k), v.map(fold)]);
 
 // ── Ebene C: optionale KI-Anbindung ────────────────────────────────────────
-// Ruft einen günstigen LLM-Endpoint (api/mood-tags) auf, der Such-Tags aus dem
-// Freitext erzeugt. Existiert kein API-Key, liefert der Endpoint [] zurück und
-// die App bleibt voll funktionsfähig (Ebene A + B reichen).
+// Ruft die Supabase-Funktion `mood_text_to_tags` auf, die Such-Tags aus dem
+// Freitext erzeugt. Der API-Key liegt server-seitig im Supabase Vault (kein
+// Vercel-Env nötig); die Funktion ist global rate-limitiert. Ohne Key oder bei
+// jedem Fehler kommt [] zurück und die App bleibt voll funktionsfähig (A + B).
 async function aiTags(text) {
   try {
-    const res = await fetch('/api/mood-tags', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    if (!res.ok) return [];
-    const { tags } = await res.json();
-    return Array.isArray(tags) ? tags : [];
+    const { data, error } = await sb.rpc('mood_text_to_tags', { p_text: text });
+    if (error) return [];
+    return Array.isArray(data) ? data : [];
   } catch {
     return [];
   }
