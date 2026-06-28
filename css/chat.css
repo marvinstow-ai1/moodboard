@@ -51,6 +51,16 @@
 .mc-chip:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
 .mc-chip:active{transform:scale(.92)}
 
+/* Quick-Chip unter den Emojis: wechselt zur Ansicht „Zuletzt hinzugefügt" */
+.mc-quick{display:flex}
+.mc-quick-chip{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;
+  border:1px solid var(--border);background:rgba(255,255,255,.05);
+  border-radius:999px;font-size:13.5px;font-weight:500;line-height:1;color:rgba(255,255,255,.85);
+  font-family:inherit;cursor:pointer;transition:transform .12s ease,background .15s,border-color .15s}
+.mc-quick-chip svg{width:16px;height:16px;display:block;flex-shrink:0;opacity:.85}
+.mc-quick-chip:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:#fff}
+.mc-quick-chip:active{transform:scale(.96)}
+
 /* Status-Zeile (Treffer / leer / Fehler) + „Alle anzeigen" */
 .mc-status{display:none;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:rgba(255,255,255,.6);padding:0 2px}
 .mc-status.show{display:flex}

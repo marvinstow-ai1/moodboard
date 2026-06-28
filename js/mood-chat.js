@@ -361,6 +361,17 @@ function initMoodChat() {
     btn.onclick = () => { input.value = btn.dataset.q; runSearch(btn.dataset.q); };
   });
 
+  // Quick-Chip „Zuletzt hinzugefügt": wechselt direkt zur Recent-Ansicht
+  // (ersetzt den früheren Eintrag aus dem Header-Dropdown) und schließt das Panel.
+  const recentChip = $('mcRecentChip');
+  if (recentChip) {
+    recentChip.onclick = () => {
+      clearStatus();
+      window.MB?.showRecentView?.();
+      closePanel();
+    };
+  }
+
   // ── Tastatur-Handling (iOS) ──
   // Statt die Seite beim Fokus reinzuzoomen (verhindert über font-size:16px am
   // Input) lassen wir das Panel sanft über die eingeblendete Apple-Tastatur
