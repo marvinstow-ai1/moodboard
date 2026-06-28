@@ -148,7 +148,8 @@
 .mood-create-modal.show{display:flex}
 .mcm-content{width:min(380px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
 .mcm-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}
-.mcm-input{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:12px 14px;outline:none;font-size:14px;margin-bottom:14px}
+/* font-size:16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus. */
+.mcm-input{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:12px 14px;outline:none;font-size:16px;margin-bottom:14px}
 .mcm-input:focus{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.09)}
 .mcm-actions{display:flex;gap:8px}
 .mcm-btn{flex:1;border:1px solid var(--border);border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
@@ -188,7 +189,8 @@
 .mmg-item .mmg-del{width:28px;height:28px;border-radius:999px;border:none;background:rgba(255,60,60,.15);color:#ff6b6b;cursor:pointer;font-size:14px;display:grid;place-items:center;transition:.12s;flex-shrink:0}
 .mmg-item .mmg-del:hover{background:rgba(255,60,60,.3)}
 .mmg-add-row{display:flex;gap:6px;margin-bottom:14px}
-.mmg-add-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:10px 12px;outline:none;font-size:14px}
+/* font-size:16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus. */
+.mmg-add-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:10px 12px;outline:none;font-size:16px}
 .mmg-add-row input:focus{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.09)}
 .mmg-add-row button{border:1px solid var(--border);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;transition:.12s}
 .mmg-add-row button:hover{background:rgba(255,255,255,.15)}
@@ -232,7 +234,8 @@
 .login-modal.show{display:flex}
 .lm-content{width:min(340px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
 .lm-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}
-.lm-input{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:12px 14px;outline:none;font-size:14px;margin-bottom:10px;box-sizing:border-box;font-family:inherit}
+/* font-size:16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus (Login). */
+.lm-input{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:12px 14px;outline:none;font-size:16px;margin-bottom:10px;box-sizing:border-box;font-family:inherit}
 .lm-input:focus{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.09)}
 .lm-actions{display:flex;gap:8px;margin-top:4px}
 .lm-btn{flex:1;border:1px solid var(--border);border-radius:11px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
