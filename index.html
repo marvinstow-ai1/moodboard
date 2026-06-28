@@ -332,8 +332,12 @@
 (function(){
   const btn = document.getElementById('spotifyBtn');
   const popup = document.getElementById('spotifyPopup');
+  window.MB = window.MB || {};
+  window.MB.closeSpotify = () => { popup.classList.remove('show'); btn.classList.remove('active'); };
   btn.addEventListener('click', e => {
     e.stopPropagation();
+    const willOpen = !popup.classList.contains('show');
+    if(willOpen) window.MB.closeOtherPopups?.('spotify');
     const open = popup.classList.toggle('show');
     btn.classList.toggle('active', open);
   });
