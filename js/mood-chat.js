@@ -345,6 +345,7 @@ const SUGGESTIONS = [
     label: 'Movies / Anime / Manga' },
   { emoji: '🏆', q: 'zeig mir was Motivierendes', label: 'Motivierendes' },
   { emoji: '🧘', q: 'was Beruhigendes',           label: 'Beruhigendes' },
+  { emoji: '📼', q: 'Nostalgie',                   label: 'Nostalgie' },
   { emoji: '⚽️', cat: ['fussball', 'trikot', 'stadion', 'torjubel', 'torjäger', 'messi', 'ronaldo', 'champions league'],
     label: 'Fußball' },
 ];
