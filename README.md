@@ -11,7 +11,7 @@ Personal visual moodboard app. Upload images, GIFs and videos, organize them by 
 - **Frontend:** Vanilla JS (ES Modules), CSS custom properties
 - **Backend:** Supabase (PostgreSQL + Storage + Realtime)
 - **Hosting:** Vercel
-- **Animations:** GSAP 3 (ScrollTrigger included)
+- **Animations:** GSAP 3
 
 ## Structure
 

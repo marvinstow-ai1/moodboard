@@ -31,9 +31,7 @@ let sortNewest = false;
 let chatResultIds = null;   // Mood-Chat: aktive Treffer-IDs (oder null = aus)
 let _isInitialLoad = true;
 let sleepTimeout = null;
-const SLIDESHOW_INTERVAL = 5000;
 let slideshowActive = false;
-let slideshowTimer  = null;
 
 const $ = id => document.getElementById(id);
 
@@ -521,8 +519,6 @@ function renderMoodChips(){
     };
   });
 }
-function renderMoodChipsSheet(){ renderMoodChips(); }
-
 // ── GRID RENDERING ─────────────────────────────────────
 function renderGrid(){
   const s = S();
@@ -609,7 +605,10 @@ function renderGrid(){
     else { v.pause(); v.currentTime=0; }
   }), { threshold:0.25, rootMargin:'100px' });
 
-  applyGridCols(gridCols);
+  // Spaltenbreite direkt setzen statt über applyGridCols() – beim reinen
+  // Neu-Rendern (Shuffle/Filter/Sync) ändert sich gridCols nicht, daher kein
+  // erneuter localStorage-Write und kein Swipe-UI-Update nötig (Performance).
+  gridEl.style.gridTemplateColumns = gridCols === 1 ? '1fr' : `repeat(${gridCols}, 1fr)`;
   gridEl.querySelectorAll('.cell').forEach(c => {
     _observer.observe(c);
     // 16-Bit Lade-Animation entfernen, sobald das Bild fertig (oder fehlgeschlagen) ist
@@ -664,12 +663,6 @@ function updateActionBarCount(){
   }
 
 // ── SELECTION MODE ──────────────────────────────────────
-function enterSelMode(){
-  selMode='delete'; selectedIds.clear(); closeMenu();
-  actionBarTitle.textContent = 'Bilder löschen';
-  actionBarMoods.innerHTML='';
-  actionBar.classList.add('show'); renderGrid(); updateActionBarCount();
-}
 function exitSelMode(){
   selMode=null; selectedIds.clear();
   actionBar.classList.remove('show'); renderGrid();
