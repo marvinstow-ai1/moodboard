@@ -212,17 +212,21 @@ function setAmbientFor(it){
     });
     return;
   }
-  // Bild vorab laden, damit die Überblendung ohne Flackern startet.
+  // Für den (ohnehin stark unscharfen) Hintergrund reicht das kleine
+  // Thumbnail völlig aus – es ist meist schon aus dem Grid gecached, startet
+  // also sofort und spart das Dekodieren der Volldatei. Nur falls kein
+  // Thumbnail existiert, auf die Volldatei zurückfallen.
+  const ambSrc = it.thumb_url || it.media_url;
   const pre = new Image();
   pre.onload = () => {
     if(token !== ambientToken || !lightbox.classList.contains('show')) return;
-    ambientSwap(layer => { layer.style.backgroundImage = `url("${it.media_url}")`; });
+    ambientSwap(layer => { layer.style.backgroundImage = `url("${ambSrc}")`; });
   };
   pre.onerror = () => {
     if(token !== ambientToken) return;
     ambientSwap(layer => { layer.style.backgroundImage = AMBIENT_FALLBACK; });
   };
-  pre.src = it.media_url;
+  pre.src = ambSrc;
 }
 
 // ── Mood Icon Map (Platzhalter – später anpassen) ────────
@@ -699,7 +703,20 @@ function openLightbox(idx){
     lbIsMuted=true; updateMuteSvg(true);
   } else {
     const img = document.createElement('img');
-    img.src=it.media_url; img.style.pointerEvents='none';
+    img.style.pointerEvents='none';
+    img.decoding = 'async';
+    // Sofort das (bereits aus dem Grid gecachte) Thumbnail zeigen, damit die
+    // Lightbox ohne Wartezeit aufgeht, und im Hintergrund transparent auf die
+    // scharfe Volldatei wechseln, sobald sie geladen ist.
+    if(it.thumb_url){
+      img.src = it.thumb_url;
+      const full = new Image();
+      full.decoding = 'async';
+      full.onload = () => { if(lbIndex === idx) img.src = it.media_url; };
+      full.src = it.media_url;
+    } else {
+      img.src = it.media_url;
+    }
     lbInner.appendChild(img);
   }
   lightbox.classList.add('show');
@@ -712,7 +729,20 @@ function openLightbox(idx){
   }
   lightbox.classList.toggle('has-video', it.media_type === 'video');
   setAmbientFor(it);
+  preloadNeighbors(idx);
   updateBodyLock();
+}
+// Nachbarbilder schon mal in den Browser-Cache holen, damit das Blättern
+// (Swipe/Pfeile) ohne sichtbare Ladezeit erfolgt.
+function preloadNeighbors(idx){
+  [idx - 1, idx + 1].forEach(i => {
+    const n = S().currentItems[i];
+    if(n && n.media_type === 'image'){
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = n.media_url;
+    }
+  });
 }
 function lbNavigate(dir){
   const next=lbIndex+dir;
