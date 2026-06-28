@@ -24,7 +24,7 @@ const state = {
 let currentPage = 'moodboard';
 const S = () => state[currentPage];
 
-let editId=null, lbIndex=0, selMode=null, lbIsMuted=false;
+let editId=null, lbIndex=0, lbOpenIndex=0, selMode=null, lbIsMuted=false;
 let selectedIds=new Set();
 let _observer = null;
 let sortNewest = false;
@@ -616,6 +616,9 @@ function openLightbox(idx){
   // beim Blättern darf NICHT die ganze Lightbox kurz transparent werden,
   // sonst blitzt die Archiv-Seite samt Pill im Hintergrund auf.
   const isOpening = !lightbox.classList.contains('show');
+  // Beim echten Öffnen merken, von welcher Kachel aus gestartet wurde –
+  // beim Schließen wird nur dann nachgescrollt, wenn man weitergeblättert hat.
+  if(isOpening) lbOpenIndex = idx;
   lbIndex = idx;
   const it = S().currentItems[idx];
   lbInner.querySelectorAll('img,video').forEach(e=>e.remove());
@@ -660,6 +663,13 @@ function closeLb(){
   lightbox.classList.remove('has-video');
   lightbox.classList.remove('sleep');
   updateBodyLock();
+  // Hat man in der Lightbox weitergeblättert, in der Grid-Ansicht zur zuletzt
+  // betrachteten Kachel scrollen, statt zur ursprünglichen Position (updateBodyLock).
+  if(lbIndex !== lbOpenIndex){
+    const it = S().currentItems[lbIndex];
+    const cell = it && gridEl.querySelector(`.cell[data-id="${CSS.escape(String(it.id))}"]`);
+    if(cell) cell.scrollIntoView({ block:'center' });
+  }
   lbAmbient.style.opacity = '0';
   lbInner.querySelectorAll('video').forEach(v=>v.pause());
 }
