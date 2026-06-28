@@ -887,43 +887,72 @@ function startDeleteMode(){
 $('pickDeleteBtn').onclick = startDeleteMode;
 $('pickDeleteBtnSheet').onclick = startDeleteMode;
 
-// ── THUMBNAIL-BACKFILL (Owner) ───────────────────────────
-// Erzeugt für bestehende Bilder ohne thumb_url nachträglich ein kleines
-// Grid-Thumbnail (lädt Volldatei → verkleinert → lädt hoch → speichert URL).
-// Nur statische Bilder; GIFs/Videos werden übersprungen (bleiben animiert).
+// ── THUMBNAIL-/WEBP-BACKFILL (Owner) ─────────────────────
+// Für bestehende statische Bilder: (1) Volldatei nach WebP konvertieren, falls
+// sie noch kein WebP ist (verkleinert auf MAX_PX), media_url umstellen und die
+// alte Datei aufräumen; (2) ein kleines Grid-Thumbnail erzeugen. GIFs/Videos
+// werden übersprungen, damit sie animiert bleiben.
 async function backfillThumbs(){
   if(!owner){ toast('Nur als Owner möglich'); return; }
-  const todo = S().items.filter(it => it.media_type === 'image' && !it.thumb_url);
-  if(todo.length === 0){ toast('Alle Bilder haben schon ein Thumbnail ✓'); return; }
-  if(!window.confirm(`${todo.length} Bilder ohne Thumbnail.\nJetzt erzeugen? Das kann etwas dauern.`)) return;
+  // Alles erfassen, dem entweder das Thumbnail ODER das WebP-Format fehlt.
+  const todo = S().items.filter(it =>
+    it.media_type === 'image' && (!it.thumb_url || !/\.webp(\?|$)/i.test(it.media_url || '')));
+  if(todo.length === 0){ toast('Alle Bilder sind schon WebP + Thumbnail ✓'); return; }
+  if(!window.confirm(`${todo.length} Bilder werden zu WebP konvertiert und mit Thumbnail versehen.\nJetzt starten? Das kann etwas dauern.`)) return;
   closeMenu();
   const marker = `/public/${BUCKET}/`;
-  let done = 0, failed = 0;
-  toast(`Erzeuge Thumbnails… 0/${todo.length}`);
+  let done = 0, failed = 0, converted = 0;
+  toast(`Verarbeite… 0/${todo.length}`);
   for(const it of todo){
     try{
       const i = it.media_url.indexOf(marker);
-      if(i < 0) throw new Error('path');
+      if(i < 0) throw new Error('path');                       // externe URL (Quick-Add) → überspringen
       const path = it.media_url.slice(i + marker.length).split('?')[0];
       const resp = await fetch(it.media_url);
       if(!resp.ok) throw new Error('fetch');
       const blob = await resp.blob();
-      const tf = await makeThumb(new File([blob], 'src', { type: blob.type || 'image/webp' }));
+      const srcFile = new File([blob], 'src', { type: blob.type || 'image/webp' });
+
+      // (1) Volldatei → WebP, falls noch nicht WebP
+      let finalPath = path, newMediaUrl = null;
+      const alreadyWebp = /\.webp$/i.test(path);
+      if(!alreadyWebp){
+        const full = await makeThumb(srcFile, MAX_PX, 0.88);   // verkleinert nur, re-enkodiert nach WebP
+        if(full){
+          const wpath = path.replace(/\.[^.]+$/, '') + '.webp';
+          const {error:fe} = await sb.storage.from(BUCKET).upload(wpath, full, { upsert:true, contentType:'image/webp' });
+          if(fe) throw fe;
+          finalPath = wpath;
+          newMediaUrl = sb.storage.from(BUCKET).getPublicUrl(wpath).data.publicUrl;
+        }
+      }
+
+      // (2) Thumbnail (immer WebP) – Pfad parallel zur finalen Volldatei
+      const tf = await makeThumb(srcFile);
       if(!tf) throw new Error('thumb');
-      const tpath = `thumb/${path}`;
+      const tpath = `thumb/${finalPath}`;
       const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, { upsert:true, contentType:'image/webp' });
       if(te) throw te;
       const turl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
-      const {error:ue} = await sb.from(S().table).update({ thumb_url: turl }).eq('id', it.id);
+
+      const patch = { thumb_url: turl };
+      if(newMediaUrl) patch.media_url = newMediaUrl;
+      const {error:ue} = await sb.from(S().table).update(patch).eq('id', it.id);
       if(ue) throw ue;
       it.thumb_url = turl;
+      if(newMediaUrl){ it.media_url = newMediaUrl; converted++; }
+
+      // Alte Nicht-WebP-Originaldatei aufräumen (Pfad hat sich geändert)
+      if(newMediaUrl && finalPath !== path){
+        try{ await sb.storage.from(BUCKET).remove([path]); }catch(e){}
+      }
     }catch(e){ failed++; }
     done++;
     prog(Math.round(done / todo.length * 100));
-    if(done % 5 === 0 || done === todo.length) toast(`Erzeuge Thumbnails… ${done}/${todo.length}`);
+    if(done % 5 === 0 || done === todo.length) toast(`Verarbeite… ${done}/${todo.length}`);
   }
   renderGrid();
-  toast(`Thumbnails fertig ✓ (${todo.length - failed} ok${failed ? `, ${failed} Fehler` : ''})`);
+  toast(`Fertig ✓ (${todo.length - failed} ok, ${converted}× WebP${failed ? `, ${failed} Fehler` : ''})`);
 }
 $('thumbBackfillBtn')?.addEventListener('click', backfillThumbs);
 $('thumbBackfillBtnSheet')?.addEventListener('click', backfillThumbs);
