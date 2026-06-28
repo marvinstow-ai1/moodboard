@@ -5,14 +5,17 @@
 #chatBtn.active{background:rgba(255,255,255,.14)}
 
 .mc-panel{
-  position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom));
+  position:fixed;left:50%;
+  /* --mc-kb = Höhe der eingeblendeten Tastatur (per JS gesetzt). Das Panel
+     fährt dadurch sanft über die Apple-Tastatur, statt dass die Seite zoomt. */
+  bottom:calc(78px + env(safe-area-inset-bottom) + var(--mc-kb, 0px));
   transform:translateX(-50%) translateY(12px);
   z-index:31;width:min(520px,calc(100vw - 24px));
   background:var(--panel);border:1px solid var(--border);border-radius:20px;
   padding:14px;box-shadow:0 20px 50px rgba(0,0,0,.6);backdrop-filter:blur(24px);
   display:flex;flex-direction:column;gap:12px;
   opacity:0;pointer-events:none;
-  transition:opacity .2s ease,transform .22s cubic-bezier(.2,.8,.2,1)}
+  transition:opacity .2s ease,transform .22s cubic-bezier(.2,.8,.2,1),bottom .22s cubic-bezier(.2,.8,.2,1)}
 .mc-panel.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
 
 .mc-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px}
@@ -38,11 +41,15 @@
 .mc-send svg{width:21px;height:21px;display:block}
 .mc-send.is-busy{pointer-events:none;opacity:.7}
 
-/* Vorschlags-Chips */
-.mc-suggest{display:flex;flex-wrap:wrap;gap:7px}
-.mc-chip{border:1px solid var(--border);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);
-  border-radius:999px;padding:7px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;transition:.15s}
-.mc-chip:hover{background:rgba(255,255,255,.12);color:#fff}
+/* Vorschlags-Chips — je ein Apple-Emoji, alle in einer Reihe (kein Umbruch) */
+.mc-suggest{display:flex;flex-wrap:nowrap;gap:8px;justify-content:space-between}
+.mc-chip{flex:1 1 0;min-width:0;height:44px;display:grid;place-items:center;
+  border:1px solid var(--border);background:rgba(255,255,255,.05);
+  border-radius:999px;font-size:20px;line-height:1;font-family:inherit;cursor:pointer;
+  transition:transform .12s ease,background .15s,border-color .15s}
+.mc-chip span{font-size:20px;line-height:1}
+.mc-chip:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
+.mc-chip:active{transform:scale(.92)}
 
 /* Status-Zeile (Treffer / leer / Fehler) + „Alle anzeigen" */
 .mc-status{display:none;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:rgba(255,255,255,.6);padding:0 2px}
@@ -57,5 +64,7 @@
 
 @media(max-width:600px){
   .mc-bar{--mc-h:48px}
-  .mc-pill{font-size:15px}
+  /* Mind. 16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus. */
+  .mc-pill{font-size:16px}
+  .mc-chip,.mc-chip span{font-size:19px}
 }

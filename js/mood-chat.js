@@ -318,13 +318,16 @@ async function loadTaggedImages() {
 }
 
 // ── UI-Controller ──────────────────────────────────────────────────────────
+// Vorschläge als Emoji-Chips: nur ein passendes Apple-Emoji ist sichtbar,
+// die eigentliche Such-Anfrage (`q`) und ein Label fürs Vorlesen/Tooltip
+// stecken in den Datenattributen. Alle Chips passen in eine Reihe.
 const SUGGESTIONS = [
-  'Bock auf Urlaub',
-  'hab schlechte Laune',
-  'ich bin gestresst',
-  'zeig mir was Motivierendes',
-  'was Beruhigendes',
-  'cozy Vibes',
+  { emoji: '🏖️', q: 'Bock auf Urlaub',           label: 'Bock auf Urlaub' },
+  { emoji: '🌧️', q: 'hab schlechte Laune',        label: 'Schlechte Laune' },
+  { emoji: '😮‍💨', q: 'ich bin gestresst',          label: 'Gestresst' },
+  { emoji: '🔥', q: 'zeig mir was Motivierendes', label: 'Motivierendes' },
+  { emoji: '🧘', q: 'was Beruhigendes',           label: 'Beruhigendes' },
+  { emoji: '🕯️', q: 'cozy Vibes',                 label: 'Cozy Vibes' },
 ];
 
 function initMoodChat() {
@@ -338,13 +341,32 @@ function initMoodChat() {
   const suggestEl = $('mcSuggest');
   const statusEl = $('mcStatus');
 
-  // Vorschlags-Chips rendern
+  // Vorschlags-Chips rendern (Emoji sichtbar, Anfrage im data-Attribut)
   suggestEl.innerHTML = SUGGESTIONS
-    .map(s => `<button class="mc-chip" type="button" data-q="${s.replace(/"/g, '&quot;')}">${s}</button>`)
+    .map(s => `<button class="mc-chip" type="button" data-q="${s.q.replace(/"/g, '&quot;')}" ` +
+      `aria-label="${s.label.replace(/"/g, '&quot;')}" title="${s.label.replace(/"/g, '&quot;')}">` +
+      `<span aria-hidden="true">${s.emoji}</span></button>`)
     .join('');
   suggestEl.querySelectorAll('.mc-chip').forEach(btn => {
     btn.onclick = () => { input.value = btn.dataset.q; runSearch(btn.dataset.q); };
   });
+
+  // ── Tastatur-Handling (iOS) ──
+  // Statt die Seite beim Fokus reinzuzoomen (verhindert über font-size:16px am
+  // Input) lassen wir das Panel sanft über die eingeblendete Apple-Tastatur
+  // gleiten. Die Tastaturhöhe ergibt sich aus dem VisualViewport: Differenz
+  // zwischen Layout-Viewport und sichtbarem Bereich. Wird als CSS-Variable
+  // `--mc-kb` ans Panel gegeben; die Position animiert per CSS-Transition.
+  const vv = window.visualViewport;
+  function syncKeyboard() {
+    if (!vv || !panel.classList.contains('show')) return;
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    panel.style.setProperty('--mc-kb', kb + 'px');
+  }
+  if (vv) {
+    vv.addEventListener('resize', syncKeyboard);
+    vv.addEventListener('scroll', syncKeyboard);
+  }
 
   // ── Panel öffnen / schließen ──
   function openPanel() {
@@ -358,6 +380,7 @@ function initMoodChat() {
     panel.classList.remove('show');
     panel.setAttribute('aria-hidden', 'true');
     chatBtn.classList.remove('active');
+    panel.style.setProperty('--mc-kb', '0px'); // Tastatur-Offset zurücksetzen
   }
   function togglePanel() {
     panel.classList.contains('show') ? closePanel() : openPanel();
