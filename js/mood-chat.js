@@ -450,6 +450,11 @@ function initMoodChat() {
     const shown = window.MB?.showChatResults?.(ids) ?? ids.length;
     setStatus('', `<span>${shown} ${shown === 1 ? 'Bild' : 'Bilder'} zu „${escapeHtmlLite(q)}"</span>` +
       `<button class="mc-reset" type="button">Alle anzeigen</button>`);
+
+    // Es gibt Treffer → Tastatur schließen, damit die Ergebnisse frei sichtbar
+    // sind. Bei „nichts gefunden" (oben mit return) bleibt der Fokus erhalten,
+    // sodass man direkt etwas anderes eintippen kann.
+    input.blur();
   }
 
   form.addEventListener('submit', e => { e.preventDefault(); runSearch(); });
