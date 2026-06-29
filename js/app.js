@@ -100,7 +100,6 @@ const gridEl         = $('grid');
 const gridWrap       = $('gridWrap');
 const gridEnd        = $('gridEnd');
 const gridEndText    = $('gridEndText');
-const backToTopBtn   = $('backToTop');
 const dropdown       = $('dropdown');
 const bottomSheet    = $('bottomSheet');
 const sheetOverlay   = $('sheetOverlay');
@@ -1612,25 +1611,6 @@ function animateNewCell(id){
   }
 }
 
-// ── „Nach oben"-Buttons ──────────────────────────────────
-// Sowohl der Button im Ende-Disclaimer als auch der schwebende Button
-// scrollen ruckelfrei zurück an den Anfang.
+// ── „Nach oben"-Button im Ende-Disclaimer ────────────────
 $('gridEndTop')?.addEventListener('click', scrollToTop);
-backToTopBtn?.addEventListener('click', () => { backToTopBtn.blur(); scrollToTop(); });
-
-// Schwebenden Button erst nach etwas Scrollen einblenden. requestAnimationFrame
-// drosselt den Scroll-Handler, damit kein Layout-Thrashing entsteht.
-if(backToTopBtn){
-  let _btTicking = false;
-  const updateBackToTop = () => {
-    _btTicking = false;
-    const y = window.scrollY || window.pageYOffset || 0;
-    backToTopBtn.classList.toggle('show', y > 600);
-  };
-  window.addEventListener('scroll', () => {
-    if(_btTicking) return;
-    _btTicking = true;
-    requestAnimationFrame(updateBackToTop);
-  }, { passive: true });
-}
 
