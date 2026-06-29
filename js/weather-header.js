@@ -381,6 +381,20 @@ function init(){
   let curScene = 'partly';
   const overcastScenes = new Set(['cloudy','fog','rain','snow','thunder']);
 
+  // On-screen debug readout — only when the URL contains "wx" (e.g. add
+  // #wx to the address). Lets a phone user see exactly what arrived
+  // without any developer console.
+  const DEBUG = /wx/i.test(location.hash + location.search);
+  let badge = null;
+  if (DEBUG){
+    badge = el('div', '', 'position:fixed;left:6px;bottom:6px;z-index:99999;' +
+      'font:11px/1.5 monospace;background:rgba(0,0,0,.82);color:#7CFC00;' +
+      'padding:7px 9px;border-radius:7px;white-space:pre;pointer-events:none;max-width:92vw');
+    badge.textContent = 'weather: loading…';
+    (document.body || document.documentElement).appendChild(badge);
+  }
+  const setBadge = (t) => { if (badge) badge.textContent = t; };
+
   const apply = async () => {
     try {
       const w = await fetchWeather();
@@ -388,6 +402,7 @@ function init(){
       const scene = sceneForCode(w.code, w.isDay, w.cloud);
       console.log(`[weather] src=${w.src||'?'} code=${w.code} cloud=${w.cloud}% day=${w.isDay} → ${scene}`);
       window.__weather = { ...w, scene };   // inspectable: type __weather in console
+      setBadge(`src=${w.src||'?'}  code=${w.code}\ncloud=${w.cloud}%  day=${w.isDay}\n→ scene: ${scene}`);
       const key = scene + (w.isDay ? '-d' : '-n');
       if (key !== lastKey){               // only rebuild when the scene changes
         lastKey = key;
@@ -396,6 +411,7 @@ function init(){
       }
     } catch (e) {
       console.warn('[weather] update failed:', e);
+      setBadge('weather FETCH FAILED\n' + (e && e.message ? e.message : e));
       if (!lastKey){ render(layer, 'partly', true); lastKey = 'fallback'; }
     }
     tick();                               // refresh brightness + golden hour
