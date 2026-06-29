@@ -1061,7 +1061,11 @@ async function upload(files){
     const cf = await compress(f);
     const ext = cf.name.split('.').pop().toLowerCase();
     const path = `${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}.${ext}`;
-    const {error:e1} = await sb.storage.from(BUCKET).upload(path, cf, {upsert:false, contentType:cf.type});
+    // cacheControl auf 1 Jahr: Die Dateinamen sind einmalig und werden nie
+    // überschrieben (immutable), daher dürfen Browser & CDN sie unbegrenzt
+    // cachen. Ohne diese Angabe nutzt Supabase nur 1h – wiederkehrende Besuche
+    // müssten alle Bilder erneut laden.
+    const {error:e1} = await sb.storage.from(BUCKET).upload(path, cf, {upsert:false, contentType:cf.type, cacheControl:'31536000'});
     if(e1){ toast('Upload-Fehler: '+e1.message); return null; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
     const mediaType = isVid(f.name) ? 'video' : isGif(f.name) ? 'gif' : 'image';
@@ -1072,7 +1076,7 @@ async function upload(files){
       const tf = await makeThumb(cf);
       if(tf){
         const tpath = `thumb/${path}`;
-        const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, {upsert:false, contentType:'image/webp'});
+        const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, {upsert:false, contentType:'image/webp', cacheControl:'31536000'});
         if(!te) thumbUrl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
       }
     }
@@ -1157,7 +1161,7 @@ async function backfillThumbs(){
         const full = await makeThumb(srcFile, MAX_PX, 0.88);   // verkleinert nur, re-enkodiert nach WebP
         if(full){
           const wpath = path.replace(/\.[^.]+$/, '') + '.webp';
-          const {error:fe} = await sb.storage.from(BUCKET).upload(wpath, full, { upsert:true, contentType:'image/webp' });
+          const {error:fe} = await sb.storage.from(BUCKET).upload(wpath, full, { upsert:true, contentType:'image/webp', cacheControl:'31536000' });
           if(fe) throw fe;
           finalPath = wpath;
           newMediaUrl = sb.storage.from(BUCKET).getPublicUrl(wpath).data.publicUrl;
@@ -1168,7 +1172,7 @@ async function backfillThumbs(){
       const tf = await makeThumb(srcFile);
       if(!tf) throw new Error('thumb');
       const tpath = `thumb/${finalPath}`;
-      const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, { upsert:true, contentType:'image/webp' });
+      const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, { upsert:true, contentType:'image/webp', cacheControl:'31536000' });
       if(te) throw te;
       const turl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
 

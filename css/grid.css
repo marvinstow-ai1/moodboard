@@ -55,7 +55,13 @@
 .moods-view.show{visibility:visible;transform:scale(1) translateY(0);opacity:1;pointer-events:auto}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px;padding:2px}
-.cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict}
+/* content-visibility:auto lässt den Browser Layout/Paint/Decode für Kacheln
+   ausserhalb des Viewports überspringen (und pausiert deren Lade-Spinner-
+   Animation). Bei grossen Boards spart das beim Boot und beim Scrollen massiv
+   Main-Thread-Arbeit. Die Kachelhöhe steht durch aspect-ratio + definite
+   Spaltenbreite fest (gilt auch unter Size-Containment), daher springt die
+   Scroll-Leiste nicht – auch ohne explizite contain-intrinsic-size. */
+.cell{position:relative;overflow:hidden;background:#111;aspect-ratio:9/16;cursor:pointer;contain:strict;content-visibility:auto}
 .cell img,.cell video{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
 .cell:hover img,.cell:hover video{transform:scale(1.04)}
 /* Eingefrorenes GIF (Autoplay aus): Standbild-Canvas über dem <img>. */
