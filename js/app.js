@@ -268,6 +268,78 @@ function saveFilterState(){
   localStorage.setItem('grid_cols', String(gridCols));
 }
 
+// ── Autoplay-Killswitch (GIFs & Videos im Grid) ────────────
+// Pro-Browser-Schalter: steuert nur, ob animierte Medien IM GRID autoplayen.
+// Bewusst in localStorage (nicht in der DB), damit jeder Besucher das für sich
+// allein entscheidet – schaltet einer aus, läuft es bei allen anderen weiter.
+// Standard: an (autoplay).
+let autoplayMedia = localStorage.getItem('autoplay_media') !== '0';
+
+function elementInViewport(el){
+  const r = el.getBoundingClientRect();
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  const vw = window.innerWidth || document.documentElement.clientWidth;
+  return r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
+}
+
+// Friert ein animiertes GIF ein, indem der aktuelle Frame auf ein Canvas
+// gezeichnet und über das <img> gelegt wird (das <img> wird ausgeblendet, damit
+// die Animation stoppt). Bewusst KEIN toDataURL – das würde bei Cross-Origin-
+// Storage-URLs am getainteten Canvas scheitern; das Canvas direkt anzeigen geht.
+function freezeGif(img){
+  if(img.dataset.frozen === '1') return;
+  const capture = () => {
+    if(autoplayMedia) return; // Schalter ist zwischenzeitlich wieder an
+    const w = img.naturalWidth, h = img.naturalHeight;
+    if(!w || !h) return;
+    const cell = img.parentElement;
+    if(!cell) return;
+    let canvas = cell.querySelector('canvas.gif-frozen');
+    if(!canvas){
+      canvas = document.createElement('canvas');
+      canvas.className = 'gif-frozen';
+      img.insertAdjacentElement('afterend', canvas);
+    }
+    canvas.width = w; canvas.height = h;
+    try { canvas.getContext('2d').drawImage(img, 0, 0, w, h); }
+    catch(_){ canvas.remove(); return; }
+    img.classList.add('gif-paused');
+    img.dataset.frozen = '1';
+  };
+  if(img.complete && img.naturalWidth) capture();
+  else img.addEventListener('load', capture, { once:true });
+}
+
+function unfreezeGif(img){
+  const cell = img.parentElement;
+  const canvas = cell && cell.querySelector('canvas.gif-frozen');
+  if(canvas) canvas.remove();
+  if(img.dataset.frozen === '1'){
+    img.classList.remove('gif-paused');
+    img.dataset.frozen = '0';
+  }
+}
+
+// Wendet den aktuellen Schalter-Zustand auf bereits gerenderte Kacheln an.
+// Ohne Argument werden Haupt-Grid und Moods-Ansicht behandelt.
+function applyAutoplayState(root){
+  const scopes = root
+    ? [root]
+    : [gridEl, document.getElementById('moodsGrid')].filter(Boolean);
+  scopes.forEach(scope => {
+    scope.querySelectorAll('img[data-gif="1"], .mood-tile img[src*=".gif"]').forEach(img => {
+      if(autoplayMedia) unfreezeGif(img); else freezeGif(img);
+    });
+    scope.querySelectorAll('video').forEach(v => {
+      if(autoplayMedia){
+        if(elementInViewport(v)){ v.muted = true; v.play().catch(()=>{}); }
+      } else {
+        try { v.pause(); } catch(_){}
+      }
+    });
+  });
+}
+
 function applyGridCols(cols){
   gridCols = cols;
   document.getElementById('grid').style.gridTemplateColumns =
@@ -339,6 +411,23 @@ colInc.onclick = () => {
   const r = getColRange();
   if(gridCols < r.max) applyGridCols(gridCols + 1);
 };
+
+// ── Autoplay-Toggle (im Kachelgröße-Popup) ─────────────────
+const autoplayToggle = document.getElementById('autoplayToggle');
+function syncAutoplayToggleUI(){
+  if(!autoplayToggle) return;
+  autoplayToggle.classList.toggle('on', autoplayMedia);
+  autoplayToggle.setAttribute('aria-checked', autoplayMedia ? 'true' : 'false');
+}
+syncAutoplayToggleUI();
+if(autoplayToggle){
+  autoplayToggle.onclick = () => {
+    autoplayMedia = !autoplayMedia;
+    localStorage.setItem('autoplay_media', autoplayMedia ? '1' : '0');
+    syncAutoplayToggleUI();
+    applyAutoplayState();
+  };
+}
 
 
 
@@ -622,7 +711,11 @@ function renderGrid(){
       // Bei Thumbnail-Fehler wird per delegiertem 'error'-Listener (s. u.) auf
       // die Volldatei zurückgeschaltet – dafür hier die Voll-URL hinterlegen.
       const full = useThumb ? ` data-full="${it.media_url}"` : '';
-      media = `<img src="${src}" ${loadAttr} decoding="async" alt=""${full}><div class="grid-spinner" aria-hidden="true"></div>`;
+      // GIFs markieren (auch per-URL hinzugefügte mit media_type 'image'), damit
+      // der Autoplay-Killswitch sie einfrieren kann.
+      const isGifItem = it.media_type==='gif' || /\.gif(\?|#|$)/i.test(it.media_url||'');
+      const gifAttr = isGifItem ? ' data-gif="1"' : '';
+      media = `<img src="${src}" ${loadAttr}${gifAttr} decoding="async" alt=""${full}><div class="grid-spinner" aria-hidden="true"></div>`;
     }
     return `
     <div class="cell${it.media_type==='video' ? '' : ' loading'}" data-id="${it.id}">
@@ -660,11 +753,19 @@ function renderGrid(){
   if(videoCells.length){
     _observer = new IntersectionObserver(entries => entries.forEach(e => {
       const v = e.target.querySelector('video'); if(!v) return;
-      if(e.isIntersecting){ v.muted=true; v.play().catch(()=>{}); }
+      if(e.isIntersecting){
+        // Autoplay nur, wenn der Killswitch das erlaubt – sonst pausiert das
+        // Video (erster Frame bleibt als Standbild stehen).
+        if(autoplayMedia){ v.muted=true; v.play().catch(()=>{}); }
+        else v.pause();
+      }
       else { v.pause(); v.currentTime=0; }
     }), { threshold:0.25, rootMargin:'100px' });
     videoCells.forEach(c => _observer.observe(c));
   }
+
+  // Bei deaktiviertem Autoplay direkt nach dem Rendern anwenden (GIFs einfrieren).
+  if(!autoplayMedia) applyAutoplayState(gridEl);
 
   // Klick/Kontextmenü über Event-Delegation EINMALIG am Grid-Container statt
   // pro Kachel – das spart bei großen Boards hunderte Listener-Anbindungen
@@ -698,7 +799,10 @@ function wireGridDelegation(){
   // so genügt EIN Listener-Paar für alle Bilder (eager wie lazy).
   gridEl.addEventListener('load', e => {
     const t = e.target;
-    if(t.tagName === 'IMG') t.closest('.cell')?.classList.remove('loading');
+    if(t.tagName !== 'IMG') return;
+    t.closest('.cell')?.classList.remove('loading');
+    // Lazy nachgeladene GIFs bei deaktiviertem Autoplay sofort einfrieren.
+    if(!autoplayMedia && t.dataset.gif === '1') freezeGif(t);
   }, true);
   gridEl.addEventListener('error', e => {
     const t = e.target;
@@ -1240,7 +1344,7 @@ function renderMoodsView(){
     const count = S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
     const media = it
       ? (it.media_type === 'video'
-          ? `<video src="${it.media_url}" muted loop playsinline autoplay preload="metadata"></video>`
+          ? `<video src="${it.media_url}" muted loop playsinline ${autoplayMedia ? 'autoplay ' : ''}preload="metadata"></video>`
           : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`)
       : `<div class="mt-empty">Kein Bild</div>`;
     return `
@@ -1262,6 +1366,8 @@ function renderMoodsView(){
       </div>
     </div>`;
   moodsGrid.innerHTML = tilesHtml + createTile;
+  // GIFs in den Mood-Kacheln bei deaktiviertem Autoplay einfrieren.
+  if(!autoplayMedia) applyAutoplayState(moodsGrid);
   const createBtn = document.getElementById('moodCreateTile');
   if(createBtn) createBtn.onclick = openMoodCreate;
   moodsGrid.querySelectorAll('.mood-tile:not(.mood-tile-create)').forEach(tile => {

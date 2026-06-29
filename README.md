@@ -36,6 +36,7 @@ moodboard/
 - Realtime sync across devices
 - Share links (deep links)
 - Shuffle or sort by date
+- **Autoplay-Killswitch** — toggle in the tile-size popup to freeze GIFs/videos in the grid (per-browser, saved in `localStorage`, doesn't affect other visitors)
 - **Mood-Chat search** — type a mood/wish, get matching images (see below)
 
 ## Database
