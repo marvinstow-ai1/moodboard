@@ -254,6 +254,40 @@ async function fetchWeather(){
   return data;
 }
 
+/* ---- time-of-day brightness ---------------------------------- */
+// The weather sky/sprites are tinted + dimmed by the local clock so the
+// header feels like real daylight: dawn is dim & warm, midday is the
+// brightest, the afternoon eases off, evening/night are darkest. The
+// base palettes are tuned for evening, so 1.0 ≈ "evening" brightness.
+const BRIGHT = [           // [hour, brightness multiplier]
+  [0,0.85],[5,0.85],[6.5,0.90],[8,0.97],[10,1.05],[12,1.14],[13.5,1.16],
+  [15,1.08],[17,1.02],[18.5,1.0],[20,0.95],[21.5,0.90],[23,0.86],[24,0.85]
+];
+const WARM = [             // [hour, warmth 0..1] — orange at dawn/dusk
+  [0,0.05],[5,0.10],[6.5,0.55],[8,0.30],[10,0.05],[12,0],[15,0],
+  [17,0.15],[18.5,0.42],[19.5,0.55],[21,0.25],[22.5,0.10],[24,0.05]
+];
+
+function curveAt(h, pts){
+  if (h <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++){
+    if (h <= pts[i][0]){
+      const [x0,y0] = pts[i-1], [x1,y1] = pts[i];
+      return y0 + (y1 - y0) * (h - x0) / (x1 - x0);
+    }
+  }
+  return pts[pts.length-1][1];
+}
+
+function daylightFilter(){
+  const d = new Date();
+  const h = d.getHours() + d.getMinutes()/60;
+  const b = curveAt(h, BRIGHT);
+  const w = curveAt(h, WARM);
+  return `brightness(${b.toFixed(3)}) sepia(${(w*0.35).toFixed(3)}) ` +
+         `hue-rotate(${(-w*18).toFixed(1)}deg) saturate(${(1 + w*0.12).toFixed(3)})`;
+}
+
 /* ---- boot ---------------------------------------------------- */
 function init(){
   const topbar = document.querySelector('.topbar');
@@ -278,12 +312,22 @@ function init(){
     }
   };
 
+  // time-of-day brightness/warmth — refreshed often enough to glide
+  // through dawn/dusk, cheap (just a filter string on the layer).
+  const setDaylight = () => { layer.style.filter = daylightFilter(); };
+
   apply();
-  // the "hourly cron": re-check every hour for long-lived tabs.
+  setDaylight();
+  // the "hourly cron": re-check the weather every hour for long-lived tabs.
   setInterval(apply, ONE_HOUR);
+  // nudge the daylight tint every 10 min so transitions stay smooth.
+  setInterval(setDaylight, 10 * 60 * 1000);
 
   // pause the animation loop while the tab is in the background
-  const sync = () => layer.classList.toggle('paused', document.hidden);
+  const sync = () => {
+    layer.classList.toggle('paused', document.hidden);
+    if (!document.hidden) setDaylight();   // refresh after returning
+  };
   document.addEventListener('visibilitychange', sync);
   sync();
 }

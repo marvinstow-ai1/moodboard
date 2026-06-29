@@ -16,7 +16,7 @@
   contain:strict;
   /* default sky — overwritten per condition */
   background:linear-gradient(180deg,#0a0a0f 0%,#050505 100%);
-  transition:background .9s ease;
+  transition:background .9s ease,filter 1.5s ease;
   image-rendering:pixelated;
   image-rendering:crisp-edges;
 }
