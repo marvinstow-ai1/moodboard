@@ -13,7 +13,7 @@
    hidden. Honors prefers-reduced-motion via CSS.
    ============================================================ */
 
-const CACHE_KEY   = 'mb_weather_v4';
+const CACHE_KEY   = 'mb_weather_v5';
 const ONE_HOUR    = 60 * 60 * 1000;
 // Fixed location — Bottrop, Germany (Marvin's home).
 const LOCATION    = { lat: 51.5236, lon: 6.9286, label: 'Bottrop' };

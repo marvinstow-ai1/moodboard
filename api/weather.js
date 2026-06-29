@@ -19,7 +19,20 @@ export default async function handler() {
     'Cache-Control': 's-maxage=1200, stale-while-revalidate=1800',
   };
   try {
-    const data = (await fromOpenWeather()) || (await fromOpenMeteo());
+    // 1) OpenWeather (station-blended) wins when a key is configured.
+    let data = await fromOpenWeather();
+
+    // 2) Otherwise baseline from Open-Meteo (reliable sunrise/sunset), but
+    //    take the cloud cover / condition from met.no when available — it's
+    //    a different model and often closer to the actual sky than
+    //    Open-Meteo's cloud_cover (which can read 0% on overcast days).
+    if (!data) {
+      const om = await fromOpenMeteo();
+      const met = await fromMetNo().catch(() => null);
+      data = (met && typeof met.cloud === 'number')
+        ? { ...om, cloud: met.cloud, code: met.code ?? om.code, src: 'met.no' }
+        : om;
+    }
     return new Response(JSON.stringify(data), { headers });
   } catch (e) {
     try {
@@ -28,6 +41,25 @@ export default async function handler() {
       return new Response(JSON.stringify({ error: 'weather unavailable' }), { status: 502, headers });
     }
   }
+}
+
+// met.no / Yr.no — free, no key. Requires a descriptive User-Agent.
+async function fromMetNo() {
+  const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${LAT}&lon=${LON}`;
+  const r = await fetch(url, {
+    headers: { 'User-Agent': 'MarvinsPlace-Moodboard/1.0 moodboard-nine-bay.vercel.app' },
+  });
+  if (!r.ok) return null;
+  const j = await r.json();
+  const d = j.properties?.timeseries?.[0]?.data;
+  const cloud = d?.instant?.details?.cloud_area_fraction;
+  const sym = d?.next_1_hours?.summary?.symbol_code || d?.next_6_hours?.summary?.symbol_code || '';
+  let code = 0;                                   // clear/cloud → decided by cloud%
+  if (/thunder/.test(sym))            code = 95;
+  else if (/snow|sleet/.test(sym))    code = 73;
+  else if (/rain|drizzle/.test(sym))  code = 63;
+  else if (/fog/.test(sym))           code = 45;
+  return { cloud: typeof cloud === 'number' ? cloud : null, code, src: 'met.no' };
 }
 
 async function fromOpenWeather() {
