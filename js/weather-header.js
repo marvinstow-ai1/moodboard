@@ -190,35 +190,41 @@ function render(layer, scene, isDay){
   })();
   layer.dataset.sky = skyKey;
 
-  const sky = (html) => { const d = el('div'); d.innerHTML = html; layer.appendChild(d.firstElementChild); };
+  // Sprites live in a stage that starts below the notch / safe-area, so
+  // the sun, clouds etc. sit in the visible header band — never clipped
+  // up behind the status bar. The sky gradient stays full-bleed on .layer.
+  const stage = el('div', 'w-stage');
+  layer.appendChild(stage);
+
+  const sky = (html) => { const d = el('div'); d.innerHTML = html; stage.appendChild(d.firstElementChild); };
 
   switch (scene){
     case 'clear':
       if (isDay){ sky(sunSVG()); }
-      else { addStars(layer, 14); sky(moonSVG()); }
+      else { addStars(stage, 14); sky(moonSVG()); }
       break;
     case 'partly':
-      if (isDay){ sky(sunSVG()); addClouds(layer, 2, { topMin:6, topMax:30, opacity:.92 }); }
-      else { addStars(layer, 8); sky(moonSVG()); addClouds(layer, 2, { color:'#5a6473', topMin:6, topMax:30, opacity:.8 }); }
+      if (isDay){ sky(sunSVG()); addClouds(stage, 2, { topMin:4, topMax:24, opacity:.92 }); }
+      else { addStars(stage, 8); sky(moonSVG()); addClouds(stage, 2, { color:'#5a6473', topMin:4, topMax:24, opacity:.8 }); }
       break;
     case 'cloudy':
-      addClouds(layer, 4, { color: isDay ? '#aab4c0' : '#5a6473', opacity: isDay ? .95 : .85, speed:.9 });
+      addClouds(stage, 4, { color: isDay ? '#aab4c0' : '#5a6473', opacity: isDay ? .95 : .85, speed:.9 });
       break;
     case 'fog':
-      addClouds(layer, 2, { color: isDay ? '#b8bdc4' : '#565b63', opacity:.6, topMin:2, topMax:14 });
-      addFog(layer);
+      addClouds(stage, 2, { color: isDay ? '#b8bdc4' : '#565b63', opacity:.6, topMin:2, topMax:12 });
+      addFog(stage);
       break;
     case 'rain':
-      addClouds(layer, 3, { color: isDay ? '#8c97a4' : '#49525f', opacity:.95, topMin:2, topMax:16, speed:.7 });
-      addRain(layer, 16);
+      addClouds(stage, 3, { color: isDay ? '#8c97a4' : '#49525f', opacity:.95, topMin:2, topMax:14, speed:.7 });
+      addRain(stage, 16);
       break;
     case 'snow':
-      addClouds(layer, 3, { color: isDay ? '#9fa9b6' : '#525c6a', opacity:.92, topMin:2, topMax:16, speed:.6 });
-      addSnow(layer, 16);
+      addClouds(stage, 3, { color: isDay ? '#9fa9b6' : '#525c6a', opacity:.92, topMin:2, topMax:14, speed:.6 });
+      addSnow(stage, 16);
       break;
     case 'thunder':
-      addClouds(layer, 3, { color:'#454a5a', opacity:.97, topMin:2, topMax:16, speed:.7 });
-      addRain(layer, 14);
+      addClouds(stage, 3, { color:'#454a5a', opacity:.97, topMin:2, topMax:14, speed:.7 });
+      addRain(stage, 14);
       layer.appendChild(el('div', 'w-flash'));
       break;
   }

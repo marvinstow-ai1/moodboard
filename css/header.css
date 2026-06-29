@@ -1,6 +1,6 @@
-.topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:calc(76px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top) 20px 0;gap:16px;background:var(--bg)}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:calc(70px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top) 20px 0;gap:16px;background:var(--bg)}
 .topbar-left{display:flex;align-items:center;gap:24px;min-width:0}
-.board-title{background:transparent;border:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:.04em;cursor:pointer;opacity:.95;user-select:none;padding:4px 0;white-space:nowrap;flex-shrink:0}
+.board-title{background:transparent;border:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:.04em;cursor:pointer;opacity:.8;user-select:none;padding:4px 0;white-space:nowrap;flex-shrink:0}
 .board-title:hover{opacity:1}
 .nav-link{background:transparent;border:0;color:#fff;font-size:14px;font-weight:500;cursor:pointer;opacity:.4;user-select:none;padding:4px 0;transition:.15s;letter-spacing:.02em}
 .nav-link:hover{opacity:.7}

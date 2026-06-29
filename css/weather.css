@@ -22,6 +22,10 @@
 }
 .weather-layer *{image-rendering:pixelated;image-rendering:crisp-edges}
 
+/* Sprite stage — sits below the notch/safe-area so nothing is clipped
+   up behind the status bar. The sky gradient stays on .weather-layer. */
+.w-stage{position:absolute;left:0;right:0;bottom:0;top:env(safe-area-inset-top);overflow:hidden}
+
 /* Legibility scrim: darken the edges where the text + buttons live,
    leave the middle a touch clearer so the sky reads through. */
 .weather-scrim{
@@ -50,10 +54,12 @@
 .weather-layer[data-sky="thunder"]     {background:linear-gradient(180deg,#1a1822 0%,#232032 55%,#100e18 100%)}
 
 /* ---- Celestial bodies ----------------------------------------- */
-.w-sun,.w-moon{position:absolute;top:9px;left:30px;will-change:transform}
+/* Tucked behind the "Marvin's Place" title, vertically centred in the
+   header band (the title rides above at z2, weather peeks through). */
+.w-sun,.w-moon{position:absolute;top:12px;left:22px;will-change:transform}
 .w-sun .rays{transform-origin:center;animation:wSpin 14s steps(12) infinite}
 .w-sun{animation:wBob 6s ease-in-out infinite}
-.w-moon{top:8px;left:34px;animation:wBob 7s ease-in-out infinite}
+.w-moon{top:13px;left:26px;animation:wBob 7s ease-in-out infinite}
 
 /* a warm glow disc behind the sun, soft (not pixelated) */
 .w-sun .glow{
