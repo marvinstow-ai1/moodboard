@@ -7,7 +7,7 @@
    Press-Mechanik (Transition + :active) überall greift. */
 
 /* Grund-Transition: langsames, weiches Zurückfaden nach dem Loslassen. */
-.menubtn,.loginbtn,.dd-tab,.dd-btn,.ab-chip,.ab-act,
+.menubtn,.loginbtn,.infobtn,.info-back,.dd-tab,.dd-btn,.ab-chip,.ab-act,
 .lb-arrow,.lb-pill-btn,.lb-close-btn,
 .mc-panel-close,.mc-send,.mc-chip,.mc-quick-chip,.mc-status .mc-reset,
 .share-popup button,.swipe-arrow,.mood-tile,.mood-tile-create,
@@ -22,7 +22,7 @@
 }
 
 /* Translucente Buttons (weißes Overlay) → beim Druck heller. */
-.menubtn:active,.loginbtn:active,.dd-tab:active,.dd-btn:active,.ab-chip:active,
+.menubtn:active,.loginbtn:active,.infobtn:active,.info-back:active,.dd-tab:active,.dd-btn:active,.ab-chip:active,
 .lb-arrow:active,.lb-pill-btn:active,.lb-close-btn:active,.mc-panel-close:active,
 .mc-chip:active,.mc-quick-chip:active,.mc-status .mc-reset:active,.swipe-arrow:active,
 .mcm-btn.cancel:active,.cfm-close:active,.cfm-btn.cancel:active,.ab-act.cancel:active,

@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="css/chat.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
 <link rel="stylesheet" href="css/walkthrough.css">
+<link rel="stylesheet" href="css/info.css">
 <link rel="stylesheet" href="css/buttons.css">
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
@@ -37,6 +38,13 @@
     <span class="board-title" id="boardTitle">Marvin's Place</span>
   </div>
   <div class="topbar-right">
+    <button class="infobtn" id="infoBtn" aria-label="Info" title="Info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+        <circle cx="12" cy="12" r="9"/>
+        <line x1="12" y1="11" x2="12" y2="16"/>
+        <circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
     <button class="loginbtn" id="loginBtn" aria-label="Login" title="Login">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -405,6 +413,61 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
     <div class="lm-actions">
       <button id="loginClose" class="lm-btn cancel">Abbrechen</button>
       <button id="loginSubmit" class="lm-btn confirm">Einloggen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Info-Page ────────────────────────────────────────
+     Öffnet sich in der App (keine Weiterleitung). Inhalt folgt später –
+     hier steht zunächst nur das gestaltete Gerüst mit Platzhaltern. -->
+<div class="info-page" id="infoPage" role="dialog" aria-modal="true" aria-label="Info" aria-hidden="true">
+  <div class="info-ambient" aria-hidden="true"></div>
+
+  <header class="info-top">
+    <button class="info-back" id="infoClose" aria-label="Zurück">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <span class="info-top-title">Info</span>
+  </header>
+
+  <div class="info-scroll">
+    <div class="info-inner">
+      <div class="info-hero">
+        <div class="info-hero-badge">✦</div>
+        <h1 class="info-hero-title">Marvin's Place</h1>
+        <p class="info-hero-sub"></p>
+      </div>
+
+      <div class="info-sections">
+        <!-- Platzhalter-Karten. Werden später mit Inhalt strukturiert. -->
+        <section class="info-card">
+          <div class="info-card-head"><span class="info-card-dot"></span><span class="info-skel title"></span></div>
+          <div class="info-skel line w90"></div>
+          <div class="info-skel line w75"></div>
+          <div class="info-skel line w60"></div>
+        </section>
+        <section class="info-card">
+          <div class="info-card-head"><span class="info-card-dot"></span><span class="info-skel title"></span></div>
+          <div class="info-skel line w90"></div>
+          <div class="info-skel line w75"></div>
+          <div class="info-skel line w40"></div>
+        </section>
+        <section class="info-card">
+          <div class="info-card-head"><span class="info-card-dot"></span><span class="info-skel title"></span></div>
+          <div class="info-skel line w90"></div>
+          <div class="info-skel line w60"></div>
+        </section>
+        <section class="info-card">
+          <div class="info-card-head"><span class="info-card-dot"></span><span class="info-skel title"></span></div>
+          <div class="info-skel line w75"></div>
+          <div class="info-skel line w90"></div>
+          <div class="info-skel line w40"></div>
+        </section>
+      </div>
+
+      <div class="info-foot"></div>
     </div>
   </div>
 </div>

@@ -464,7 +464,8 @@ function updateBodyLock(){
     || (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
-    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'));
+    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'))
+    || !!document.getElementById('infoPage')?.classList.contains('show');
   const isLocked = document.documentElement.classList.contains('no-scroll');
   if(lock && !isLocked){
     _lockedScrollY = window.scrollY || window.pageYOffset || 0;
@@ -907,7 +908,10 @@ document.addEventListener('keydown', e => {
     else if(e.key==='Escape') closeLb();
     return;
   }
-  if(e.key==='Escape'){ if(selMode) exitSelMode(); else closeMenu(); }
+  if(e.key==='Escape'){
+    if(isInfoPageOpen()){ closeInfoPage(); return; }
+    if(selMode) exitSelMode(); else closeMenu();
+  }
 });
 
 function doShuffle() {
@@ -1183,7 +1187,8 @@ function isUiBusy(){
     || (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
-    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'));
+    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'))
+    || !!document.getElementById('infoPage')?.classList.contains('show');
 }
 async function refetchItems(){
   if(isUiBusy()){ scheduleSync(1500); return; }
@@ -1513,6 +1518,30 @@ mmgInput.addEventListener('keydown', e => {
   if(e.key === 'Enter') mmgAddBtn.click();
   else if(e.key === 'Escape') closeMoodsMgmt();
 });
+
+// ── Info-Page ─────────────────────────────────────────────
+// Öffnet sich innerhalb der App (keine Weiterleitung): eine vollflächige
+// Seite legt sich über das Grid. Inhalt folgt später.
+function openInfoPage(){
+  const page = $('infoPage');
+  if(!page) return;
+  closeAllOverlays();
+  page.classList.add('show');
+  page.setAttribute('aria-hidden','false');
+  const sc = page.querySelector('.info-scroll');
+  if(sc) sc.scrollTop = 0;
+  updateBodyLock();
+}
+function closeInfoPage(){
+  const page = $('infoPage');
+  if(!page) return;
+  page.classList.remove('show');
+  page.setAttribute('aria-hidden','true');
+  updateBodyLock();
+}
+function isInfoPageOpen(){ return !!$('infoPage')?.classList.contains('show'); }
+$('infoBtn')?.addEventListener('click', e => { e.stopPropagation(); openInfoPage(); });
+$('infoClose')?.addEventListener('click', closeInfoPage);
 
 // ── Login-Modal-Bindings ──────────────────────────────────
 $('loginBtn').onclick = handleLoginBtn;
