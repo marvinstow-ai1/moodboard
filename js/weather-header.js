@@ -13,7 +13,7 @@
    hidden. Honors prefers-reduced-motion via CSS.
    ============================================================ */
 
-const CACHE_KEY   = 'mb_weather_v3';
+const CACHE_KEY   = 'mb_weather_v4';
 const ONE_HOUR    = 60 * 60 * 1000;
 // Fixed location — Bottrop, Germany (Marvin's home).
 const LOCATION    = { lat: 51.5236, lon: 6.9286, label: 'Bottrop' };
@@ -239,28 +239,8 @@ function render(layer, scene, isDay){
 }
 
 /* ---- data fetching (cached hourly) --------------------------- */
-async function fetchWeather(){
-  // hourly cache — return it if it's still fresh
-  try {
-    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-    if (c && Date.now() - c.t < ONE_HOUR && typeof c.code === 'number') return c;
-  } catch {}
-
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
-              `&current=weather_code,is_day,cloud_cover&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
-
-  // small retry so a single network hiccup doesn't strand us on a fallback
-  let j = null, lastErr;
-  for (let attempt = 0; attempt < 2 && !j; attempt++){
-    try {
-      const r = await fetch(url, { cache: 'no-store' });
-      if (!r.ok) throw new Error('weather ' + r.status);
-      j = await r.json();
-    } catch (e){ lastErr = e; if (attempt === 0) await new Promise(s => setTimeout(s, 1200)); }
-  }
-  if (!j) throw lastErr || new Error('weather fetch failed');
-
-  // sunrise/sunset come as local-time ISO strings — keep just minutes-of-day
+// Normalise a raw Open-Meteo response to our shape.
+function normalizeOpenMeteo(j){
   const hm = (iso) => {
     const t = (iso || '').split('T')[1];
     if (!t) return null;
@@ -268,14 +248,55 @@ async function fetchWeather(){
     return H * 60 + M;
   };
   const cc = j.current?.cloud_cover;
-  const data = {
+  return {
     code: j.current?.weather_code ?? 0,
     isDay: (j.current?.is_day ?? 1) === 1,
     cloud: typeof cc === 'number' ? cc : null,
     sr: hm(j.daily?.sunrise?.[0]) ?? 390,    // fallbacks: 06:30 / 19:30
     ss: hm(j.daily?.sunset?.[0]) ?? 1170,
-    t: Date.now()
+    src: 'open-meteo'
   };
+}
+
+function looksValid(d){ return d && (typeof d.cloud === 'number' || typeof d.code === 'number'); }
+
+async function fetchWeather(){
+  // hourly cache — return it if it's still fresh
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch {}
+  if (cached && Date.now() - cached.t < ONE_HOUR && typeof cached.code === 'number') return cached;
+
+  let data = null;
+
+  // 1) Same-origin serverless proxy. Most reliable: can't be blocked by
+  //    adblockers/privacy filters, no CORS, and uses OpenWeather if a key
+  //    is configured (Open-Meteo otherwise). Returns our normalised shape.
+  try {
+    const r = await fetch('/api/weather', { cache: 'no-store' });
+    if (r.ok){ const j = await r.json(); if (looksValid(j)) data = j; }
+  } catch {}
+
+  // 2) Direct Open-Meteo fallback (works even without the serverless fn).
+  if (!data){
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
+                `&current=weather_code,is_day,cloud_cover&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (r.ok) data = normalizeOpenMeteo(await r.json());
+    } catch {}
+  }
+
+  // 3) Both failed → keep showing the last known weather instead of
+  //    snapping back to the sunny fallback.
+  if (!data){
+    if (cached && typeof cached.code === 'number'){
+      console.warn('[weather] live fetch failed — using last known data');
+      return cached;
+    }
+    throw new Error('weather unavailable');
+  }
+
+  data.t = Date.now();
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
   return data;
 }
@@ -365,7 +386,8 @@ function init(){
       const w = await fetchWeather();
       sunMin = { sr: w.sr ?? 390, ss: w.ss ?? 1170 };
       const scene = sceneForCode(w.code, w.isDay, w.cloud);
-      console.info(`[weather] code=${w.code} cloud=${w.cloud}% day=${w.isDay} → ${scene}`);
+      console.log(`[weather] src=${w.src||'?'} code=${w.code} cloud=${w.cloud}% day=${w.isDay} → ${scene}`);
+      window.__weather = { ...w, scene };   // inspectable: type __weather in console
       const key = scene + (w.isDay ? '-d' : '-n');
       if (key !== lastKey){               // only rebuild when the scene changes
         lastKey = key;
@@ -373,6 +395,7 @@ function init(){
         render(layer, scene, w.isDay);
       }
     } catch (e) {
+      console.warn('[weather] update failed:', e);
       if (!lastKey){ render(layer, 'partly', true); lastKey = 'fallback'; }
     }
     tick();                               // refresh brightness + golden hour
