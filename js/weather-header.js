@@ -196,7 +196,9 @@ function render(layer, scene, isDay){
   const stage = el('div', 'w-stage');
   layer.appendChild(stage);
 
-  const sky = (html) => { const d = el('div'); d.innerHTML = html; stage.appendChild(d.firstElementChild); };
+  // Sun/moon go on the layer itself (not the stage) so they can sit in
+  // the top-left corner above the title, not tucked down behind it.
+  const sky = (html) => { const d = el('div'); d.innerHTML = html; layer.appendChild(d.firstElementChild); };
 
   switch (scene){
     case 'clear':
