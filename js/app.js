@@ -579,8 +579,10 @@ function renderGrid(){
       // ein Thumbnail aus, wird transparent auf die Volldatei zurückgeschaltet.
       const useThumb = it.media_type==='image' && it.thumb_url;
       const src = useThumb ? it.thumb_url : it.media_url;
-      const onErr = useThumb ? ` onerror="this.onerror=null;this.src='${it.media_url}'"` : '';
-      media = `<img src="${src}" ${loadAttr} decoding="async" alt=""${onErr}><div class="grid-spinner" aria-hidden="true"></div>`;
+      // Bei Thumbnail-Fehler wird per delegiertem 'error'-Listener (s. u.) auf
+      // die Volldatei zurückgeschaltet – dafür hier die Voll-URL hinterlegen.
+      const full = useThumb ? ` data-full="${it.media_url}"` : '';
+      media = `<img src="${src}" ${loadAttr} decoding="async" alt=""${full}><div class="grid-spinner" aria-hidden="true"></div>`;
     }
     return `
     <div class="cell${it.media_type==='video' ? '' : ' loading'}" data-id="${it.id}">
@@ -589,70 +591,103 @@ function renderGrid(){
     </div>`;
   }).join('');
 
-  // GSAP stagger on initial load
+  // Eingangs-Animation nur für die sofort sichtbaren Kacheln (erste Reihen).
+  // Früher wurde über ALLE Kacheln getweent – bei großen Boards blockierte das
+  // GSAP-Stagger den Main-Thread sekundenlang und ließ das Einblenden haken.
+  // Die weiter unten liegenden Kacheln erscheinen beim Lazy-Load ganz ohne Tween.
   if(_isInitialLoad && typeof gsap !== 'undefined' && arr.length > 0){
-    gsap.from(gridEl.querySelectorAll('.cell'), {
-      opacity: 0, scale: 0.9, duration: 0.4,
-      stagger: { amount: Math.min(0.6, arr.length * 0.04), from: 'start' },
+    const cells = gridEl.children;
+    const n = Math.min(cells.length, eagerCount);
+    const targets = [];
+    for(let i = 0; i < n; i++) targets.push(cells[i]);
+    gsap.from(targets, {
+      opacity: 0, y: 12, duration: 0.4,
+      stagger: { amount: Math.min(0.35, n * 0.03), from: 'start' },
       ease: 'power2.out', clearProps: 'transform,opacity'
     });
     _isInitialLoad = false;
   }
 
-  _observer = new IntersectionObserver(entries => entries.forEach(e => {
-    const v = e.target.querySelector('video'); if(!v) return;
-    if(e.isIntersecting){ v.muted=true; v.play().catch(()=>{}); }
-    else { v.pause(); v.currentTime=0; }
-  }), { threshold:0.25, rootMargin:'100px' });
-
   // Spaltenbreite direkt setzen statt über applyGridCols() – beim reinen
   // Neu-Rendern (Shuffle/Filter/Sync) ändert sich gridCols nicht, daher kein
   // erneuter localStorage-Write und kein Swipe-UI-Update nötig (Performance).
   gridEl.style.gridTemplateColumns = gridCols === 1 ? '1fr' : `repeat(${gridCols}, 1fr)`;
-  gridEl.querySelectorAll('.cell').forEach(c => {
-    _observer.observe(c);
-    // 16-Bit Lade-Animation entfernen, sobald das Bild fertig (oder fehlgeschlagen) ist
-    if(c.classList.contains('loading')){
-      const im = c.querySelector('img');
-      if(im && im.complete && im.naturalWidth) c.classList.remove('loading');
-      else if(im){
-        const done = () => c.classList.remove('loading');
-        im.addEventListener('load', done, { once:true });
-        im.addEventListener('error', done, { once:true });
-      } else c.classList.remove('loading');
-    }
-    const chk = c.querySelector('.selcheck');
-    c.onclick = e => {
-      if(selMode){
-        const id = c.dataset.id;
-        if(e.target !== chk) chk.checked = !chk.checked;
-        chk.checked ? selectedIds.add(id) : selectedIds.delete(id);
-        c.classList.toggle('sel-highlight', chk.checked);
-        updateActionBarCount();
-        return;
-      }
-      if(isAnyOverlayOpen()){ closeAllOverlays(); e.stopPropagation(); return; }
-      const idx = S().currentItems.findIndex(x => x.id===c.dataset.id); openLightbox(idx);
-    };
-    c.oncontextmenu = e => { e.preventDefault(); if(!selMode) openEditor(c.dataset.id); };
-    if(selMode){ chk.classList.add('visible'); if(selectedIds.has(c.dataset.id)){ chk.checked=true; c.classList.add('sel-highlight'); } }
-    // Doppelklick-Favorit
-    let lastTap = 0;
-    c.addEventListener('dblclick', e => {
-      if (selMode) return;
-      e.preventDefault();
-      e.stopPropagation();
+
+  // IntersectionObserver nur für Video-Kacheln (Autoplay beim Sichtbarwerden).
+  // Reine Bild-Boards beobachten dadurch gar nichts – kein O(n)-Observe-Loop.
+  // (Ein evtl. alter Observer wurde oben bereits getrennt.)
+  const videoCells = gridEl.querySelectorAll('.cell:has(video)');
+  if(videoCells.length){
+    _observer = new IntersectionObserver(entries => entries.forEach(e => {
+      const v = e.target.querySelector('video'); if(!v) return;
+      if(e.isIntersecting){ v.muted=true; v.play().catch(()=>{}); }
+      else { v.pause(); v.currentTime=0; }
+    }), { threshold:0.25, rootMargin:'100px' });
+    videoCells.forEach(c => _observer.observe(c));
+  }
+
+  // Klick/Kontextmenü über Event-Delegation EINMALIG am Grid-Container statt
+  // pro Kachel – das spart bei großen Boards hunderte Listener-Anbindungen
+  // (vorher die Haupt-Ursache fürs Haken direkt nach dem Boot-Spinner).
+  wireGridDelegation();
+
+  // Selection-Mode-Status (Checkbox sichtbar/aktiv) nur setzen, wenn der Modus
+  // wirklich aktiv ist – beim normalen Initial-Load entfällt dieser Loop ganz.
+  if(selMode){
+    gridEl.querySelectorAll('.cell').forEach(c => {
+      const chk = c.querySelector('.selcheck');
+      if(!chk) return;
+      chk.classList.add('visible');
+      if(selectedIds.has(c.dataset.id)){ chk.checked = true; c.classList.add('sel-highlight'); }
     });
-    // Mobile: doppeltes Tippen (touchend-Heuristik)
-    c.addEventListener('touchend', e => {
-      const now = Date.now();
-      if (now - lastTap < 300) {
-        e.preventDefault();
-        lastTap = 0;
-      } else {
-        lastTap = now;
-      }
-    }, { passive: false });
+  }
+}
+
+// Container-Listener: einmal anbinden, danach kümmert sich Delegation um alle
+// (auch künftig nachgerenderten) Kacheln.
+let _gridWired = false;
+function wireGridDelegation(){
+  if(_gridWired) return;
+  _gridWired = true;
+
+  // Lade-Spinner pro Kachel entfernen, sobald das Bild fertig ist. 'load'/'error'
+  // blubbern nicht, werden aber in der Capture-Phase am Container abgefangen –
+  // so genügt EIN Listener-Paar für alle Bilder (eager wie lazy).
+  gridEl.addEventListener('load', e => {
+    const t = e.target;
+    if(t.tagName === 'IMG') t.closest('.cell')?.classList.remove('loading');
+  }, true);
+  gridEl.addEventListener('error', e => {
+    const t = e.target;
+    if(t.tagName !== 'IMG') return;
+    const full = t.dataset.full;
+    // Thumbnail fehlgeschlagen → transparent auf die Volldatei zurückschalten.
+    if(full && t.src !== full){ delete t.dataset.full; t.src = full; return; }
+    t.closest('.cell')?.classList.remove('loading');
+  }, true);
+
+  gridEl.addEventListener('click', e => {
+    const c = e.target.closest('.cell');
+    if(!c || !gridEl.contains(c)) return;
+    if(selMode){
+      const chk = c.querySelector('.selcheck');
+      const id = c.dataset.id;
+      if(e.target !== chk) chk.checked = !chk.checked;
+      chk.checked ? selectedIds.add(id) : selectedIds.delete(id);
+      c.classList.toggle('sel-highlight', chk.checked);
+      updateActionBarCount();
+      return;
+    }
+    if(isAnyOverlayOpen()){ closeAllOverlays(); e.stopPropagation(); return; }
+    const idx = S().currentItems.findIndex(x => x.id === c.dataset.id);
+    openLightbox(idx);
+  });
+
+  gridEl.addEventListener('contextmenu', e => {
+    const c = e.target.closest('.cell');
+    if(!c || !gridEl.contains(c)) return;
+    e.preventDefault();
+    if(!selMode) openEditor(c.dataset.id);
   });
 }
 
