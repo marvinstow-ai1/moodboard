@@ -753,7 +753,36 @@ function openLightbox(idx){
     // Ganze Lightbox nur beim ersten Öffnen einblenden, nicht beim Blättern.
     if(isOpening) gsap.fromTo(lightbox, {opacity:0},{opacity:1,duration:0.22,ease:'power2.out'});
     else gsap.set(lightbox, {opacity:1});
-    if(media) gsap.fromTo(media,{scale:0.93,opacity:0},{scale:1,opacity:1,duration:0.3,ease:'power2.out'});
+    if(media){
+      // Bug-Fix gegen das "Springen": Das Medium zunächst unsichtbar setzen und
+      // die Einblend-Animation ERST starten, wenn echte Maße vorliegen. Sonst
+      // beginnt die Animation, während das Bild noch Höhe 0 hat – sobald es
+      // dann dekodiert, wächst es aus der vertikal zentrierten Mitte heraus und
+      // die Oberkante "springt" sichtbar nach oben.
+      gsap.set(media, {scale:0.94, opacity:0, willChange:'transform, opacity'});
+      const reveal = () => gsap.to(media, {
+        scale:1, opacity:1, duration:0.4,
+        ease:'power3.out', overwrite:true,
+        onComplete(){ media.style.willChange=''; }
+      });
+      if(media.tagName === 'IMG'){
+        // decode() löst aus, sobald das Bild dekodiert & paint-bereit ist –
+        // bei gecachten Thumbnails praktisch sofort (kein Performance-Verlust),
+        // bei großen Volldateien wartet es kurz statt zu ruckeln.
+        if(media.complete && media.naturalWidth){
+          reveal();
+        } else if(media.decode){
+          media.decode().then(reveal).catch(reveal);
+        } else {
+          media.addEventListener('load', reveal, {once:true});
+          media.addEventListener('error', reveal, {once:true});
+        }
+      } else {
+        // Video: Maße stehen mit den Metadaten fest.
+        if(media.readyState >= 1) reveal();
+        else media.addEventListener('loadedmetadata', reveal, {once:true});
+      }
+    }
   }
   lightbox.classList.toggle('has-video', it.media_type === 'video');
   setAmbientFor(it);
