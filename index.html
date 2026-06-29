@@ -219,7 +219,29 @@
       </div>
     </div>
   </div>
+
+  <!-- Ende-der-Liste-Disclaimer: erscheint unter dem Grid, wenn man ganz
+       durchgescrollt hat. Text wechselt bei jedem renderGrid() zufällig. -->
+  <div class="grid-end" id="gridEnd" hidden>
+    <div class="grid-end-line" aria-hidden="true"></div>
+    <p class="grid-end-text" id="gridEndText"></p>
+    <button class="grid-end-top" id="gridEndTop" type="button">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5 12 12 5 19 12"/>
+      </svg>
+      Nach oben
+    </button>
+  </div>
 </div>
+
+<!-- Floating „Nach oben": blendet ein, sobald man ein Stück gescrollt hat. -->
+<button class="back-to-top" id="backToTop" type="button" aria-label="Nach oben scrollen">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="12" y1="19" x2="12" y2="5"/>
+    <polyline points="5 12 12 5 19 12"/>
+  </svg>
+</button>
 
 <div class="moods-view" id="moodsView">
   <div class="moods-grid" id="moodsGrid"></div>

@@ -98,6 +98,9 @@ async function submitLogin() {
 // ── DOM refs ────────────────────────────────────────────
 const gridEl         = $('grid');
 const gridWrap       = $('gridWrap');
+const gridEnd        = $('gridEnd');
+const gridEndText    = $('gridEndText');
+const backToTopBtn   = $('backToTop');
 const dropdown       = $('dropdown');
 const bottomSheet    = $('bottomSheet');
 const sheetOverlay   = $('sheetOverlay');
@@ -519,6 +522,43 @@ function renderMoodChips(){
     };
   });
 }
+// ── Ende-der-Liste-Disclaimer ──────────────────────────
+// Wechselnde Sprüche, die unter dem Grid auftauchen, sobald man ganz
+// durchgescrollt hat – egal ob gefiltert, gemischt oder per Chat gesucht.
+const END_DISCLAIMERS = [
+  'Du bist unten angekommen. Pack dein Handy weg und mach was Sinnvolles. 📵',
+  'Das war alles. Mehr gibt’s gerade nicht – Zeit, den Blick mal zu heben.',
+  'Ende der Fahnenstange. Glückwunsch, du Scroll-Champion. 🏆',
+  'Du hast alles gesehen. Jetzt raus an die frische Luft, ja?',
+  'Hier ist Schluss. Der Rest des Tages wartet da draußen auf dich.',
+];
+let _lastDisclaimer = '';
+// Bei jedem Render einen neuen Spruch ziehen (nie zweimal denselben in Folge).
+function pickDisclaimer(){
+  if(END_DISCLAIMERS.length < 2) return END_DISCLAIMERS[0] || '';
+  let txt;
+  do { txt = END_DISCLAIMERS[Math.floor(Math.random() * END_DISCLAIMERS.length)]; }
+  while(txt === _lastDisclaimer);
+  _lastDisclaimer = txt;
+  return txt;
+}
+// Disclaimer nur zeigen, wenn tatsächlich Kacheln da sind, durch die man
+// scrollen kann – bei leerem Grid bzw. während des Boots bleibt er versteckt.
+function updateGridEnd(count){
+  if(!gridEnd) return;
+  if(count > 0){
+    gridEndText.textContent = pickDisclaimer();
+    gridEnd.hidden = false;
+  } else {
+    gridEnd.hidden = true;
+  }
+}
+
+function scrollToTop(){
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+}
+
 // ── GRID RENDERING ─────────────────────────────────────
 function renderGrid(){
   const s = S();
@@ -641,6 +681,9 @@ function renderGrid(){
       if(selectedIds.has(c.dataset.id)){ chk.checked = true; c.classList.add('sel-highlight'); }
     });
   }
+
+  // Wechselnden Ende-Disclaimer unter dem Grid setzen/verstecken.
+  updateGridEnd(arr.length);
 }
 
 // Container-Listener: einmal anbinden, danach kümmert sich Delegation um alle
@@ -1567,5 +1610,27 @@ function animateNewCell(id){
   if(cell && typeof gsap !== 'undefined'){
     gsap.fromTo(cell,{opacity:0,scale:0.85},{opacity:1,scale:1,duration:0.4,ease:'back.out(1.4)'});
   }
+}
+
+// ── „Nach oben"-Buttons ──────────────────────────────────
+// Sowohl der Button im Ende-Disclaimer als auch der schwebende Button
+// scrollen ruckelfrei zurück an den Anfang.
+$('gridEndTop')?.addEventListener('click', scrollToTop);
+backToTopBtn?.addEventListener('click', () => { backToTopBtn.blur(); scrollToTop(); });
+
+// Schwebenden Button erst nach etwas Scrollen einblenden. requestAnimationFrame
+// drosselt den Scroll-Handler, damit kein Layout-Thrashing entsteht.
+if(backToTopBtn){
+  let _btTicking = false;
+  const updateBackToTop = () => {
+    _btTicking = false;
+    const y = window.scrollY || window.pageYOffset || 0;
+    backToTopBtn.classList.toggle('show', y > 600);
+  };
+  window.addEventListener('scroll', () => {
+    if(_btTicking) return;
+    _btTicking = true;
+    requestAnimationFrame(updateBackToTop);
+  }, { passive: true });
 }
 
