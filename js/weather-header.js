@@ -85,16 +85,48 @@ function sunSVG(){
   </div>`;
 }
 
+// Current moon phase as a fraction 0..1 (0 = new, 0.5 = full).
+function moonPhase(date = new Date()){
+  const SYNODIC = 29.530588853;                 // days between new moons
+  const knownNew = Date.UTC(2000, 0, 6, 18, 14) / 86400000;
+  let p = ((date.getTime() / 86400000 - knownNew) % SYNODIC) / SYNODIC;
+  return p < 0 ? p + 1 : p;
+}
+
+// Pixel disc carved by the phase terminator — only the lit pixels are drawn,
+// so we get crescents / half / gibbous / full just like the real moon.
+function moonDiscPixels(r, phase, color){
+  const c = Math.cos(2 * Math.PI * phase);
+  const waxing = phase <= 0.5;
+  let rects = '';
+  for (let y = -r; y <= r; y++){
+    const w = Math.sqrt(r*r - y*y);
+    const wi = Math.round(w);
+    const xt = w * c;                             // terminator x for this row
+    for (let x = -wi; x <= wi; x++){
+      const lit = waxing ? (x >= xt) : (x <= -xt);
+      if (lit) rects += `<rect x="${r + x}" y="${r + y}" width="1" height="1"/>`;
+    }
+  }
+  return `<g fill="${color}">${rects}</g>`;
+}
+
 function moonSVG(){
-  const disc = pixelDisc(5, '#eef2ff');
+  const phase = moonPhase();
+  const illum = (1 - Math.cos(2 * Math.PI * phase)) / 2;   // 0..1 lit fraction
+  const disc = moonDiscPixels(5, phase, '#eef2ff');
+  // craters only when it's nearly full (they'd look odd on a thin crescent);
+  // kept well inside the disc so nothing pokes past the edge.
+  const craters = illum > 0.9
+    ? `<rect x="4" y="4" width="2" height="2" fill="#b3bce0"/>` +
+      `<rect x="6" y="6" width="2" height="2" fill="#b3bce0"/>` +
+      `<rect x="3" y="6" width="1" height="1" fill="#b3bce0"/>`
+    : '';
   return `
   <div class="w-moon">
     <span class="glow"></span>
     <svg width="52" height="52" viewBox="0 0 22 22" shape-rendering="crispEdges" style="position:relative">
-      <g transform="translate(6,6)">${disc}</g>
-      <rect x="10" y="9" width="2" height="2" fill="#b3bce0"/>
-      <rect x="14" y="13" width="2" height="2" fill="#b3bce0"/>
-      <rect x="9" y="14" width="1" height="1" fill="#b3bce0"/>
+      <g transform="translate(6,6)">${disc}${craters}</g>
     </svg>
   </div>`;
 }
@@ -170,6 +202,19 @@ function addStars(layer, count){
   }
 }
 
+// Occasional shooting stars — each is visible only briefly within a long
+// cycle, so they streak past now and then rather than constantly.
+function addShootingStars(layer, count){
+  for (let i = 0; i < count; i++){
+    const s = el('div', 'w-shoot');
+    const dur = rnd(22, 40);                      // long cycle → sporadic
+    s.style.cssText =
+      `top:${rnd(2, 26)}px;left:${rnd(8, 70)}%;` +
+      `animation-duration:${dur}s;animation-delay:${-rnd(0, dur)}s`;
+    layer.appendChild(s);
+  }
+}
+
 function addFog(layer){
   for (let i = 0; i < 3; i++){
     const f = el('div', 'w-fog');
@@ -209,11 +254,11 @@ function render(layer, scene, isDay){
   switch (scene){
     case 'clear':
       if (isDay){ sky(sunSVG()); }
-      else { addStars(stage, 14); sky(moonSVG()); }
+      else { addStars(stage, 14); addShootingStars(stage, 2); sky(moonSVG()); }
       break;
     case 'partly':
       if (isDay){ sky(sunSVG()); addClouds(stage, 3, { topMin:4, topMax:24, opacity:.92 }); }
-      else { addStars(stage, 8); sky(moonSVG()); addClouds(stage, 3, { color:'#5a6473', topMin:4, topMax:24, opacity:.8 }); }
+      else { addStars(stage, 8); addShootingStars(stage, 1); sky(moonSVG()); addClouds(stage, 3, { color:'#5a6473', topMin:4, topMax:24, opacity:.8 }); }
       break;
     case 'cloudy':
       addClouds(stage, 4, { color: isDay ? '#aab4c0' : '#5a6473', opacity: isDay ? .95 : .85, speed:.9 });

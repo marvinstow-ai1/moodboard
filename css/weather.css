@@ -85,6 +85,13 @@
 /* ---- Stars (clear night) -------------------------------------- */
 .w-star{position:absolute;width:2px;height:2px;background:#cdd6ff;animation:wTwinkle 3s steps(2) infinite}
 
+/* ---- Shooting stars (occasional) ------------------------------ */
+.w-shoot{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;
+  box-shadow:0 0 5px 1px rgba(255,255,255,.85);opacity:0;
+  will-change:transform,opacity;animation-name:wShoot;animation-timing-function:ease-in;animation-iteration-count:infinite}
+.w-shoot::before{content:"";position:absolute;right:1px;top:0;width:34px;height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.7))}
+
 /* ---- Rain ------------------------------------------------------ */
 .w-rain{position:absolute;top:-14px;width:2px;height:13px;
   background:linear-gradient(180deg,rgba(150,200,255,0) 0%,rgba(150,200,255,.85) 60%,rgba(190,225,255,.95) 100%);
@@ -116,9 +123,17 @@
   0%,4%,100%{opacity:0}
   1%{opacity:.85}2%{opacity:.15}3%{opacity:.7}
 }
+/* streaks diagonally across, visible only for a brief slice of the cycle */
+@keyframes wShoot{
+  0%,100%{opacity:0;transform:translate(0,0) rotate(19deg)}
+  1%{opacity:0;transform:translate(0,0) rotate(19deg)}
+  3%{opacity:1}
+  9%{opacity:1}
+  12%{opacity:0;transform:translate(116px,40px) rotate(19deg)}
+}
 
 /* ---- Reduced motion / data saver: keep the look, drop the loop -- */
 @media (prefers-reduced-motion: reduce){
   .weather-layer *{animation:none !important}
-  .w-rain,.w-snow,.w-flash{display:none}
+  .w-rain,.w-snow,.w-flash,.w-shoot{display:none}
 }
