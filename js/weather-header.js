@@ -5,8 +5,8 @@
    localStorage so we never re-hit the API on every visit) and
    renders a small 16-bit pixel-art scene BEHIND the header
    title + buttons. No API key, no backend — Open-Meteo is free
-   and CORS-enabled; the viewer's coordinates come from a free
-   IP lookup with a sensible fallback.
+   and CORS-enabled. The location is fixed to Bottrop (Marvin's
+   home), so the header always shows the local weather there.
 
    Performance: only transform/opacity animations (compositor),
    modest element counts, and everything pauses while the tab is
@@ -14,9 +14,9 @@
    ============================================================ */
 
 const CACHE_KEY   = 'mb_weather_v1';
-const GEO_KEY     = 'mb_weather_geo_v1';
 const ONE_HOUR    = 60 * 60 * 1000;
-const FALLBACK    = { lat: 52.52, lon: 13.405, label: 'Berlin' }; // used if geo lookup fails
+// Fixed location — Bottrop, Germany (Marvin's home).
+const LOCATION    = { lat: 51.5236, lon: 6.9286, label: 'Bottrop' };
 
 /* ---- WMO weather code → scene -------------------------------- */
 function sceneForCode(code, isDay){
@@ -225,25 +225,6 @@ function render(layer, scene, isDay){
 }
 
 /* ---- data fetching (cached hourly) --------------------------- */
-async function getGeo(){
-  try {
-    const cached = JSON.parse(localStorage.getItem(GEO_KEY) || 'null');
-    if (cached && cached.lat != null) return cached;
-  } catch {}
-  try {
-    const r = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
-    if (r.ok){
-      const j = await r.json();
-      if (j && j.latitude != null && j.longitude != null){
-        const geo = { lat: j.latitude, lon: j.longitude, label: j.city || '' };
-        try { localStorage.setItem(GEO_KEY, JSON.stringify(geo)); } catch {}
-        return geo;
-      }
-    }
-  } catch {}
-  return FALLBACK;
-}
-
 async function fetchWeather(){
   // hourly cache — return it if it's still fresh
   try {
@@ -251,8 +232,7 @@ async function fetchWeather(){
     if (c && Date.now() - c.t < ONE_HOUR && typeof c.code === 'number') return c;
   } catch {}
 
-  const geo = await getGeo();
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}` +
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
               `&current=weather_code,is_day&timezone=auto`;
   const r = await fetch(url, { cache: 'no-store' });
   if (!r.ok) throw new Error('weather ' + r.status);
