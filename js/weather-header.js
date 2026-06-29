@@ -30,9 +30,9 @@ function sceneForCode(code, isDay, cloud){
   // weather_code alone is unreliable — it often reports 0–2 ("clear") even
   // when the sky is fully overcast, which is why it looked sunny all day.
   if (typeof cloud === 'number'){
-    if (cloud < 25)  return 'clear';
-    if (cloud < 65)  return 'partly';
-    return 'cloudy';
+    if (cloud < 15)  return 'clear';    // genuinely blue sky
+    if (cloud < 55)  return 'partly';   // a few clouds → sun WITH clouds
+    return 'cloudy';                     // mostly/fully overcast
   }
   // No cloud-cover data → fall back to the weather code.
   if (code === 0)                 return 'clear';
