@@ -1522,19 +1522,30 @@ mmgInput.addEventListener('keydown', e => {
 // ── Info-Page ─────────────────────────────────────────────
 // Öffnet sich innerhalb der App (keine Weiterleitung): eine vollflächige
 // Seite legt sich über das Grid. Inhalt folgt später.
+// will-change nur kurz während der Auf-/Zu-Animation setzen, danach wieder
+// entfernen – ein dauerhaftes will-change würde den Compositor zwingen, die
+// Vollbild-Ebene permanent als eigenen Layer vorzuhalten.
+let _infoAnimTimer = null;
+function markInfoAnimating(page){
+  page.classList.add('is-animating');
+  clearTimeout(_infoAnimTimer);
+  _infoAnimTimer = setTimeout(() => page.classList.remove('is-animating'), 320);
+}
 function openInfoPage(){
   const page = $('infoPage');
   if(!page) return;
   closeAllOverlays();
-  page.classList.add('show');
-  page.setAttribute('aria-hidden','false');
   const sc = page.querySelector('.info-scroll');
   if(sc) sc.scrollTop = 0;
+  markInfoAnimating(page);
+  page.classList.add('show');
+  page.setAttribute('aria-hidden','false');
   updateBodyLock();
 }
 function closeInfoPage(){
   const page = $('infoPage');
   if(!page) return;
+  markInfoAnimating(page);
   page.classList.remove('show');
   page.setAttribute('aria-hidden','true');
   updateBodyLock();

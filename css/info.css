@@ -21,34 +21,42 @@
   display:flex;flex-direction:column;
   background:var(--bg);
   opacity:0;visibility:hidden;pointer-events:none;
-  transform:translateY(22px) scale(.985);
-  transition:opacity .42s cubic-bezier(.22,1,.36,1),
-             transform .42s cubic-bezier(.22,1,.36,1),
-             visibility 0s linear .42s;
+  transform:translateY(12px);
+  /* Schließen ist die Default-Transition (schnell). Nur transform/opacity –
+     kein scale(), das die Blur-Layer der Kinder jeden Frame neu rastern würde. */
+  transition:opacity .2s ease,
+             transform .2s ease,
+             visibility 0s linear .2s;
   overflow:hidden;
 }
 .info-page.show{
   opacity:1;visibility:visible;pointer-events:auto;
   transform:none;
-  transition:opacity .5s cubic-bezier(.22,1,.36,1),
-             transform .55s cubic-bezier(.22,1,.36,1),
+  /* Öffnen etwas weicher, aber kurz. */
+  transition:opacity .26s cubic-bezier(.22,1,.36,1),
+             transform .28s cubic-bezier(.22,1,.36,1),
              visibility 0s;
 }
+/* will-change nur während die Seite aktiv ist – nicht dauerhaft, damit der
+   Compositor nicht unnötig Layer vorhält. */
+.info-page.is-animating{will-change:opacity,transform}
 
 /* Dynamischer Ambient-Hintergrund: zwei weich gestreute Lichtflächen, die
    langsam driften. Gibt der ansonsten leeren Seite Leben. */
 .info-ambient{
-  position:absolute;inset:-40%;z-index:0;pointer-events:none;
+  position:absolute;inset:-30%;z-index:0;pointer-events:none;
+  /* Weiche Radial-Gradients – kein blur()-Filter nötig, das spart pro Frame
+     eine teure Neu-Rasterung der riesigen Fläche. */
   background:
     radial-gradient(38% 32% at 22% 28%, rgba(120,150,255,.16), transparent 70%),
     radial-gradient(34% 30% at 80% 18%, rgba(255,140,200,.12), transparent 70%),
     radial-gradient(40% 36% at 65% 88%, rgba(120,255,210,.10), transparent 70%);
-  filter:blur(20px);
   opacity:0;
-  animation:infoAmbientDrift 26s ease-in-out infinite;
-  transition:opacity 1.1s ease .15s;
+  transition:opacity .6s ease .05s;
 }
-.info-page.show .info-ambient{opacity:1}
+/* Drift-Animation erst NACH dem Öffnen starten, damit sie nicht mit der
+   Einblend-Transition um GPU-Zeit konkurriert. */
+.info-page.show .info-ambient{opacity:1;animation:infoAmbientDrift 26s ease-in-out infinite}
 @keyframes infoAmbientDrift{
   0%  {transform:translate3d(0,0,0)        rotate(0deg)   scale(1)}
   33% {transform:translate3d(3%,-2%,0)     rotate(4deg)   scale(1.06)}
@@ -68,7 +76,6 @@
   width:40px;height:40px;border-radius:999px;flex-shrink:0;
   border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;
   cursor:pointer;display:grid;place-items:center;
-  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
 }
 .info-back svg{width:20px;height:20px;display:block}
 .info-top-title{
@@ -90,14 +97,13 @@
   opacity:0;transform:translateY(16px);
 }
 .info-page.show .info-hero{
-  animation:infoRise .7s cubic-bezier(.22,1,.36,1) .08s forwards;
+  animation:infoRise .36s cubic-bezier(.22,1,.36,1) .04s forwards;
 }
 .info-hero-badge{
   width:72px;height:72px;border-radius:22px;display:grid;place-items:center;
   font-size:32px;
-  background:rgba(255,255,255,.06);border:1px solid var(--border);
+  background:rgba(28,28,30,.7);border:1px solid var(--border);
   box-shadow:0 12px 40px rgba(0,0,0,.5);
-  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
 }
 .info-hero-title{font-size:26px;font-weight:700;letter-spacing:.02em}
 .info-hero-sub{
@@ -109,22 +115,23 @@
 .info-card{
   position:relative;
   border:1px solid var(--border);border-radius:20px;
-  background:rgba(255,255,255,.035);
-  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  /* Solider (statt translucent + backdrop-blur): über dem fast schwarzen
+     Hintergrund optisch identisch, aber ohne teure Blur-Komposition. */
+  background:rgba(20,20,22,.55);
   padding:22px 22px 24px;
   box-shadow:0 10px 36px rgba(0,0,0,.32);
-  opacity:0;transform:translateY(18px);
-  transition:border-color .35s,background-color .35s,transform .25s cubic-bezier(.22,1,.36,1);
+  opacity:0;transform:translateY(14px);
+  transition:border-color .25s,background-color .25s;
 }
-/* Gestaffeltes Einfahren der Karten beim Öffnen. */
-.info-page.show .info-card{animation:infoRise .65s cubic-bezier(.22,1,.36,1) forwards}
-.info-page.show .info-card:nth-child(1){animation-delay:.16s}
-.info-page.show .info-card:nth-child(2){animation-delay:.24s}
-.info-page.show .info-card:nth-child(3){animation-delay:.32s}
-.info-page.show .info-card:nth-child(4){animation-delay:.40s}
-.info-page.show .info-card:nth-child(5){animation-delay:.48s}
-.info-page.show .info-card:nth-child(6){animation-delay:.56s}
-.info-card:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.05)}
+/* Gestaffeltes Einfahren – kurze Schritte, damit alles in ~0,3s steht. */
+.info-page.show .info-card{animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards}
+.info-page.show .info-card:nth-child(1){animation-delay:.05s}
+.info-page.show .info-card:nth-child(2){animation-delay:.09s}
+.info-page.show .info-card:nth-child(3){animation-delay:.13s}
+.info-page.show .info-card:nth-child(4){animation-delay:.17s}
+.info-page.show .info-card:nth-child(5){animation-delay:.21s}
+.info-page.show .info-card:nth-child(6){animation-delay:.25s}
+.info-card:hover{border-color:rgba(255,255,255,.22);background:rgba(28,28,30,.6)}
 
 .info-card-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .info-card-dot{
