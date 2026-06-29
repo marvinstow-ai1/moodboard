@@ -13,7 +13,7 @@
    hidden. Honors prefers-reduced-motion via CSS.
    ============================================================ */
 
-const CACHE_KEY   = 'mb_weather_v1';
+const CACHE_KEY   = 'mb_weather_v2';
 const ONE_HOUR    = 60 * 60 * 1000;
 // Fixed location — Bottrop, Germany (Marvin's home).
 const LOCATION    = { lat: 51.5236, lon: 6.9286, label: 'Bottrop' };
@@ -241,13 +241,22 @@ async function fetchWeather(){
   } catch {}
 
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
-              `&current=weather_code,is_day&timezone=auto`;
+              `&current=weather_code,is_day&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
   const r = await fetch(url, { cache: 'no-store' });
   if (!r.ok) throw new Error('weather ' + r.status);
   const j = await r.json();
+  // sunrise/sunset come as local-time ISO strings — keep just minutes-of-day
+  const hm = (iso) => {
+    const t = (iso || '').split('T')[1];
+    if (!t) return null;
+    const [H, M] = t.split(':').map(Number);
+    return H * 60 + M;
+  };
   const data = {
     code: j.current?.weather_code ?? 0,
     isDay: (j.current?.is_day ?? 1) === 1,
+    sr: hm(j.daily?.sunrise?.[0]) ?? 390,    // fallbacks: 06:30 / 19:30
+    ss: hm(j.daily?.sunset?.[0]) ?? 1170,
     t: Date.now()
   };
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
@@ -255,17 +264,14 @@ async function fetchWeather(){
 }
 
 /* ---- time-of-day brightness ---------------------------------- */
-// The weather sky/sprites are tinted + dimmed by the local clock so the
-// header feels like real daylight: dawn is dim & warm, midday is the
-// brightest, the afternoon eases off, evening/night are darkest. The
-// base palettes are tuned for evening, so 1.0 ≈ "evening" brightness.
+// The weather is dimmed by the local clock so the header feels like real
+// daylight: dawn is dim, midday is brightest, the afternoon eases off,
+// evening/night are darkest. The base palettes are tuned for evening, so
+// 1.0 ≈ "evening" brightness. (Colour of dawn/dusk is handled separately
+// by the golden-hour gradient below.)
 const BRIGHT = [           // [hour, brightness multiplier]
   [0,0.85],[5,0.85],[6.5,0.90],[8,0.97],[10,1.05],[12,1.14],[13.5,1.16],
   [15,1.08],[17,1.02],[18.5,1.0],[20,0.95],[21.5,0.90],[23,0.86],[24,0.85]
-];
-const WARM = [             // [hour, warmth 0..1] — orange at dawn/dusk
-  [0,0.05],[5,0.10],[6.5,0.55],[8,0.30],[10,0.05],[12,0],[15,0],
-  [17,0.15],[18.5,0.42],[19.5,0.55],[21,0.25],[22.5,0.10],[24,0.05]
 ];
 
 function curveAt(h, pts){
@@ -283,9 +289,39 @@ function daylightFilter(){
   const d = new Date();
   const h = d.getHours() + d.getMinutes()/60;
   const b = curveAt(h, BRIGHT);
-  const w = curveAt(h, WARM);
-  return `brightness(${b.toFixed(3)}) sepia(${(w*0.35).toFixed(3)}) ` +
-         `hue-rotate(${(-w*18).toFixed(1)}deg) saturate(${(1 + w*0.12).toFixed(3)})`;
+  return `brightness(${b.toFixed(3)}) saturate(1.05)`;
+}
+
+/* ---- golden hour (sunrise / sunset colours) ------------------ */
+// Real sunrise/sunset times for Bottrop drive a warm gradient that
+// blooms over the sky around each event — the classic colours of a
+// beautiful sunrise/sunset. Sunrise leans softer pink/peach, sunset
+// leans deeper orange/magenta/violet.
+const GRAD_SUNRISE =
+  'linear-gradient(180deg,#2b2a55 0%,#5a3d7a 22%,#b85f8e 45%,#ff9e6b 72%,#ffd49a 100%)';
+const GRAD_SUNSET =
+  'linear-gradient(180deg,#1e1b3c 0%,#4a2a60 24%,#9c3a6c 47%,#ea5a37 72%,#ffab4d 100%)';
+
+// Smooth 1→0 bump centred on the event, reaching 0 at ±halfWidth minutes.
+function bump(nowMin, eventMin, halfWidth){
+  const d = Math.abs(nowMin - eventMin);
+  if (d >= halfWidth) return 0;
+  return 0.5 * (1 + Math.cos(Math.PI * d / halfWidth));
+}
+
+// Returns { opacity, gradient } for the current minute given sunrise/sunset.
+function goldenHour(sr, ss, overcast){
+  const now = new Date();
+  const m = now.getHours() * 60 + now.getMinutes();
+  const HALF = 85;                       // ~the golden hour window, each side
+  const gSr = bump(m, sr, HALF);
+  const gSs = bump(m, ss, HALF);
+  const g = Math.max(gSr, gSs);
+  const maxOp = overcast ? 0.45 : 0.82;  // overcast skies are muted
+  return {
+    opacity: g * maxOp,
+    gradient: gSs >= gSr ? GRAD_SUNSET : GRAD_SUNRISE
+  };
 }
 
 /* ---- boot ---------------------------------------------------- */
@@ -298,35 +334,54 @@ function init(){
   topbar.prepend(scrim);
   topbar.prepend(layer);
 
+  // Persistent golden-hour gradient — sits above the sky but below the
+  // sprites, so the sun/clouds stay readable on a coloured sky.
+  const golden = el('div', 'w-goldenhour');
+
   let lastKey = '';
+  let sunMin  = { sr: 390, ss: 1170 };   // sunrise/sunset minutes (fallback)
+  let curScene = 'partly';
+  const overcastScenes = new Set(['cloudy','fog','rain','snow','thunder']);
+
   const apply = async () => {
     try {
       const w = await fetchWeather();
+      sunMin = { sr: w.sr ?? 390, ss: w.ss ?? 1170 };
       const scene = sceneForCode(w.code, w.isDay);
       const key = scene + (w.isDay ? '-d' : '-n');
-      if (key === lastKey) return;        // nothing changed → don't rebuild
-      lastKey = key;
-      render(layer, scene, w.isDay);
+      if (key !== lastKey){               // only rebuild when the scene changes
+        lastKey = key;
+        curScene = scene;
+        render(layer, scene, w.isDay);
+      }
     } catch (e) {
       if (!lastKey){ render(layer, 'partly', true); lastKey = 'fallback'; }
     }
+    tick();                               // refresh brightness + golden hour
   };
 
-  // time-of-day brightness/warmth — refreshed often enough to glide
-  // through dawn/dusk, cheap (just a filter string on the layer).
-  const setDaylight = () => { layer.style.filter = daylightFilter(); };
+  // time-of-day brightness + sunrise/sunset colours — cheap, refreshed
+  // often enough to glide through dawn/dusk.
+  const tick = () => {
+    layer.style.filter = daylightFilter();
+    const g = goldenHour(sunMin.sr, sunMin.ss, overcastScenes.has(curScene));
+    golden.style.background = g.gradient;
+    golden.style.opacity = g.opacity.toFixed(3);
+    // render() wipes the layer, so make sure the overlay is back, first in
+    // line (above the sky background, below the sprites).
+    if (layer.firstElementChild !== golden) layer.insertBefore(golden, layer.firstElementChild);
+  };
 
   apply();
-  setDaylight();
   // the "hourly cron": re-check the weather every hour for long-lived tabs.
   setInterval(apply, ONE_HOUR);
-  // nudge the daylight tint every 10 min so transitions stay smooth.
-  setInterval(setDaylight, 10 * 60 * 1000);
+  // nudge brightness + golden hour every 10 min so transitions stay smooth.
+  setInterval(tick, 10 * 60 * 1000);
 
   // pause the animation loop while the tab is in the background
   const sync = () => {
     layer.classList.toggle('paused', document.hidden);
-    if (!document.hidden) setDaylight();   // refresh after returning
+    if (!document.hidden) tick();          // refresh after returning
   };
   document.addEventListener('visibilitychange', sync);
   sync();

@@ -27,6 +27,11 @@
    up behind the status bar. The sky gradient stays on .weather-layer. */
 .w-stage{position:absolute;left:0;right:0;bottom:0;top:env(safe-area-inset-top);overflow:hidden}
 
+/* Golden-hour gradient — fades in around real sunrise/sunset. Smooth
+   (not pixelated), above the sky, below the pixel sprites. */
+.w-goldenhour{position:absolute;inset:0;pointer-events:none;opacity:0;
+  image-rendering:auto;transition:opacity 1.6s ease,background 1.6s ease}
+
 /* Legibility scrim: darken the edges where the text + buttons live,
    leave the middle a touch clearer so the sky reads through. */
 .weather-scrim{
