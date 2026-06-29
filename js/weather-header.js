@@ -13,25 +13,31 @@
    hidden. Honors prefers-reduced-motion via CSS.
    ============================================================ */
 
-const CACHE_KEY   = 'mb_weather_v2';
+const CACHE_KEY   = 'mb_weather_v3';
 const ONE_HOUR    = 60 * 60 * 1000;
 // Fixed location — Bottrop, Germany (Marvin's home).
 const LOCATION    = { lat: 51.5236, lon: 6.9286, label: 'Bottrop' };
 
-/* ---- WMO weather code → scene -------------------------------- */
-function sceneForCode(code, isDay){
-  // https://open-meteo.com/en/docs  (WMO weather interpretation codes)
-  if (code === 0)                      return 'clear';
-  if (code === 1 || code === 2)        return 'partly';
-  if (code === 3)                      return 'cloudy';
-  if (code === 45 || code === 48)      return 'fog';
-  if (code >= 51 && code <= 57)        return 'rain';   // drizzle
-  if (code >= 61 && code <= 67)        return 'rain';
-  if (code >= 80 && code <= 82)        return 'rain';   // showers
-  if (code >= 71 && code <= 77)        return 'snow';
-  if (code === 85 || code === 86)      return 'snow';
-  if (code >= 95)                      return 'thunder';
-  return isDay ? 'partly' : 'cloudy';
+/* ---- weather → scene ----------------------------------------- */
+// https://open-meteo.com/en/docs  (WMO weather interpretation codes)
+function sceneForCode(code, isDay, cloud){
+  // Precipitation / fog / thunder come straight from the weather code.
+  if (code >= 95)                                      return 'thunder';
+  if (code === 85 || code === 86 || (code >= 71 && code <= 77)) return 'snow';
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82))  return 'rain';
+  if (code === 45 || code === 48)                      return 'fog';
+  // Dry sky: pick clear / partly / cloudy from the actual cloud cover (%).
+  // weather_code alone is unreliable — it often reports 0–2 ("clear") even
+  // when the sky is fully overcast, which is why it looked sunny all day.
+  if (typeof cloud === 'number'){
+    if (cloud < 25)  return 'clear';
+    if (cloud < 65)  return 'partly';
+    return 'cloudy';
+  }
+  // No cloud-cover data → fall back to the weather code.
+  if (code === 0)                 return 'clear';
+  if (code === 1 || code === 2)   return 'partly';
+  return 'cloudy';
 }
 
 /* ---- tiny DOM helper ----------------------------------------- */
@@ -206,8 +212,8 @@ function render(layer, scene, isDay){
       else { addStars(stage, 14); sky(moonSVG()); }
       break;
     case 'partly':
-      if (isDay){ sky(sunSVG()); addClouds(stage, 2, { topMin:4, topMax:24, opacity:.92 }); }
-      else { addStars(stage, 8); sky(moonSVG()); addClouds(stage, 2, { color:'#5a6473', topMin:4, topMax:24, opacity:.8 }); }
+      if (isDay){ sky(sunSVG()); addClouds(stage, 3, { topMin:4, topMax:24, opacity:.92 }); }
+      else { addStars(stage, 8); sky(moonSVG()); addClouds(stage, 3, { color:'#5a6473', topMin:4, topMax:24, opacity:.8 }); }
       break;
     case 'cloudy':
       addClouds(stage, 4, { color: isDay ? '#aab4c0' : '#5a6473', opacity: isDay ? .95 : .85, speed:.9 });
@@ -241,10 +247,19 @@ async function fetchWeather(){
   } catch {}
 
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}` +
-              `&current=weather_code,is_day&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
-  const r = await fetch(url, { cache: 'no-store' });
-  if (!r.ok) throw new Error('weather ' + r.status);
-  const j = await r.json();
+              `&current=weather_code,is_day,cloud_cover&daily=sunrise,sunset&timezone=auto&forecast_days=1`;
+
+  // small retry so a single network hiccup doesn't strand us on a fallback
+  let j = null, lastErr;
+  for (let attempt = 0; attempt < 2 && !j; attempt++){
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('weather ' + r.status);
+      j = await r.json();
+    } catch (e){ lastErr = e; if (attempt === 0) await new Promise(s => setTimeout(s, 1200)); }
+  }
+  if (!j) throw lastErr || new Error('weather fetch failed');
+
   // sunrise/sunset come as local-time ISO strings — keep just minutes-of-day
   const hm = (iso) => {
     const t = (iso || '').split('T')[1];
@@ -252,9 +267,11 @@ async function fetchWeather(){
     const [H, M] = t.split(':').map(Number);
     return H * 60 + M;
   };
+  const cc = j.current?.cloud_cover;
   const data = {
     code: j.current?.weather_code ?? 0,
     isDay: (j.current?.is_day ?? 1) === 1,
+    cloud: typeof cc === 'number' ? cc : null,
     sr: hm(j.daily?.sunrise?.[0]) ?? 390,    // fallbacks: 06:30 / 19:30
     ss: hm(j.daily?.sunset?.[0]) ?? 1170,
     t: Date.now()
@@ -347,7 +364,8 @@ function init(){
     try {
       const w = await fetchWeather();
       sunMin = { sr: w.sr ?? 390, ss: w.ss ?? 1170 };
-      const scene = sceneForCode(w.code, w.isDay);
+      const scene = sceneForCode(w.code, w.isDay, w.cloud);
+      console.info(`[weather] code=${w.code} cloud=${w.cloud}% day=${w.isDay} → ${scene}`);
       const key = scene + (w.isDay ? '-d' : '-n');
       if (key !== lastKey){               // only rebuild when the scene changes
         lastKey = key;
