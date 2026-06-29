@@ -1,0 +1,112 @@
+/* ============================================================
+   Weather-reactive header — 16-bit pixel-art weather that lives
+   BEHIND the title and buttons. GPU-only animations (transform/
+   opacity), modest element counts, paused when the tab is hidden.
+   ============================================================ */
+
+/* The topbar becomes the stage. Weather sits at z0, a soft scrim at
+   z1 keeps text legible, the actual UI (title/buttons) rides at z2. */
+.topbar{overflow:hidden}
+.topbar .topbar-left,
+.topbar .topbar-right{position:relative;z-index:2}
+
+.weather-layer{
+  position:absolute;inset:0;z-index:0;
+  overflow:hidden;pointer-events:none;
+  contain:strict;
+  /* default sky — overwritten per condition */
+  background:linear-gradient(180deg,#0a0a0f 0%,#050505 100%);
+  transition:background .9s ease;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+}
+.weather-layer *{image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* Legibility scrim: darken the edges where the text + buttons live,
+   leave the middle a touch clearer so the sky reads through. */
+.weather-scrim{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(5,5,5,.78) 0%,rgba(5,5,5,.30) 26%,rgba(5,5,5,.10) 50%,rgba(5,5,5,.42) 78%,rgba(5,5,5,.82) 100%),
+    linear-gradient(180deg,rgba(5,5,5,.20) 0%,rgba(5,5,5,0) 40%,rgba(5,5,5,.35) 100%);
+}
+
+/* Pause everything when the tab is hidden or the header is off-screen */
+.weather-layer.paused *{animation-play-state:paused !important}
+
+/* ---- Sky palettes per condition ------------------------------- */
+.weather-layer[data-sky="clear-day"]   {background:linear-gradient(180deg,#1d3a63 0%,#21507e 45%,#163152 100%)}
+.weather-layer[data-sky="clear-night"] {background:linear-gradient(180deg,#070b1c 0%,#0d1430 55%,#060814 100%)}
+.weather-layer[data-sky="partly-day"]  {background:linear-gradient(180deg,#274b73 0%,#33597f 50%,#1b3450 100%)}
+.weather-layer[data-sky="partly-night"]{background:linear-gradient(180deg,#0a1024 0%,#141d3a 55%,#080b1a 100%)}
+.weather-layer[data-sky="cloudy"]      {background:linear-gradient(180deg,#2a2f38 0%,#363c46 55%,#1c2028 100%)}
+.weather-layer[data-sky="cloudy-night"]{background:linear-gradient(180deg,#13161d 0%,#1c2029 55%,#0c0e13 100%)}
+.weather-layer[data-sky="rain"]        {background:linear-gradient(180deg,#1f2a33 0%,#28343f 55%,#141b21 100%)}
+.weather-layer[data-sky="rain-night"]  {background:linear-gradient(180deg,#0d141b 0%,#141d26 55%,#080d12 100%)}
+.weather-layer[data-sky="snow"]        {background:linear-gradient(180deg,#34404e 0%,#41505f 55%,#222a34 100%)}
+.weather-layer[data-sky="snow-night"]  {background:linear-gradient(180deg,#141a22 0%,#1d2530 55%,#0e1218 100%)}
+.weather-layer[data-sky="fog"]         {background:linear-gradient(180deg,#3a3f44 0%,#454a50 55%,#2a2e33 100%)}
+.weather-layer[data-sky="fog-night"]   {background:linear-gradient(180deg,#16181c 0%,#1f2226 55%,#101215 100%)}
+.weather-layer[data-sky="thunder"]     {background:linear-gradient(180deg,#1a1822 0%,#232032 55%,#100e18 100%)}
+
+/* ---- Celestial bodies ----------------------------------------- */
+.w-sun,.w-moon{position:absolute;top:9px;left:30px;will-change:transform}
+.w-sun .rays{transform-origin:center;animation:wSpin 14s steps(12) infinite}
+.w-sun{animation:wBob 6s ease-in-out infinite}
+.w-moon{top:8px;left:34px;animation:wBob 7s ease-in-out infinite}
+
+/* a warm glow disc behind the sun, soft (not pixelated) */
+.w-sun .glow{
+  position:absolute;left:50%;top:50%;width:78px;height:78px;
+  transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,rgba(255,214,120,.45) 0%,rgba(255,180,70,.18) 38%,rgba(255,180,70,0) 70%);
+  image-rendering:auto;animation:wPulse 5s ease-in-out infinite}
+.w-moon .glow{
+  position:absolute;left:50%;top:50%;width:66px;height:66px;
+  transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,rgba(200,212,255,.40) 0%,rgba(170,190,255,.14) 42%,rgba(170,190,255,0) 72%);
+  image-rendering:auto;animation:wPulse 6s ease-in-out infinite}
+
+/* ---- Clouds ---------------------------------------------------- */
+.w-cloud{position:absolute;will-change:transform;animation-name:wDrift;animation-timing-function:linear;animation-iteration-count:infinite}
+
+/* ---- Stars (clear night) -------------------------------------- */
+.w-star{position:absolute;width:2px;height:2px;background:#cdd6ff;animation:wTwinkle 3s steps(2) infinite}
+
+/* ---- Rain ------------------------------------------------------ */
+.w-rain{position:absolute;top:-14px;width:2px;height:11px;
+  background:linear-gradient(180deg,rgba(150,200,255,0) 0%,rgba(150,200,255,.85) 60%,rgba(190,225,255,.95) 100%);
+  will-change:transform;animation:wFall linear infinite}
+
+/* ---- Snow ------------------------------------------------------ */
+.w-snow{position:absolute;top:-10px;width:3px;height:3px;background:#eaf2ff;
+  will-change:transform;animation:wSnowFall linear infinite}
+
+/* ---- Fog bands ------------------------------------------------- */
+.w-fog{position:absolute;height:10px;width:160%;left:-30%;
+  background:linear-gradient(90deg,rgba(200,205,210,0),rgba(200,205,210,.22),rgba(200,205,210,0));
+  will-change:transform;animation:wFogDrift linear infinite}
+
+/* ---- Lightning flash (thunder) -------------------------------- */
+.w-flash{position:absolute;inset:0;background:rgba(214,225,255,.9);opacity:0;
+  mix-blend-mode:screen;animation:wFlash 9s steps(1) infinite}
+
+/* ---- Keyframes ------------------------------------------------- */
+@keyframes wSpin{to{transform:rotate(360deg)}}
+@keyframes wBob{0%,100%{transform:translateY(0)}50%{transform:translateY(2px)}}
+@keyframes wPulse{0%,100%{opacity:.7;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
+@keyframes wTwinkle{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes wDrift{from{transform:translateX(0)}to{transform:translateX(var(--drift,260px))}}
+@keyframes wFall{from{transform:translate(0,0)}to{transform:translate(var(--rx,-6px),120px)}}
+@keyframes wSnowFall{from{transform:translate(0,0)}to{transform:translate(var(--rx,10px),120px)}}
+@keyframes wFogDrift{from{transform:translateX(0)}to{transform:translateX(18%)}}
+@keyframes wFlash{
+  0%,4%,100%{opacity:0}
+  1%{opacity:.85}2%{opacity:.15}3%{opacity:.7}
+}
+
+/* ---- Reduced motion / data saver: keep the look, drop the loop -- */
+@media (prefers-reduced-motion: reduce){
+  .weather-layer *{animation:none !important}
+  .w-rain,.w-snow,.w-flash{display:none}
+}
