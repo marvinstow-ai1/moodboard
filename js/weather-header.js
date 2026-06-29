@@ -71,7 +71,7 @@ function sunSVG(){
   return `
   <div class="w-sun">
     <span class="glow"></span>
-    <svg width="44" height="44" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges" style="position:relative">
+    <svg width="58" height="58" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges" style="position:relative">
       <g class="rays" fill="#ffcf2e">${rays}</g>
       <g transform="translate(6,6)">${disc}</g>
       <g transform="translate(8,8)">${inner}</g>
@@ -84,7 +84,7 @@ function moonSVG(){
   return `
   <div class="w-moon">
     <span class="glow"></span>
-    <svg width="40" height="40" viewBox="0 0 22 22" shape-rendering="crispEdges" style="position:relative">
+    <svg width="52" height="52" viewBox="0 0 22 22" shape-rendering="crispEdges" style="position:relative">
       <g transform="translate(6,6)">${disc}</g>
       <rect x="10" y="9" width="2" height="2" fill="#b3bce0"/>
       <rect x="14" y="13" width="2" height="2" fill="#b3bce0"/>
@@ -112,7 +112,7 @@ function addClouds(layer, count, opts){
   for (let i = 0; i < count; i++){
     const depth = i / Math.max(1, count - 1);          // 0..1 (front→back)
     const wrap = el('div', 'w-cloud');
-    const scale = (opts.scaleMin ?? 0.7) + depth * 0.6;
+    const scale = (opts.scaleMin ?? 0.92) + depth * 0.7;
     const top = rnd(opts.topMin ?? 4, opts.topMax ?? 26);
     const startX = rnd(-40, 200);
     const drift = rnd(180, 320);

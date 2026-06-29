@@ -35,10 +35,43 @@
 <body>
 
 <div class="topbar">
-  <div class="topbar-left">
-    <span class="board-title" id="boardTitle">Marvin's Place</span>
-  </div>
+  <span class="board-title" id="boardTitle">Marvin's Place</span>
+
   <div class="topbar-right">
+    <button class="menubtn hubbtn" id="hubBtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <div class="hub-menu" id="hubMenu" role="menu">
+      <button class="hub-item" data-hub="info" role="menuitem">
+        <span class="hub-ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+            <circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/>
+            <circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none"/>
+          </svg>
+        </span> Info</button>
+      <button class="hub-item" data-hub="login" role="menuitem">
+        <span class="hub-ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </span> Login</button>
+      <button class="hub-item admin-only" data-hub="menu" role="menuitem">
+        <span class="hub-ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </span> Verwalten</button>
+    </div>
+  </div>
+
+  <!-- Original controls kept (hidden) so all existing wiring/state stays intact;
+       the hub-menu items above route to these. -->
+  <div class="legacy-controls" aria-hidden="true">
     <button class="infobtn" id="infoBtn" aria-label="Info" title="Info">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
         <circle cx="12" cy="12" r="9"/>
@@ -282,6 +315,7 @@
 
 <script type="module" src="js/weather-header.js"></script>
 <script type="module" src="js/app.js"></script>
+<script defer src="js/header-menu.js"></script>
 <script type="module" src="js/mood-chat.js"></script>
 <script type="module" src="js/walkthrough.js"></script>
 

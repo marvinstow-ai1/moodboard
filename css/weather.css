@@ -5,8 +5,9 @@
    ============================================================ */
 
 /* The topbar becomes the stage. Weather sits at z0, a soft scrim at
-   z1 keeps text legible, the actual UI (title/buttons) rides at z2. */
-.topbar{overflow:hidden}
+   z1 keeps text legible, the actual UI (title/buttons) rides at z2.
+   NB: the topbar itself is NOT clipped (so the hub dropdown can overflow
+   below it) — the weather clips itself via .weather-layer / .w-stage. */
 .topbar .topbar-left,
 .topbar .topbar-right{position:relative;z-index:2}
 
@@ -63,12 +64,12 @@
 
 /* a warm glow disc behind the sun, soft (not pixelated) */
 .w-sun .glow{
-  position:absolute;left:50%;top:50%;width:78px;height:78px;
+  position:absolute;left:50%;top:50%;width:100px;height:100px;
   transform:translate(-50%,-50%);border-radius:50%;
   background:radial-gradient(circle,rgba(255,214,120,.45) 0%,rgba(255,180,70,.18) 38%,rgba(255,180,70,0) 70%);
   image-rendering:auto;animation:wPulse 5s ease-in-out infinite}
 .w-moon .glow{
-  position:absolute;left:50%;top:50%;width:66px;height:66px;
+  position:absolute;left:50%;top:50%;width:86px;height:86px;
   transform:translate(-50%,-50%);border-radius:50%;
   background:radial-gradient(circle,rgba(200,212,255,.40) 0%,rgba(170,190,255,.14) 42%,rgba(170,190,255,0) 72%);
   image-rendering:auto;animation:wPulse 6s ease-in-out infinite}
@@ -80,12 +81,12 @@
 .w-star{position:absolute;width:2px;height:2px;background:#cdd6ff;animation:wTwinkle 3s steps(2) infinite}
 
 /* ---- Rain ------------------------------------------------------ */
-.w-rain{position:absolute;top:-14px;width:2px;height:11px;
+.w-rain{position:absolute;top:-14px;width:2px;height:13px;
   background:linear-gradient(180deg,rgba(150,200,255,0) 0%,rgba(150,200,255,.85) 60%,rgba(190,225,255,.95) 100%);
   will-change:transform;animation:wFall linear infinite}
 
 /* ---- Snow ------------------------------------------------------ */
-.w-snow{position:absolute;top:-10px;width:3px;height:3px;background:#eaf2ff;
+.w-snow{position:absolute;top:-10px;width:4px;height:4px;background:#eaf2ff;
   will-change:transform;animation:wSnowFall linear infinite}
 
 /* ---- Fog bands ------------------------------------------------- */
