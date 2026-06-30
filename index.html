@@ -34,6 +34,9 @@
 <body>
 
 <div class="topbar">
+  <!-- Animations-Ebene: liegt hinter Titel/Buttons, ändert die Header-Höhe nicht. -->
+  <div class="header-vanta" id="headerVanta" aria-hidden="true"></div>
+
   <span class="board-title" id="boardTitle">Marvin's Place</span>
 
   <div class="topbar-right">
@@ -316,6 +319,14 @@
 <script defer src="js/header-menu.js"></script>
 <script type="module" src="js/mood-chat.js"></script>
 <script type="module" src="js/walkthrough.js"></script>
+
+<!-- Header-Hintergrund-Animationen: Three.js + Vanta (per CDN, wie GSAP oben).
+     defer hält die Reihenfolge ein: THREE -> Vanta-Effekte -> Init. -->
+<script defer src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.clouds2.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.cells.min.js"></script>
+<script defer src="js/header-vanta.js"></script>
 
 <!-- ── Confirm Delete Popup ──────────────────────────── -->
 <div class="confirm-popup" id="confirmPopup">
