@@ -19,43 +19,5 @@
 .menubtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:18px;display:grid;place-items:center;backdrop-filter:blur(16px);transition:.15s;flex-shrink:0}
 .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:auto;position:relative}
 @media(max-width:400px){.topbar{padding:env(safe-area-inset-top) 12px 0;gap:8px}.topbar-left{gap:12px}}
-.loginbtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(16px);transition:background-color .35s,border-color .35s,color .35s;flex-shrink:0}
+.loginbtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(16px);transition:.15s;flex-shrink:0}
 .loginbtn.is-owner{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.35)}
-
-/* ── Header-Animations-Ebene (Vanta) ─────────────────────────────────────
-   Liegt IM Header-Band hinter Titel/Buttons. Eigene Stacking-Ebene (z-index:0),
-   eigenes overflow:hidden -> das Hub-Dropdown (Kind von .topbar) wird NICHT
-   abgeschnitten. Höhe des Headers bleibt unverändert. */
-.header-vanta{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
-.header-vanta.is-ready{opacity:1}
-.header-vanta canvas{display:block;z-index:0}
-/* Statischer Fallback (kein WebGL / reduzierte Bewegung) – warmer Fog-Look. */
-.header-vanta.is-static{background:linear-gradient(120deg,#ffe9d6 0%,#ffd9c2 45%,#ffe3ea 100%)}
-/* Scrim neutral; nur dort dunkler, wo weiße Schrift über hellem Effekt steht. */
-.header-vanta::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:transparent;transition:background .8s}
-body.hv-cells .header-vanta::after{background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.34))}
-
-/* Inhalt sicher über die Animation heben. */
-.topbar-right{z-index:2}
-.board-title{z-index:2;transition:color .8s,text-shadow .8s}
-
-/* ── Pro-Effekt-Themes ───────────────────────────────────────────────────
-   Werden von js/header-vanta.js an <body> gesetzt (hv-fog | hv-clouds | hv-cells).
-   Die Vanta-Effekte laufen im Original-Look (helle Hintergründe), darum wird
-   Titel/Buttons je Theme dunkel bzw. hell gesetzt + Bottom-Pill mitgetönt. */
-
-/* Fog (creme/warm) + Clouds2 (heller Himmel): dunkle Schrift + dunkle Buttons. */
-body.hv-fog .board-title,body.hv-clouds .board-title{color:#15161a;text-shadow:0 1px 10px rgba(255,255,255,.6)}
-body.hv-fog .menubtn,body.hv-fog .loginbtn,
-body.hv-clouds .menubtn,body.hv-clouds .loginbtn{color:#15161a;background:rgba(255,255,255,.32);border-color:rgba(0,0,0,.2)}
-
-/* Cells (grün/gelb): weiße Schrift mit Schatten (wie in der vanta-Galerie). */
-body.hv-cells .board-title{color:#fff;text-shadow:0 1px 14px rgba(0,0,0,.6)}
-body.hv-cells .menubtn,body.hv-cells .loginbtn{color:#fff;background:rgba(0,0,0,.24);border-color:rgba(255,255,255,.32)}
-
-/* Bottom-Pill: dunkler Glassmorph-Stil, getönt in der jeweiligen Header-Farbe.
-   (.bottombar Grundstil liegt in grid.css.) */
-.bottombar{transition:background-color .8s,border-color .8s,box-shadow .8s}
-body.hv-fog .bottombar{background:rgba(22,14,10,.62);border-color:rgba(255,180,120,.28);box-shadow:0 8px 32px rgba(90,50,20,.4)}
-body.hv-clouds .bottombar{background:rgba(10,16,24,.62);border-color:rgba(150,180,210,.3);box-shadow:0 8px 32px rgba(25,45,90,.42)}
-body.hv-cells .bottombar{background:rgba(9,17,10,.62);border-color:rgba(150,200,120,.3);box-shadow:0 8px 32px rgba(25,70,20,.42)}
