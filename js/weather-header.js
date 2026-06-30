@@ -152,11 +152,13 @@ function addClouds(layer, count, opts){
     const wrap = el('div', 'w-cloud');
     const scale = (opts.scaleMin ?? 0.92) + depth * 0.7;
     const top = rnd(opts.topMin ?? 4, opts.topMax ?? 26);
-    const startX = rnd(-40, 200);
-    const drift = rnd(180, 320);
+    // spread the clouds evenly across the width so they frame the centred
+    // title (left / over / right) instead of clustering on one side.
+    const startPct = (i + rnd(0.1, 0.9)) / count * 100;
+    const drift = rnd(160, 280);
     const dur = rnd(34, 60) / (opts.speed ?? 1);
     wrap.style.cssText =
-      `top:${top}px;left:${startX}px;transform-origin:left;` +
+      `top:${top}px;left:${startPct}%;transform-origin:left;` +
       `--drift:${drift}px;animation-duration:${dur}s;animation-delay:${-rnd(0,dur)}s;` +
       `opacity:${(opts.opacity ?? 0.9) - depth * 0.25};`;
     const inner = el('div', '', `transform:scale(${scale});transform-origin:left top`);
@@ -191,11 +193,20 @@ function addSnow(layer, count){
 }
 
 function addStars(layer, count){
+  // Frame the centred title: cycle stars through a left band, a top band
+  // (kept high, above the title text) and a right band (before the menu
+  // button) so they sit around "Marvin's Place", not behind it.
+  const zones = [
+    [3, 25, 6, 40],     // left   [xMin%, xMax%, yMin, yMax]
+    [30, 70, 3, 16],    // top (above the title)
+    [73, 84, 6, 40],    // right  (between title and the menu button)
+  ];
   for (let i = 0; i < count; i++){
+    const z = zones[i % zones.length];
     const s = el('div', 'w-star');
     const dur = rnd(2, 4.5);
     s.style.cssText =
-      `top:${rnd(6, 40)}px;left:${rnd(4, 96)}%;` +
+      `top:${rnd(z[2], z[3])}px;left:${rnd(z[0], z[1])}%;` +
       `animation-duration:${dur}s;animation-delay:${-rnd(0,dur)}s;` +
       `opacity:${rnd(0.3,1)}`;
     layer.appendChild(s);
