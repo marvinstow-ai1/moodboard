@@ -63,21 +63,14 @@
     return o;
   }
 
-  // Effekte sind bewusst dunkel/moody gehalten, damit weiße Schrift lesbar
-  // bleibt; das CSS-Scrim sorgt zusätzlich für Kontrast.
+  // Effekte im Original-Look von vantajs.com (keine Farb-Overrides). Die
+  // Hintergründe sind dadurch hell -> Schrift/Buttons werden pro Theme im CSS
+  // passend dunkel bzw. hell gesetzt.
   var THEMES = [
     {
       cls: 'hv-fog',
       make: function () {
-        return window.VANTA.FOG(opts({
-          highlightColor: 0x6a3fb5,
-          midtoneColor: 0x243f7a,
-          lowlightColor: 0x0a0a14,
-          baseColor: 0x050507,
-          blurFactor: 0.55,
-          speed: 1.1,
-          zoom: 0.7
-        }));
+        return window.VANTA.FOG(opts({ speed: 1.1 }));
       }
     },
     {
@@ -93,12 +86,7 @@
     {
       cls: 'hv-cells',
       make: function () {
-        return window.VANTA.CELLS(opts({
-          color1: 0x0f3d3a,
-          color2: 0x123a5e,
-          size: 1.6,
-          speed: 1.0
-        }));
+        return window.VANTA.CELLS(opts({ speed: 1.0 }));
       }
     }
   ];
