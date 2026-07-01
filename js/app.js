@@ -690,10 +690,10 @@ function renderGrid(){
   }
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
-  // Größeres erstes Batch (statt pauschal "lazy") sofort & priorisiert laden,
-  // damit der Boot-Screen erst verschwindet, wenn wirklich viel vom Grid
-  // direkt sichtbar ist; der Rest bleibt lazy.
-  const eagerCount = Math.min(arr.length, 50, Math.max(gridCols * 6, 30));
+  // Erste ~3 Reihen sofort & priorisiert laden (statt pauschal "lazy"), damit
+  // der sichtbare Bereich direkt nach dem Boot-Spinner gefüllt ist; der Rest
+  // bleibt lazy.
+  const eagerCount = Math.min(arr.length, Math.max(gridCols * 3, 6));
   gridEl.innerHTML = arr.map((it, idx) => {
     const eager = idx < eagerCount;
     const loadAttr = eager
@@ -1223,47 +1223,32 @@ $('saveTagsBtn').onclick = () => {
   sbUpdate(it); renderGrid(); toast('Tags gespeichert');
 };
 
-// Den Boot-Screen (Vanta-Wolken + Text) erst entfernen, wenn die sofort
-// sichtbaren Kacheln (das "eager" geladene erste Batch) wirklich geladen sind
-// UND mindestens BOOT_MIN_MS vergangen sind, damit der Screen nicht bei
-// schnellem Netz nur kurz aufblitzt. BOOT_MAX_MS ist ein Sicherheits-Timeout,
-// damit der Screen bei langsamem Netz/Fehlern nie hängen bleibt.
-const BOOT_MIN_MS = 3500;
-const BOOT_MAX_MS = 6000;
-function finishBoot(boot){
-  if(!boot || !boot.isConnected) return;
-  if(window.__bootVanta){ try{ window.__bootVanta.destroy(); }catch(e){} window.__bootVanta = null; }
-  document.body.classList.remove('booting');
-  boot.remove();
-}
+// Den großen Boot-Spinner erst entfernen, wenn die sofort sichtbaren Kacheln
+// (die "eager" geladenen der ersten Reihen) wirklich geladen sind. So sieht man
+// beim Verschwinden echte Bilder statt leerer Platzhalter, die "nochmal" laden.
+// Sicherheits-Timeout, damit der Spinner nie hängen bleibt (langsames Netz/Fehler).
 function revealWhenReady(){
   const boot = $('bootMsg');
   if(!boot) return;
-  const start = performance.now();
-  let removed = false;
-  const remove = () => { if(removed) return; removed = true; finishBoot(boot); };
-  const maybeRemove = () => {
-    const wait = BOOT_MIN_MS - (performance.now() - start);
-    if(wait > 0) setTimeout(remove, wait); else remove();
-  };
-
   const imgs = [...gridEl.querySelectorAll('img[data-eager="1"]')];
+  let done = false;
+  const finish = () => { if(done) return; done = true; boot.remove(); };
+  if(imgs.length === 0){ finish(); return; }
   let pending = imgs.length;
+  const tick = () => { if(--pending <= 0) finish(); };
   imgs.forEach(im => {
-    if(im.complete && im.naturalWidth){ pending--; return; }
-    im.addEventListener('load', () => { if(--pending <= 0) maybeRemove(); }, { once:true });
-    im.addEventListener('error', () => { if(--pending <= 0) maybeRemove(); }, { once:true });
+    if(im.complete && im.naturalWidth){ tick(); return; }
+    im.addEventListener('load', tick, { once:true });
+    im.addEventListener('error', tick, { once:true });
   });
-  if(pending <= 0) maybeRemove();
-
-  setTimeout(remove, BOOT_MAX_MS);
+  setTimeout(finish, 2500);
 }
 
 async function loadItems(){
   const {data,error} = await sb.from(S().table)
     .select('id,title,moods,tags,media_url,media_type,thumb_url')
     .order('created_at',{ascending:false});
-  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; finishBoot($('bootMsg')); return; }
+  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; $('bootMsg')?.remove(); return; }
   S().items=data||[];
   mergeMoodsFromItems();
   renderGrid(); revealWhenReady();

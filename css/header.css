@@ -1,7 +1,4 @@
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:calc(70px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top) 20px 0;gap:16px;background:var(--bg)}
-/* Solange der Boot-Screen (Vanta-Wolken) läuft, bleibt der Header komplett
-   verborgen statt nur überdeckt, damit nichts durchscheint/aufblitzt. */
-body.booting .topbar{display:none}
 .topbar-left{display:flex;align-items:center;gap:24px;min-width:0}
 /* Centred in the header band (below the safe-area). */
 .board-title{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 35px);transform:translate(-50%,-50%);z-index:2;background:transparent;border:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:.04em;cursor:pointer;opacity:.95;user-select:none;padding:4px 0;white-space:nowrap}
