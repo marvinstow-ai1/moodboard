@@ -85,26 +85,191 @@ let slideshowActive = false;
 const $ = id => document.getElementById(id);
 
 // ── AUTH ─────────────────────────────────────────────────
+let hasSession = false;
+
 function updateAdminUI() {
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = owner ? '' : 'none';
   });
   const btn = $('loginBtn');
   if (btn) btn.classList.toggle('is-owner', owner);
+  // Der Hub-Menüpunkt "Login" wirkt für Eingeloggte als Abmelden.
+  const label = $('hubLoginLabel');
+  if (label) label.textContent = hasSession ? 'Abmelden' : 'Login';
 }
 
 function isOwnerSession(session) {
   return !!(session && session.user.app_metadata?.role === 'owner');
 }
 
-async function initAuth() {
+// ── GATE (Startpage mit Zugriffs-Anfrage) ────────────────
+// Ohne gültige Session steht das Gate (html.gate-open, gesetzt vom
+// Inline-Script in index.html) vor der App. Freunde tragen Name + E-Mail
+// ein; alles Weitere (Anfrage anlegen, Freigabe prüfen, Session bauen)
+// erledigt die Edge Function "gate" serverseitig. Erst wenn der Zugriff
+// steht, wird die App überhaupt gestartet (startApp unten).
+const GATE_MSG = {
+  checking:  ['PRÜFE ZUGANG…', ''],
+  requested: ['ANFRAGE GESENDET. MARVIN MUSS DICH FREIGEBEN – SCHAU SPÄTER NOCHMAL VORBEI.', 'warn'],
+  pending:   ['DEINE ANFRAGE WARTET NOCH AUF FREIGABE.', 'warn'],
+  blocked:   ['KEIN ZUGRIFF.', 'err'],
+  mismatch:  ['NAME PASST NICHT ZU DIESER E-MAIL.', 'err'],
+  invalid:   ['BITTE NAME UND E-MAIL EINTRAGEN.', 'err'],
+  error:     ['FEHLER. VERSUCH ES GLEICH NOCHMAL.', 'err'],
+  welcome:   ['WILLKOMMEN ✓', 'ok'],
+};
+
+function gateStatus(key) {
+  const el = $('gateStatus');
+  if (!el) return;
+  const [text, cls] = GATE_MSG[key] || ['', ''];
+  el.textContent = text;
+  el.className = 'gate-status' + (cls ? ' ' + cls : '');
+}
+
+function showGate(msgKey) {
+  document.documentElement.classList.add('gate-open');
+  try {
+    $('gateName').value  = localStorage.getItem('mb_gate_name')  || '';
+    $('gateEmail').value = localStorage.getItem('mb_gate_email') || '';
+  } catch (e) {}
+  if (msgKey) gateStatus(msgKey);
+}
+
+// Gate ausblenden. `animated` = Übergang Gate → Loading Screen nach einem
+// frischen Login; ohne Animation wird nur aufgeräumt (Session war schon da).
+function closeGate(animated) {
+  const g = $('gate');
+  const open = document.documentElement.classList.contains('gate-open');
+  if (open && animated && g) {
+    g.style.display = 'flex';              // übersteht das Entfernen von .gate-open
+    document.documentElement.classList.remove('gate-open');
+    window.MB?.startBootProgress?.();      // Loading Screen übernimmt darunter
+    requestAnimationFrame(() => g.classList.add('hide'));
+    setTimeout(() => g.remove(), 500);
+    window.dispatchEvent(new Event('mb:gate-passed'));  // z. B. für die Walkthrough-Tour
+    return;
+  }
+  document.documentElement.classList.remove('gate-open');
+  g?.remove();
+}
+
+// Prüft die vorhandene Session und entscheidet Gate vs. App-Start.
+// Rückgabe true = Zugriff ok, App darf booten.
+async function initGate() {
   const { data: { session } } = await sb.auth.getSession();
   owner = isOwnerSession(session);
+  hasSession = !!session;
   updateAdminUI();
-  sb.auth.onAuthStateChange((_e, session) => {
-    owner = isOwnerSession(session);
+  sb.auth.onAuthStateChange((_e, s) => {
+    owner = isOwnerSession(s);
+    hasSession = !!s;
     updateAdminUI();
   });
+  if (session) {
+    if (owner) { closeGate(false); return true; }
+    // Freund: serverseitig prüfen, ob die Freigabe noch besteht
+    // (könnte inzwischen gesperrt worden sein).
+    const { data: ok, error } = await sb.rpc('gate_ok');
+    if (!error && ok === true) { closeGate(false); return true; }
+    if (!error) {
+      await sb.auth.signOut();
+      showGate('blocked');
+      return false;
+    }
+    // Netzfehler beim Check: lieber die App versuchen als fälschlich aussperren.
+    closeGate(false); return true;
+  }
+  showGate();
+  return false;
+}
+
+async function gateFriendLogin(email, name) {
+  const submit = $('gateSubmit');
+  submit.disabled = true;
+  gateStatus('checking');
+  try {
+    const { data, error } = await sb.functions.invoke('gate', {
+      body: { action: 'login', email, name },
+    });
+    if (error || !data) { gateStatus('error'); return; }
+    switch (data.status) {
+      case 'ok': {
+        const { error: e2 } = await sb.auth.setSession(data.session);
+        if (e2) { gateStatus('error'); return; }
+        try {
+          localStorage.setItem('mb_gate_name', name);
+          localStorage.setItem('mb_gate_email', email);
+        } catch (e) {}
+        gateStatus('welcome');
+        closeGate(true);
+        startApp();
+        return;
+      }
+      case 'unknown': {
+        // Noch keine Anfrage zu dieser E-Mail: direkt eine anlegen.
+        const { data: r, error: e3 } = await sb.functions.invoke('gate', {
+          body: { action: 'request', email, name },
+        });
+        if (e3 || !r) { gateStatus('error'); return; }
+        try {
+          localStorage.setItem('mb_gate_name', name);
+          localStorage.setItem('mb_gate_email', email);
+        } catch (e) {}
+        gateStatus(r.status === 'blocked' ? 'blocked' : 'requested');
+        return;
+      }
+      case 'pending':       gateStatus('pending');  return;
+      case 'blocked':       gateStatus('blocked');  return;
+      case 'name_mismatch': gateStatus('mismatch'); return;
+      default:              gateStatus('error');    return;
+    }
+  } catch (e) {
+    gateStatus('error');
+  } finally {
+    submit.disabled = false;
+  }
+}
+
+async function gateOwnerLogin(email, password) {
+  const submit = $('gateSubmit');
+  submit.disabled = true;
+  gateStatus('checking');
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  submit.disabled = false;
+  if (error) { gateStatus('error'); return; }
+  gateStatus('welcome');
+  closeGate(true);
+  startApp();
+}
+
+function initGateUI() {
+  const gate = $('gate');
+  if (!gate) return;
+  $('gateForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = ($('gateEmail')?.value || '').trim().toLowerCase();
+    if (gate.dataset.mode === 'owner') {
+      const pw = $('gatePassword')?.value || '';
+      if (!email || !pw) { gateStatus('invalid'); return; }
+      gateOwnerLogin(email, pw);
+      return;
+    }
+    const name = ($('gateName')?.value || '').trim().replace(/\s+/g, ' ');
+    if (!email || name.length < 2) { gateStatus('invalid'); return; }
+    gateFriendLogin(email, name);
+  });
+  $('gateOwnerLink')?.addEventListener('click', () => {
+    const ownerMode = gate.dataset.mode === 'owner';
+    if (ownerMode) delete gate.dataset.mode; else gate.dataset.mode = 'owner';
+    $('gateOwnerLink').textContent = ownerMode ? 'Owner-Login' : 'Zurück zum normalen Login';
+    gateStatus('');
+  });
+  // Nutzungshinweise (runder i-Button)
+  const pop = $('gateInfoPopup');
+  $('gateInfoBtn')?.addEventListener('click', () => pop.classList.add('show'));
+  $('gateInfoClose')?.addEventListener('click', () => pop.classList.remove('show'));
+  pop?.addEventListener('click', (e) => { if (e.target === pop) pop.classList.remove('show'); });
 }
 
 function openLoginModal() {
@@ -117,9 +282,10 @@ function closeLoginModal() {
 }
 
 async function handleLoginBtn() {
-  if (owner) {
+  if (hasSession) {
+    // Abmelden (Owner wie Freund) – danach steht wieder das Gate.
     await sb.auth.signOut();
-    toast('Abgemeldet');
+    location.reload();
     return;
   }
   openLoginModal();
@@ -2193,13 +2359,108 @@ window.MB.closeOtherPopups = function(except){
   if(except !== 'chat')    window.MB.closeChat?.();
 };
 
+// ── Zugriffe-Verwaltung (nur Owner) ───────────────────────
+// Liste der Gate-Anfragen: annehmen / ablehnen / sperren / entsperren.
+// Lesen läuft über RLS (nur Owner), Entscheidungen über die Edge
+// Function "gate", weil dafür Admin-Rechte (User anlegen/bannen) nötig sind.
+const accessPopup = $('accessPopup');
+const accList = $('accList');
+const ACC_STATE_LABEL = { pending: 'Offen', approved: 'Frei', blocked: 'Gesperrt' };
+const ACC_ACTIONS = {
+  pending:  [['Annehmen', 'approve', 'yes'], ['Ablehnen', 'block', 'no']],
+  approved: [['Sperren', 'block', 'no']],
+  blocked:  [['Freigeben', 'unblock', 'yes']],
+};
+
+async function refreshAccessBadge() {
+  if (!owner) return;
+  const { count, error } = await sb.from('access_requests')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending');
+  if (error) return;
+  $('hubAccessItem')?.classList.toggle('has-pending', (count ?? 0) > 0);
+}
+
+async function renderAccessList() {
+  accList.innerHTML = '<div class="acc-empty">Lade…</div>';
+  const { data, error } = await sb.from('access_requests')
+    .select('id,name,email,status,created_at')
+    .order('created_at', { ascending: false });
+  if (error) { accList.innerHTML = '<div class="acc-empty">Fehler beim Laden</div>'; return; }
+  if (!data?.length) { accList.innerHTML = '<div class="acc-empty">Noch keine Anfragen</div>'; return; }
+  accList.innerHTML = '';
+  for (const row of data) {
+    const el = document.createElement('div');
+    el.className = 'acc-row';
+    const meta = document.createElement('div');
+    meta.className = 'acc-meta';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'acc-name';
+    nameEl.textContent = row.name;          // textContent: Namen kommen von Fremden
+    const mailEl = document.createElement('div');
+    mailEl.className = 'acc-mail';
+    mailEl.textContent = row.email;
+    meta.append(nameEl, mailEl);
+    const state = document.createElement('span');
+    state.className = 'acc-state ' + row.status;
+    state.textContent = ACC_STATE_LABEL[row.status] || row.status;
+    const actions = document.createElement('div');
+    actions.className = 'acc-actions';
+    for (const [label, decision, cls] of (ACC_ACTIONS[row.status] || [])) {
+      const b = document.createElement('button');
+      b.className = 'acc-btn ' + cls;
+      b.textContent = label;
+      b.onclick = () => decideAccess(row.id, decision, b);
+      actions.appendChild(b);
+    }
+    el.append(meta, state, actions);
+    accList.appendChild(el);
+  }
+}
+
+async function decideAccess(id, decision, btn) {
+  btn.disabled = true;
+  const { data, error } = await sb.functions.invoke('gate', {
+    body: { action: 'decide', id, decision },
+  });
+  if (error || !data?.ok) {
+    btn.disabled = false;
+    toast('Aktion fehlgeschlagen');
+    return;
+  }
+  toast(data.status === 'approved' ? 'Freigegeben ✓' : 'Gesperrt');
+  renderAccessList();
+  refreshAccessBadge();
+}
+
+$('accessBtn')?.addEventListener('click', () => {
+  accessPopup.classList.add('show');
+  renderAccessList();
+});
+$('accClose')?.addEventListener('click', () => accessPopup.classList.remove('show'));
+accessPopup?.addEventListener('click', (e) => {
+  if (e.target === accessPopup) accessPopup.classList.remove('show');
+});
+
 // ── App starten ───────────────────────────────────────────
-(async () => {
-  await initAuth();
+// initGate() entscheidet: gültige Session → App booten; sonst bleibt das
+// Gate stehen und startApp() wird erst nach erfolgreichem Login von dort
+// aufgerufen. Doppelstart ist über _appStarted abgesichert.
+let _appStarted = false;
+function startApp() {
+  if (_appStarted) return;
+  _appStarted = true;
   renderMoodChips();
   applyGridCols(gridCols);
   loadItems();
   subscribeRealtime();
+  refreshAccessBadge();
+}
+
+(async () => {
+  initGateUI();
+  const allowed = await initGate();
+  if (allowed) startApp();
 })();
 
 window.addEventListener('resize', () => {

@@ -23,7 +23,7 @@
     });
 
     // Route each item to its original (hidden) control.
-    const TARGET = { info: 'infoBtn', login: 'loginBtn', menu: 'menuBtn' };
+    const TARGET = { info: 'infoBtn', login: 'loginBtn', menu: 'menuBtn', access: 'accessBtn' };
     hubMenu.querySelectorAll('.hub-item').forEach((item) => {
       item.addEventListener('click', (e) => {
         e.stopPropagation();              // keep app.js's outside-click closers from firing
