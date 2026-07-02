@@ -35,6 +35,10 @@ let _isInitialLoad = true;
 let _bootPending = true;
 // So viele Bilder lädt der Loading Screen vor, bevor er sich ausblendet.
 const BOOT_EAGER_COUNT = 40;
+// So viele Boot-Bilder laden gleichzeitig. Kleiner Pool statt "alle 40 auf
+// einmal": die ersten Kacheln werden schnell fertig, statt dass sich alle
+// Downloads die Bandbreite teilen.
+const BOOT_CONCURRENCY = 8;
 let sleepTimeout = null;
 let slideshowActive = false;
 
@@ -720,7 +724,11 @@ function renderGrid(){
       // der Autoplay-Killswitch sie einfrieren kann.
       const isGifItem = it.media_type==='gif' || /\.gif(\?|#|$)/i.test(it.media_url||'');
       const gifAttr = isGifItem ? ' data-gif="1"' : '';
-      media = `<img src="${src}" ${loadAttr}${gifAttr} decoding="async" alt=""${full}><div class="grid-spinner" aria-hidden="true"></div>`;
+      // Während des Boots bekommen die Eager-Bilder ihre URL nur als data-src:
+      // revealWhenReady() lädt sie dann kontrolliert in Batches (GIFs zuerst),
+      // statt dass der Browser alle ~40 gleichzeitig anfordert.
+      const srcAttr = (eager && _bootPending) ? `data-src="${src}"` : `src="${src}"`;
+      media = `<img ${srcAttr} ${loadAttr}${gifAttr} decoding="async" alt=""${full}><div class="grid-spinner" aria-hidden="true"></div>`;
     }
     return `
     <div class="cell${it.media_type==='video' ? '' : ' loading'}" data-id="${it.id}">
@@ -1230,16 +1238,31 @@ $('saveTagsBtn').onclick = () => {
   sbUpdate(it); renderGrid(); toast('Tags gespeichert');
 };
 
+// Boot-Bilder, die noch auf ihre URL warten (data-src), sofort normal
+// anstoßen – Fallback, falls der Loading Screen schon weg ist, das Timeout
+// zuschlägt oder ein Re-Render während des Boots neue Kacheln erzeugt hat.
+function flushBootSrcs(){
+  gridEl.querySelectorAll('img[data-src]').forEach(im => {
+    im.src = im.dataset.src;
+    im.removeAttribute('data-src');
+  });
+}
+
 // Den Loading Screen erst ausblenden, wenn die vorgeladenen Kacheln (die
-// ~40 "eager" geladenen Bilder der ersten Reihen) wirklich da sind. Der
-// Fortschrittsbalken zeigt echten Fortschritt: bis ~12 % kriecht er während
-// der Datenphase (Inline-Script in index.html), ab 15 % zählt er die
-// geladenen Bilder hoch. Sicherheits-Timeout, damit der Screen nie hängen
-// bleibt (langsames Netz/Fehler).
+// ~40 "eager" markierten der ersten Reihen) wirklich fertig sind – GIFs
+// eingeschlossen. Geladen wird in Batches: max. BOOT_CONCURRENCY parallel,
+// GIFs zuerst (größte Dateien), sobald eins fertig ist startet das nächste.
+// Der Fortschrittsbalken zeigt echten Fortschritt: bis ~12 % kriecht er
+// während der Datenphase (Inline-Script in index.html), ab 15 % zählt er
+// die geladenen Bilder hoch. Sicherheits-Timeout, damit der Screen nie
+// hängen bleibt (langsames Netz/Fehler).
 function revealWhenReady(){
   const boot = $('bootMsg');
-  if(!boot){ _bootPending = false; return; }
-  const imgs = [...gridEl.querySelectorAll('img[data-eager="1"]')];
+  if(!boot){ _bootPending = false; flushBootSrcs(); return; }
+  const queue = [...gridEl.querySelectorAll('img[data-src]')];
+  // GIFs an den Anfang der Warteschlange: sie brauchen am längsten und
+  // sollen beim Ausblenden sicher fertig sein.
+  queue.sort((a, b) => (b.dataset.gif ? 1 : 0) - (a.dataset.gif ? 1 : 0));
   const fill = $('lsBarFill'), pct = $('lsPercent');
   const setProgress = f => {
     const p = Math.round(Math.max(0, Math.min(1, f)) * 100);
@@ -1250,6 +1273,7 @@ function revealWhenReady(){
   const finish = () => {
     if(done) return; done = true;
     _bootPending = false;
+    flushBootSrcs();
     setProgress(1);
     // Die 100 % kurz stehen lassen, dann pixelig ausblenden und entfernen.
     setTimeout(() => {
@@ -1259,7 +1283,7 @@ function revealWhenReady(){
     // Aufgeschobener Eingangs-Tween der ersten Kacheln – während des Boots
     // hat der Loading Screen das Grid verdeckt (s. renderGrid).
     if(_isInitialLoad && typeof gsap !== 'undefined'){
-      const targets = [...gridEl.querySelectorAll('.cell')].slice(0, Math.max(imgs.length, 12));
+      const targets = [...gridEl.querySelectorAll('.cell')].slice(0, Math.max(queue.length, 12));
       if(targets.length){
         gsap.from(targets, {
           opacity: 0, y: 12, duration: 0.4,
@@ -1270,20 +1294,24 @@ function revealWhenReady(){
       _isInitialLoad = false;
     }
   };
-  if(imgs.length === 0){ finish(); return; }
-  let loaded = 0;
+  if(queue.length === 0){ finish(); return; }
+  let started = 0, loaded = 0;
   setProgress(0.15);
-  const tick = () => {
-    loaded++;
-    setProgress(0.15 + 0.85 * (loaded / imgs.length));
-    if(loaded >= imgs.length) finish();
+  const startNext = () => {
+    if(started >= queue.length) return;
+    const im = queue[started++];
+    const step = () => {
+      loaded++;
+      setProgress(0.15 + 0.85 * (loaded / queue.length));
+      if(loaded >= queue.length) finish(); else startNext();
+    };
+    im.addEventListener('load', step, { once:true });
+    im.addEventListener('error', step, { once:true });
+    im.src = im.dataset.src;
+    im.removeAttribute('data-src');
   };
-  imgs.forEach(im => {
-    if(im.complete && im.naturalWidth){ tick(); return; }
-    im.addEventListener('load', tick, { once:true });
-    im.addEventListener('error', tick, { once:true });
-  });
-  setTimeout(finish, 8000);
+  for(let i = 0; i < BOOT_CONCURRENCY; i++) startNext();
+  setTimeout(finish, 15000);
 }
 
 async function loadItems(){

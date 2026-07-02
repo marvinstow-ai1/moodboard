@@ -40,7 +40,6 @@
      geladen sind; der Balken zeigt den echten Ladefortschritt. -->
 <div id="bootMsg" class="loading-screen" role="status" aria-label="Marvin's Place wird geladen">
   <div class="ls-inner">
-    <div class="ls-pixelgrid" id="lsPixelGrid" aria-hidden="true"></div>
     <div class="ls-title" aria-hidden="true">MARVIN'S<br>PLACE</div>
     <div class="ls-sub" aria-hidden="true">WIRD GELADEN<span class="ls-dots"><span class="ls-dot">.</span><span class="ls-dot">.</span><span class="ls-dot">.</span></span></div>
     <div class="ls-bar"><div class="ls-bar-fill" id="lsBarFill"></div></div>
@@ -48,20 +47,9 @@
   </div>
 </div>
 <script>
-/* Pixel-Zellen fürs Flacker-Feld erzeugen (zufällige Dauer/Verzögerung pro
-   Zelle) und den Balken bis 12 % "kriechen" lassen, solange die Daten noch
-   laden – danach übernimmt js/app.js den echten Bild-Fortschritt (ab 15 %). */
+/* Den Balken bis 12 % "kriechen" lassen, solange die Daten noch laden –
+   danach übernimmt js/app.js den echten Bild-Fortschritt (ab 15 %). */
 (function(){
-  var grid = document.getElementById('lsPixelGrid');
-  var frag = document.createDocumentFragment();
-  for(var i = 0; i < 64; i++){
-    var c = document.createElement('span');
-    c.className = 'ls-px';
-    c.style.animationDelay = (Math.random() * 1.4).toFixed(2) + 's';
-    c.style.animationDuration = (0.6 + Math.random() * 1.4).toFixed(2) + 's';
-    frag.appendChild(c);
-  }
-  grid.appendChild(frag);
   var fill = document.getElementById('lsBarFill');
   var pct = document.getElementById('lsPercent');
   var p = 0;

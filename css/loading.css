@@ -19,13 +19,6 @@
 
 .ls-inner{display:flex;flex-direction:column;align-items:center;gap:22px;padding:24px;text-align:center}
 
-/* Flackerndes Pixel-Feld über dem Titel. Die Zellen erzeugt das
-   Inline-Script mit zufälliger Dauer/Verzögerung – wirkt dadurch lebendig
-   statt wie ein starrer Loop. */
-.ls-pixelgrid{display:grid;grid-template-columns:repeat(16,10px);gap:4px}
-.ls-px{width:10px;height:10px;background:#fff;opacity:.07;animation:ls-px-blink 1.2s steps(2,jump-none) infinite alternate}
-@keyframes ls-px-blink{from{opacity:.05}to{opacity:.85}}
-
 .ls-title{
   font-family:'Press Start 2P',monospace;
   font-size:clamp(16px,5vw,28px);
@@ -69,8 +62,7 @@
 .ls-percent{font-family:'Press Start 2P',monospace;font-size:11px;color:rgba(255,255,255,.85);margin-top:-8px}
 
 @media (prefers-reduced-motion:reduce){
-  .ls-px,.ls-title,.ls-dot{animation:none}
-  .ls-px{opacity:.3}
+  .ls-title,.ls-dot{animation:none}
   .ls-dot{opacity:1}
   .loading-screen{transition:opacity .2s linear}
   .ls-bar-fill{transition:width .3s linear}
