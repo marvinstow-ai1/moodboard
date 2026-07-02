@@ -57,20 +57,6 @@ function pumpImgQueue(){
     const im = _imgQueue.shift();
     if(!im.isConnected) continue;
     const done = () => { _imgActive = Math.max(0, _imgActive - 1); pumpImgQueue(); };
-    if(im.tagName === 'VIDEO'){
-      // Video-Kachel (echtes Video oder GIF→MP4): nur das kleine WebP-Poster
-      // vorladen und setzen – die Videodaten selbst holt erst der Video-
-      // Observer beim Sichtbarwerden. Das Poster läuft über ein separates
-      // Image-Objekt, damit sein Lade-Ende die Warteschlange weiterpumpt.
-      const url = im.dataset.poster;
-      if(!url) continue;
-      im.removeAttribute('data-poster');
-      _imgActive++;
-      const pre = new Image();
-      pre.onload = pre.onerror = () => { im.poster = url; done(); };
-      pre.src = url;
-      continue;
-    }
     if(!im.dataset.src) continue;
     _imgActive++;
     im.addEventListener('load', done, { once:true });
@@ -251,10 +237,10 @@ function ambientSwap(fill){
 function setAmbientFor(it){
   const token = ++ambientToken;
   lbAmbient.style.opacity = '';
-  // Echte Videos (und posterlose GIF-Clips) als Ambient-Video; GIF-Clips mit
-  // WebP-Poster nehmen unten den Bild-Zweig – fürs unscharfe Ambient reicht
-  // das Poster völlig und es ist meist schon aus dem Grid gecached.
-  if(it.media_type === 'video' || (isClip(it) && !it.thumb_url)){
+  // Clips (Videos & konvertierte GIFs) als Ambient-Video – openLightbox ruft
+  // setAmbientFor für Clips erst auf, wenn das Hauptvideo abspielbereit ist,
+  // die Datei kommt hier also praktisch komplett aus dem Browser-Cache.
+  if(isClip(it)){
     ambientSwap(layer => {
       const v = document.createElement('video');
       v.src = it.media_url; v.muted = true; v.loop = true;
@@ -659,12 +645,12 @@ async function makeGifThumb(file, maxPx=GIF_THUMB_PX){
   return null;
 }
 // ── GIF → MP4 (ffmpeg.wasm) ──────────────────────────────
-// Animierte GIFs werden beim Upload nach H.264-MP4 gewandelt: typisch 5–20×
-// kleiner, hardware-dekodiert und streambar. media_type bleibt 'gif' (u. a.
-// für den Mood-Chat), gerendert wird als <video muted loop> mit Autoplay –
-// verhält sich also exakt wie das GIF. ffmpeg.wasm (~10 MB Core) wird erst
-// beim ersten GIF nachgeladen und nur in Owner-Pfaden (Upload/Konvertierung)
-// gebraucht – normale Besuche kostet es nichts.
+// Wandelt animierte GIFs nach H.264-MP4: typisch 5–20× kleiner, hardware-
+// dekodiert und streambar. Läuft NICHT automatisch beim Upload, sondern nur
+// über den Owner-Button "GIFs → Video (MP4) konvertieren". media_type bleibt
+// 'gif' (u. a. für den Mood-Chat), gerendert wird als <video muted loop> mit
+// Autoplay – verhält sich also exakt wie das GIF. ffmpeg.wasm (~10 MB Core)
+// wird erst beim ersten Einsatz nachgeladen – normale Besuche kostet es nichts.
 // Bewusst die UMD-Builds: die ESM-Worker-Datei hat relative Imports und lässt
 // sich deshalb nicht als (nötige) Blob-URL instanziieren – der UMD-Worker-Chunk
 // (814.ffmpeg.js) ist dagegen self-contained.
@@ -731,30 +717,6 @@ async function gifToMp4(file){
     }
   }catch(e){}
   return null;
-}
-// Statisches WebP-Poster (erster Frame) aus einer Videodatei erzeugen.
-// Grid & Lightbox zeigen es sofort als poster, ganz ohne Videodaten zu laden –
-// Videos verhalten sich damit im Grid wie GIFs mit WebP-Thumbnail.
-function makeVideoPoster(file, maxPx=THUMB_PX, q=0.7){
-  return new Promise(res=>{
-    const v = document.createElement('video');
-    const url = URL.createObjectURL(file);
-    let settled = false;
-    const finish = out => { if(settled) return; settled = true; clearTimeout(t); URL.revokeObjectURL(url); v.removeAttribute('src'); res(out); };
-    const t = setTimeout(() => finish(null), 10000);
-    v.muted = true; v.playsInline = true; v.preload = 'auto';
-    v.onerror = () => finish(null);
-    v.onloadeddata = () => {
-      try{
-        const scale = Math.min(1, maxPx/Math.max(v.videoWidth, v.videoHeight));
-        const w = Math.max(1, Math.round(v.videoWidth*scale)), h = Math.max(1, Math.round(v.videoHeight*scale));
-        const c = document.createElement('canvas'); c.width = w; c.height = h;
-        c.getContext('2d').drawImage(v, 0, 0, w, h);
-        c.toBlob(b => finish(b ? new File([b], 'thumb.webp', { type:'image/webp' }) : null), 'image/webp', q);
-      }catch(e){ finish(null); }
-    };
-    v.src = url;
-  });
 }
 let _lockedScrollY = 0;
 function updateBodyLock(){
@@ -927,17 +889,12 @@ function renderGrid(){
       // Konvertierte GIFs (MP4) verhalten sich wie GIFs: Autoplay/Loop macht
       // der Video-Observer, data-gif kennzeichnet sie fürs Killswitch-Umfeld.
       const gifClip = it.media_type !== 'video';
-      // Statisches WebP-Poster: eager/boot sofort setzen, sonst als
-      // data-poster über die Prefetch-Warteschlange nachladen (wie Bilder).
-      const posterAttr = it.thumb_url
-        ? ((eager || _bootPending) ? ` poster="${it.thumb_url}"` : ` data-poster="${it.thumb_url}"`)
-        : '';
-      // Mit Poster reicht preload="none" – das Standbild kommt vom Poster,
-      // Videodaten lädt erst der Observer beim Sichtbarwerden. Ohne Poster:
-      // Metadaten sofort für die ersten Reihen bzw. während des Boots (das
-      // erste Laden bleibt damit unverändert), sonst aufgeschoben.
-      const preload = it.thumb_url ? 'none' : ((eager || _bootPending) ? 'metadata' : 'none');
-      media = `<video src="${it.media_url}" muted loop playsinline${posterAttr}${gifClip ? ' data-gif="1"' : ''} preload="${preload}"></video>`;
+      // Bewusst KEIN poster/Thumbnail: Videos zeigen direkt ihren ersten
+      // Frame und starten per Autoplay (Video-Observer beim Sichtbarwerden).
+      // Erste Reihen bzw. Boot laden die Metadaten sofort, der Rest
+      // aufgeschoben, bis der Observer die Kachel sieht.
+      const preload = (eager || _bootPending) ? 'metadata' : 'none';
+      media = `<video src="${it.media_url}" muted loop playsinline${gifClip ? ' data-gif="1"' : ''} preload="${preload}"></video>`;
     } else {
       // Statische Bilder nutzen das kleine WebP-Thumbnail, GIFs ihr
       // verkleinertes animiertes GIF-Thumbnail (falls vorhanden) – die
@@ -1019,13 +976,13 @@ function renderGrid(){
   if(_lazyObserver){ _lazyObserver.disconnect(); _lazyObserver = null; }
   _imgQueue.length = 0;
   _imgActive = 0;
-  const lazyCells = gridEl.querySelectorAll('.cell:has(img[data-src]:not([data-eager]), video[data-poster])');
+  const lazyCells = gridEl.querySelectorAll('.cell:has(img[data-src]:not([data-eager]))');
   if(lazyCells.length){
     _lazyObserver = new IntersectionObserver(entries => {
       for(const e of entries){
         if(!e.isIntersecting) continue;
         _lazyObserver.unobserve(e.target);
-        const im = e.target.querySelector('img[data-src], video[data-poster]');
+        const im = e.target.querySelector('img[data-src]');
         if(im) _imgQueue.push(im);
       }
       pumpImgQueue();
@@ -1138,7 +1095,7 @@ function openLightbox(idx){
   if(isClip(it)){
     const v = document.createElement('video');
     v.src=it.media_url; v.controls=false; v.autoplay=true; v.muted=true; v.loop=true; v.playsInline=true;
-    if(it.thumb_url) v.poster = it.thumb_url;
+    v.preload='auto';
     if(it.media_type === 'video'){
       v.addEventListener('click', () => {
         lbIsMuted = !lbIsMuted;
@@ -1208,16 +1165,46 @@ function openLightbox(idx){
     }
   }
   lightbox.classList.toggle('has-video', it.media_type === 'video');
-  setAmbientFor(it);
-  preloadNeighbors(idx);
+  // Bei Clips laden Ambient-Video (gleiche Datei!) und Nachbar-Preload sonst
+  // parallel zum Hauptvideo und stehlen ihm die Bandbreite – die Lightbox
+  // öffnete dadurch spürbar langsamer. Deshalb erst starten, wenn das
+  // Hauptvideo abspielbereit ist (das Ambient-Video kommt dann praktisch
+  // komplett aus dem Browser-Cache).
+  const mainClip = isClip(it) ? lbInner.querySelector('video') : null;
+  if(mainClip && mainClip.readyState < 3){
+    const deferred = () => {
+      if(lbIndex !== idx || !lightbox.classList.contains('show')) return;
+      setAmbientFor(it);
+      preloadNeighbors(idx);
+    };
+    mainClip.addEventListener('canplay', deferred, { once:true });
+    mainClip.addEventListener('error', deferred, { once:true });
+  } else {
+    setAmbientFor(it);
+    preloadNeighbors(idx);
+  }
   updateBodyLock();
 }
-// Nachbarbilder schon mal in den Browser-Cache holen, damit das Blättern
-// (Swipe/Pfeile) ohne sichtbare Ladezeit erfolgt.
+// Nachbar-Medien schon mal in den Browser-Cache holen, damit das Blättern
+// (Swipe/Pfeile) ohne sichtbare Ladezeit erfolgt. Videos wärmen über ein
+// detached <video preload="auto"> vor; die Elemente werden kurz festgehalten,
+// damit der Browser den Download nicht per Garbage Collection abbricht.
+const _warmVideos = [];
 function preloadNeighbors(idx){
   [idx - 1, idx + 1].forEach(i => {
     const n = S().currentItems[i];
-    if(n && n.media_type === 'image'){
+    if(!n) return;
+    if(isClip(n)){
+      if(_warmVideos.some(w => w.src === n.media_url)) return;
+      const v = document.createElement('video');
+      v.muted = true; v.playsInline = true; v.preload = 'auto';
+      v.src = n.media_url;
+      _warmVideos.push(v);
+      while(_warmVideos.length > 4){
+        const old = _warmVideos.shift();
+        old.removeAttribute('src'); old.load();
+      }
+    } else if(n.media_type === 'image'){
       const im = new Image();
       im.decoding = 'async';
       im.src = n.media_url;
@@ -1342,9 +1329,10 @@ async function upload(files){
   toast(`${arr.length} Datei${arr.length>1?'en':''} wird${arr.length>1?'en':''} hochgeladen…`);
   let done = 0;
   const uploadOne = async (f) => {
-    // GIFs zuerst nach MP4 wandeln; klappt das nicht (CDN offline o. Ä.),
-    // läuft transparent der bisherige Gifsicle-Weg (komprimiertes GIF).
-    const cf = isGif(f.name) ? ((await gifToMp4(f)) || await compress(f)) : await compress(f);
+    // GIFs bleiben beim Upload GIFs (Gifsicle-Kompression via compress) –
+    // nach MP4 konvertiert wird nur noch bewusst über den Owner-Button
+    // "GIFs → Video (MP4) konvertieren".
+    const cf = await compress(f);
     const ext = cf.name.split('.').pop().toLowerCase();
     const path = `${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}.${ext}`;
     // cacheControl auf 1 Jahr: Die Dateinamen sind einmalig und werden nie
@@ -1355,14 +1343,13 @@ async function upload(files){
     if(e1){ toast('Upload-Fehler: '+e1.message); return null; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
     const mediaType = isVid(f.name) ? 'video' : isGif(f.name) ? 'gif' : 'image';
-    // Kleines Grid-Thumbnail erzeugen & hochladen: statische Bilder als WebP;
-    // konvertierte GIFs bekommen ein statisches WebP-Poster (erster GIF-Frame),
-    // der Gifsicle-Fallback wie bisher ein animiertes GIF-Thumbnail; Videos
-    // ein WebP-Poster aus dem ersten Frame (Grid/Lightbox nutzen es als poster).
+    // Kleines Grid-Thumbnail erzeugen & hochladen: statische Bilder als WebP,
+    // GIFs als verkleinertes animiertes GIF-Thumbnail. Videos bekommen KEIN
+    // Poster/Thumbnail – sie laufen im Grid direkt als Autoplay-Video.
     let thumbUrl = null;
     const tf = mediaType === 'image' ? await makeThumb(cf)
-             : mediaType === 'gif'   ? (isVid(cf.name) ? await makeThumb(f) : await makeGifThumb(cf))
-             : await makeVideoPoster(cf);
+             : mediaType === 'gif'   ? await makeGifThumb(cf)
+             : null;
     if(tf){
       const tpath = `thumb/${path}`;
       const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, {upsert:false, contentType:tf.type, cacheControl:'31536000'});
@@ -1545,10 +1532,10 @@ $('thumbBackfillBtn')?.addEventListener('click', backfillThumbs);
 $('thumbBackfillBtnSheet')?.addEventListener('click', backfillThumbs);
 
 // ── GIF → MP4 KONVERTIERUNG (Owner) ──────────────────────
-// Wandelt bereits hochgeladene GIFs in MP4 + statisches WebP-Poster um –
-// das Pendant zum Medien-optimieren-Button fürs neue GIF-Format. media_type
-// bleibt 'gif'; alte GIF-Dateien (Volldatei + animiertes Thumbnail) werden
-// nach erfolgreichem Umstieg aufgeräumt.
+// Wandelt bereits hochgeladene GIFs auf Knopfdruck in MP4 um (Uploads bleiben
+// unangetastet – konvertiert wird NUR über diesen Button). media_type bleibt
+// 'gif'; Clips bekommen kein Poster/Thumbnail, alte GIF-Dateien (Volldatei +
+// animiertes Thumbnail) werden nach erfolgreichem Umstieg aufgeräumt.
 async function convertGifsToMp4(){
   if(!owner){ toast('Nur als Owner möglich'); return; }
   const marker = `/public/${BUCKET}/`;
@@ -1558,7 +1545,7 @@ async function convertGifsToMp4(){
     it.media_type === 'gif' && /\.gif(\?|#|$)/i.test(it.media_url || '')
     && (it.media_url || '').includes(marker));
   if(!todo.length){ toast('Keine GIFs zu konvertieren ✓'); return; }
-  if(!window.confirm(`${todo.length} GIF${todo.length>1?'s':''} → MP4 (+ WebP-Poster) konvertieren?\nJetzt starten? Das kann etwas dauern.`)) return;
+  if(!window.confirm(`${todo.length} GIF${todo.length>1?'s':''} → MP4 konvertieren?\nJetzt starten? Das kann etwas dauern.`)) return;
   closeMenu();
   let done = 0, failed = 0;
   toast(`Konvertiere… 0/${todo.length}`);
@@ -1579,25 +1566,18 @@ async function convertGifsToMp4(){
       if(ve) throw ve;
       const vurl = sb.storage.from(BUCKET).getPublicUrl(vpath).data.publicUrl;
 
-      // Statisches WebP-Poster aus dem ersten GIF-Frame.
-      let turl = null;
-      const tf = await makeThumb(srcFile);
-      if(tf){
-        const tpath = `thumb/${vpath}`;
-        const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, { upsert:true, contentType:'image/webp', cacheControl:'31536000' });
-        if(!te) turl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
-      }
-
+      // Kein Poster/Thumbnail für Clips – das Video zeigt direkt seinen
+      // ersten Frame und läuft per Autoplay.
       const oldThumb = it.thumb_url;
-      const {error:ue} = await sb.from(S().table).update({ media_url: vurl, thumb_url: turl }).eq('id', it.id);
+      const {error:ue} = await sb.from(S().table).update({ media_url: vurl, thumb_url: null }).eq('id', it.id);
       if(ue) throw ue;
-      it.media_url = vurl; it.thumb_url = turl;
+      it.media_url = vurl; it.thumb_url = null;
 
       // Alte Dateien aufräumen: GIF-Volldatei + evtl. animiertes GIF-Thumbnail.
       const oldPaths = [path];
       if(oldThumb && oldThumb.includes(marker)){
         const op = oldThumb.slice(oldThumb.indexOf(marker) + marker.length).split('?')[0];
-        if(op !== path && op !== vpath && op !== `thumb/${vpath}`) oldPaths.push(op);
+        if(op !== path) oldPaths.push(op);
       }
       try{ await sb.storage.from(BUCKET).remove(oldPaths); }catch(e){}
     }catch(e){ failed++; }
@@ -1820,7 +1800,7 @@ function renderMoodsView(){
     const count = S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
     const media = it
       ? (isClip(it)
-          ? `<video src="${it.media_url}"${it.thumb_url ? ` poster="${it.thumb_url}"` : ''} muted loop playsinline ${autoplayMedia ? 'autoplay ' : ''}preload="metadata"></video>`
+          ? `<video src="${it.media_url}" muted loop playsinline ${autoplayMedia ? 'autoplay ' : ''}preload="metadata"></video>`
           : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`)
       : `<div class="mt-empty">Kein Bild</div>`;
     return `
