@@ -51,8 +51,15 @@
      Zugriffs-Schleuse VOR dem Loading Screen, im selben Pixel-Look.
      Freunde tragen Name + E-Mail ein; die Prüfung (Anfrage, Freigabe,
      Login) läuft komplett serverseitig in der Edge Function "gate".
-     Logik: js/app.js (initGate). Sichtbar nur mit html.gate-open. -->
+     Logik: js/app.js (initGate). Sichtbar nur mit html.gate-open.
+     Hinter dem Formular laufen zwei fließende Bild-Reihen (Kachel-Schema
+     wie im Grid) in entgegengesetzte Richtungen; befüllt aus der
+     öffentlichen RPC gate_teaser (js/app.js, initGateSwiper). -->
 <div id="gate" class="gate" role="dialog" aria-label="Zugang zu Marvin's Place">
+  <div class="gate-swiper" id="gateSwiper" aria-hidden="true">
+    <div class="gate-swiper-row"><div class="gate-swiper-track" id="gateTrackA"></div></div>
+    <div class="gate-swiper-row"><div class="gate-swiper-track gate-swiper-track--rev" id="gateTrackB"></div></div>
+  </div>
   <div class="gate-inner">
     <div class="gate-title" aria-hidden="true">MARVIN'S<br>PLACE</div>
     <div class="gate-sub">PRIVATE SESSION – NUR AUF EINLADUNG</div>

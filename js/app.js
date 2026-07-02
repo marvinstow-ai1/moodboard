@@ -115,11 +115,69 @@ function gateStatus(key) {
 
 function showGate(msgKey) {
   document.documentElement.classList.add('gate-open');
+  initGateSwiper();
   try {
     $('gateName').value  = localStorage.getItem('mb_gate_name')  || '';
     $('gateEmail').value = localStorage.getItem('mb_gate_email') || '';
   } catch (e) {}
   if (msgKey) gateStatus(msgKey);
+}
+
+// ── Gate-Swiper: zwei fließende Bild-Reihen hinter dem Login ────────
+// Die Auswahl kommt aus der öffentlichen RPC gate_teaser (SECURITY
+// DEFINER, db/gate_teaser.sql): ohne Session ist die Items-Tabelle per
+// RLS gesperrt, fürs Gate gibt die Funktion aber eine zufällige
+// Mini-Auswahl der Medien-URLs frei (keine Titel/Moods/Tags, keine
+// echten Videos). GIF-Clips laufen stumm in Dauerschleife, Bilder
+// nutzen ihr Grid-Thumbnail. Schlägt der Abruf fehl, bleibt das Gate
+// einfach ohne Swiper voll funktionsfähig.
+let _gateSwiperDone = false;
+const GATE_ROW_TILES = 10;   // Kacheln pro Reihe (vor der Loop-Verdopplung)
+
+function gateTile(it) {
+  const tile = document.createElement('div');
+  tile.className = 'gate-tile';
+  if (isClip(it)) {
+    const v = document.createElement('video');
+    v.muted = true; v.loop = true; v.autoplay = true;
+    v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('muted', '');   // iOS erlaubt Autoplay nur mit Attribut
+    v.src = it.media_url;
+    const p = v.play(); if (p && p.catch) p.catch(() => {});
+    tile.appendChild(v);
+  } else {
+    const im = document.createElement('img');
+    im.alt = ''; im.decoding = 'async';
+    im.src = it.thumb_url || it.media_url;
+    tile.appendChild(im);
+  }
+  return tile;
+}
+
+function fillGateTrack(track, items) {
+  if (!track || !items.length) return;
+  // Reihe auf Mindestlänge auffüllen (bei kleinen Boards zyklisch
+  // wiederholen) und für die nahtlose Schleife verdoppeln – die
+  // Marquee-Animation (gate.css) läuft exakt eine Hälfte weit.
+  const set = [];
+  while (set.length < GATE_ROW_TILES) set.push(...items);
+  set.length = GATE_ROW_TILES;
+  [...set, ...set].forEach(it => track.appendChild(gateTile(it)));
+  track.classList.add('run');
+}
+
+async function initGateSwiper() {
+  if (_gateSwiperDone) return;
+  _gateSwiperDone = true;
+  const a = $('gateTrackA'), b = $('gateTrackB');
+  if (!a || !b) return;
+  try {
+    const { data, error } = await sb.rpc('gate_teaser', { n: GATE_ROW_TILES * 2 });
+    if (error || !Array.isArray(data) || !data.length) return;
+    const second = data.slice(GATE_ROW_TILES);
+    fillGateTrack(a, data.slice(0, GATE_ROW_TILES));
+    fillGateTrack(b, second.length ? second : data);
+  } catch (e) { /* Swiper ist reine Deko – Fehler bewusst schlucken */ }
 }
 
 // Gate ausblenden. `animated` = Übergang Gate → Loading Screen nach einem
