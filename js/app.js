@@ -782,7 +782,13 @@ function renderGrid(){
   // Erste Reihen sofort & priorisiert laden (statt pauschal "lazy"), damit
   // der sichtbare Bereich direkt nach dem Boot gefüllt ist; der Rest bleibt
   // lazy. Beim allerersten Boot lädt der Loading Screen ~40 Bilder vor.
-  const eagerCount = Math.min(arr.length, _bootPending ? BOOT_EAGER_COUNT : Math.max(gridCols * 3, 6));
+  const eagerCount = Math.min(arr.length, _bootPending ? BOOT_EAGER_COUNT : Math.max(gridCols * 4, 8));
+  // Noch laufende Downloads der ALTEN Kacheln abbrechen: nach einem Re-Render
+  // (Shuffle/Filter/Sync) würden sie sonst unsichtbar weiterladen und den
+  // neuen, tatsächlich sichtbaren Bildern die Bandbreite streitig machen.
+  for(const im of gridEl.querySelectorAll('img')){
+    if(im.src && !im.complete){ im.removeAttribute('data-full'); im.src = ''; }
+  }
   gridEl.innerHTML = arr.map((it, idx) => {
     const eager = idx < eagerCount;
     // Nicht-eager Bilder bekommen KEIN natives loading="lazy" mehr – ihr
@@ -794,7 +800,11 @@ function renderGrid(){
       : '';
     let media;
     if(it.media_type==='video'){
-      media = `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`;
+      // Nur die ersten Reihen ziehen ihre Metadaten (= erstes Standbild)
+      // sofort; alle weiteren erst beim Sichtbarwerden (Video-Observer).
+      // Vorher lud JEDES Video bei JEDEM Re-Render sofort Metadaten – bei
+      // videolastigen Boards fraß das nach einem Shuffle spürbar Bandbreite.
+      media = `<video src="${it.media_url}" muted loop playsinline preload="${eager ? 'metadata' : 'none'}"></video>`;
     } else {
       // Statische Bilder nutzen das kleine WebP-Thumbnail, GIFs ihr
       // verkleinertes animiertes GIF-Thumbnail (falls vorhanden) – die
@@ -855,6 +865,9 @@ function renderGrid(){
     _observer = new IntersectionObserver(entries => entries.forEach(e => {
       const v = e.target.querySelector('video'); if(!v) return;
       if(e.isIntersecting){
+        // Aufgeschobene Videos (preload="none") jetzt Metadaten laden lassen,
+        // damit das erste Standbild als Poster erscheint.
+        if(v.preload === 'none') v.preload = 'metadata';
         // Autoplay nur, wenn der Killswitch das erlaubt – sonst pausiert das
         // Video (erster Frame bleibt als Standbild stehen).
         if(autoplayMedia){ v.muted=true; v.play().catch(()=>{}); }
@@ -1146,9 +1159,14 @@ function doShuffle() {
   chatResultIds = null;   // Shuffle hebt eine aktive Mood-Chat-Suche auf
   // Shuffle ist die Archiv-Ansicht: aus "Zuletzt hinzugefügt" zurückwechseln
   if(currentView === 'recent') currentView = 'archive';
+  // VOR dem Rendern sofort nach oben springen statt hinterher smooth zu
+  // scrollen: Rendert man erst in alter Scroll-Tiefe, meldet der
+  // Prefetch-Observer zunächst die Kacheln dort unten – und während der
+  // Smooth-Scroll-Animation dann JEDE überflogene Reihe. Deren Bilder
+  // verstopfen die Warteschlange, bevor die oben sichtbaren Kacheln an der
+  // Reihe sind (Hauptursache für die langen Spinner nach dem Shuffle).
+  window.scrollTo(0, 0);
   renderGrid();
-  // Nach dem Mischen wieder ganz nach oben – egal wie weit man vorher gescrollt hat.
-  window.scrollTo({ top: 0, behavior: 'smooth' });
   toast('Neu gemischt');
 }
 $('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); doShuffle(); };
