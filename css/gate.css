@@ -53,7 +53,14 @@ html.gate-open .loading-screen{display:none}
   width:160px;aspect-ratio:9/16;margin-right:2px;flex-shrink:0;
   background:#111;overflow:hidden;
 }
-.gate-tile img,.gate-tile video{width:100%;height:100%;object-fit:cover;display:block}
+/* Jede Kachel blendet weich ein, sobald ihr Medium geladen ist (.ready
+   setzt js/app.js) – statt ruckartig aufzupoppen bleibt bis dahin der
+   #111-Grund stehen. */
+.gate-tile img,.gate-tile video{
+  width:100%;height:100%;object-fit:cover;display:block;
+  opacity:0;transition:opacity .55s ease;
+}
+.gate-tile img.ready,.gate-tile video.ready{opacity:1}
 
 .gate-inner{
   position:relative;z-index:2;

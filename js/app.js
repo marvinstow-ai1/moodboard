@@ -134,6 +134,22 @@ function showGate(msgKey) {
 let _gateSwiperDone = false;
 const GATE_ROW_TILES = 10;   // Kacheln pro Reihe (vor der Loop-Verdopplung)
 
+// Der Teaser-Abruf startet sofort beim Laden des Moduls, parallel zum
+// Session-Check in initGate – das Inline-Script in index.html hat
+// html.gate-open ja schon synchron gesetzt. So sind die URLs meist schon
+// da, wenn showGate() die Kacheln baut, und die Bilder stehen innerhalb
+// der ersten Sekunde. (Promise.resolve stößt den thenable Query-Builder
+// von supabase-js an; ohne .then() würde er gar nicht erst anfragen.)
+const _gateTeaserFetch = document.documentElement.classList.contains('gate-open')
+  ? Promise.resolve(sb.rpc('gate_teaser', { n: GATE_ROW_TILES * 2 })).catch(() => null)
+  : null;
+
+// Medium erst weich einblenden, wenn es wirklich anzeigbar ist
+// (.ready → Opacity-Transition in gate.css).
+function gateTileReady(el, event) {
+  el.addEventListener(event, () => el.classList.add('ready'), { once: true });
+}
+
 function gateTile(it) {
   const tile = document.createElement('div');
   tile.className = 'gate-tile';
@@ -142,13 +158,16 @@ function gateTile(it) {
     v.muted = true; v.loop = true; v.autoplay = true;
     v.playsInline = true; v.preload = 'auto';
     v.setAttribute('muted', '');   // iOS erlaubt Autoplay nur mit Attribut
+    gateTileReady(v, 'loadeddata');
     v.src = it.media_url;
     const p = v.play(); if (p && p.catch) p.catch(() => {});
     tile.appendChild(v);
   } else {
     const im = document.createElement('img');
     im.alt = ''; im.decoding = 'async';
+    gateTileReady(im, 'load');
     im.src = it.thumb_url || it.media_url;
+    if (im.complete) im.classList.add('ready');   // war schon im Cache
     tile.appendChild(im);
   }
   return tile;
@@ -172,7 +191,11 @@ async function initGateSwiper() {
   const a = $('gateTrackA'), b = $('gateTrackB');
   if (!a || !b) return;
   try {
-    const { data, error } = await sb.rpc('gate_teaser', { n: GATE_ROW_TILES * 2 });
+    // Vorgezogenen Abruf nutzen, falls er beim Modul-Load gestartet wurde;
+    // sonst (z. B. Gate erst nach abgelaufener Session) jetzt anfragen.
+    const res = await (_gateTeaserFetch ?? sb.rpc('gate_teaser', { n: GATE_ROW_TILES * 2 }));
+    if (!res) return;
+    const { data, error } = res;
     if (error || !Array.isArray(data) || !data.length) return;
     const second = data.slice(GATE_ROW_TILES);
     fillGateTrack(a, data.slice(0, GATE_ROW_TILES));
