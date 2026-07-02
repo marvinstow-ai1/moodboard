@@ -1,0 +1,190 @@
+/* ── Gate: Startpage mit Zugriffs-Anfrage ─────────────────────────────────
+   Vollflächiges Overlay ÜBER allem (auch über dem Loading Screen). Gleicher
+   Pixel-Look wie der Boot-Screen: Press-Start-2P-Titel mit Flacker-Animation
+   (Keyframes ls-flicker aus loading.css), CRT-Scanlines, klobige Rahmen.
+   Sichtbarkeit steuert html.gate-open (Inline-Script in index.html prüft
+   synchron, ob eine Session im localStorage liegt – so blitzt für bereits
+   eingeloggte Nutzer kein Gate auf); die Logik wohnt in js/app.js. */
+.gate{
+  position:fixed;inset:0;z-index:1200;
+  background:var(--bg);
+  display:none;align-items:center;justify-content:center;
+  transition:opacity .45s steps(6);
+}
+html.gate-open .gate{display:flex}
+html.gate-open .loading-screen{display:none}
+.gate.hide{opacity:0;pointer-events:none}
+
+/* CRT-Scanlines wie auf dem Loading Screen */
+.gate::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.22) 3px 4px);
+}
+
+.gate-inner{
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  padding:24px;text-align:center;width:min(420px,92vw);
+}
+
+.gate-title{
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(18px,6vw,32px);
+  color:#fff;letter-spacing:.06em;line-height:1.6;
+  text-shadow:3px 3px 0 rgba(255,255,255,.18);
+  animation:ls-flicker 3.2s steps(1) infinite;
+}
+.gate-sub{
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(8px,2.2vw,11px);
+  color:rgba(255,255,255,.75);letter-spacing:.1em;line-height:1.8;
+}
+
+.gate-form{display:flex;flex-direction:column;gap:12px;width:100%;margin-top:6px}
+.gate-input{
+  width:100%;padding:13px 14px;
+  font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:.04em;
+  color:#fff;background:#000;
+  border:3px solid #fff;border-radius:0;outline:none;
+  box-shadow:4px 4px 0 rgba(255,255,255,.15);
+  -webkit-appearance:none;appearance:none;
+}
+.gate-input::placeholder{color:rgba(255,255,255,.35)}
+.gate-input:focus{background:#111}
+
+.gate-btn{
+  width:100%;padding:14px;cursor:pointer;
+  font-family:'Press Start 2P',monospace;font-size:12px;letter-spacing:.08em;
+  color:#000;background:#fff;
+  border:3px solid #fff;border-radius:0;
+  box-shadow:4px 4px 0 rgba(255,255,255,.15);
+  transition:transform .05s steps(1);
+}
+.gate-btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 rgba(255,255,255,.15)}
+.gate-btn[disabled]{opacity:.55;cursor:default}
+
+/* Status-Zeile unter dem Formular: pixelige Meldung (Warten/Fehler/Ok) */
+.gate-status{
+  min-height:34px;
+  font-family:'Press Start 2P',monospace;font-size:9px;line-height:1.9;
+  letter-spacing:.06em;color:rgba(255,255,255,.85);
+}
+.gate-status.ok{color:#8f8}
+.gate-status.warn{color:#fd6}
+.gate-status.err{color:#f88}
+
+/* Kleiner, unauffälliger Owner-Login-Umschalter */
+.gate-owner-link{
+  background:none;border:0;cursor:pointer;
+  font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:.08em;
+  color:rgba(255,255,255,.35);text-decoration:underline;padding:6px;
+}
+.gate-owner-link:hover{color:rgba(255,255,255,.7)}
+.gate[data-mode="owner"] #gateName{display:none}
+.gate:not([data-mode="owner"]) #gatePassword{display:none}
+
+/* Runder Info-Button unten mittig */
+.gate-info-btn{
+  position:absolute;bottom:calc(22px + env(safe-area-inset-bottom));left:50%;
+  transform:translateX(-50%);
+  width:44px;height:44px;border-radius:50%;cursor:pointer;
+  border:2px solid rgba(255,255,255,.8);background:transparent;color:#fff;
+  font-family:'Press Start 2P',monospace;font-size:13px;line-height:1;
+  display:grid;place-items:center;
+  box-shadow:3px 3px 0 rgba(255,255,255,.15);
+}
+.gate-info-btn:active{transform:translateX(-50%) translate(1px,1px)}
+
+/* ── Nutzungshinweise-Popup (über dem Gate) ─────────────────── */
+.gate-info-popup{
+  position:fixed;inset:0;z-index:1300;display:none;
+  align-items:center;justify-content:center;padding:18px;
+  background:rgba(0,0,0,.72);
+}
+.gate-info-popup.show{display:flex}
+.gip-content{
+  width:min(460px,94vw);max-height:min(72vh,620px);
+  display:flex;flex-direction:column;
+  background:#0a0a0a;border:3px solid #fff;
+  box-shadow:6px 6px 0 rgba(255,255,255,.15);
+}
+.gip-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:3px solid #fff;
+}
+.gip-title{font-family:'Press Start 2P',monospace;font-size:11px;color:#fff;letter-spacing:.06em}
+.gip-close{
+  width:32px;height:32px;cursor:pointer;flex-shrink:0;
+  border:2px solid #fff;background:transparent;color:#fff;
+  font-family:'Press Start 2P',monospace;font-size:11px;line-height:1;
+  display:grid;place-items:center;
+}
+.gip-body{
+  overflow-y:auto;padding:16px;text-align:left;
+  font-family:"DM Sans",sans-serif;font-size:13.5px;line-height:1.65;
+  color:rgba(255,255,255,.88);
+}
+.gip-body h3{
+  font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:.06em;
+  color:#fff;margin:16px 0 6px;
+}
+.gip-body h3:first-child{margin-top:0}
+.gip-body p{margin:0 0 8px}
+.gip-body ul{margin:0 0 8px 18px;padding:0}
+.gip-body li{margin-bottom:4px}
+
+/* ── Owner: "Zugriffe"-Verwaltung ───────────────────────────── */
+.access-popup{
+  position:fixed;inset:0;z-index:210;display:none;
+  align-items:center;justify-content:center;padding:18px;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
+}
+.access-popup.show{display:flex}
+.acc-content{
+  width:min(480px,94vw);max-height:min(78vh,640px);
+  display:flex;flex-direction:column;gap:12px;
+  border:1px solid var(--border);border-radius:16px;
+  background:var(--panel);padding:16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.65);
+}
+.acc-title{font-size:16px;font-weight:700;color:#fff}
+.acc-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:60px}
+.acc-empty{color:rgba(255,255,255,.55);font-size:13px;padding:14px 4px}
+.acc-row{
+  display:flex;align-items:center;gap:10px;
+  border:1px solid var(--border);border-radius:12px;
+  padding:10px 12px;background:rgba(255,255,255,.03);
+}
+.acc-meta{flex:1;min-width:0}
+.acc-name{font-size:14px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-mail{font-size:12px;color:rgba(255,255,255,.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-state{
+  font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  padding:3px 8px;border-radius:999px;flex-shrink:0;
+}
+.acc-state.pending{background:rgba(255,210,90,.15);color:#fd6;border:1px solid rgba(255,210,90,.4)}
+.acc-state.approved{background:rgba(140,255,140,.12);color:#8f8;border:1px solid rgba(140,255,140,.35)}
+.acc-state.blocked{background:rgba(255,120,120,.12);color:#f88;border:1px solid rgba(255,120,120,.35)}
+.acc-actions{display:flex;gap:6px;flex-shrink:0}
+.acc-btn{
+  border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;
+  border-radius:9px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;
+}
+.acc-btn.yes{background:#fff;color:#111;border-color:#fff}
+.acc-btn.no{background:rgba(255,120,120,.14);border-color:rgba(255,120,120,.4);color:#f99}
+.acc-btn[disabled]{opacity:.5;cursor:default}
+.acc-close{
+  border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;
+  border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;
+}
+
+/* Gelber Hinweis-Punkt am "Zugriffe"-Menüpunkt bei offenen Anfragen */
+.hub-item .acc-dot{
+  width:8px;height:8px;border-radius:50%;background:#fd6;
+  margin-left:auto;flex-shrink:0;display:none;
+}
+.hub-item.has-pending .acc-dot{display:block}
+
+@media (prefers-reduced-motion:reduce){
+  .gate-title{animation:none}
+  .gate{transition:opacity .2s linear}
+}

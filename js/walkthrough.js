@@ -17,7 +17,7 @@ const steps = [
   {
     popover: {
       title: 'Willkommen bei Marvin’s Place',
-      description: 'Das hier ist mein Moodboard – einfach Bilder, die grad meinen Vibe treffen. Kein Login, kein Tracking, keine Daten von dir. Du klickst dich einfach durch. Wenn du magst, zeig ich dir kurz, was die Buttons unten machen.',
+      description: 'Das hier ist mein Moodboard – einfach Bilder, die grad meinen Vibe treffen. Du bist drin, also mach’s dir gemütlich und klick dich durch. Wenn du magst, zeig ich dir kurz, was die Buttons unten machen.',
       showButtons: ['next'],          // nur "Tour starten" (+ manueller Skip-Button)
       nextBtnText: 'Tour starten',
       align: 'center',
@@ -84,5 +84,11 @@ function run() {
     const isOwner = !!(session && session.user.app_metadata?.role === 'owner');
     if (isOwner) return;                                 // Owner überspringen
   } catch (e) { /* ohne Session: normaler Besucher → Tour zeigen */ }
+  // Steht das Gate noch davor, erst nach dem erfolgreichen Login starten
+  // (app.js feuert dann mb:gate-passed) – sonst läge die Tour überm Gate.
+  if (document.documentElement.classList.contains('gate-open')) {
+    window.addEventListener('mb:gate-passed', () => run(), { once: true });
+    return;
+  }
   run();
 })();

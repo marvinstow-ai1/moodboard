@@ -30,9 +30,74 @@
 <link rel="stylesheet" href="css/walkthrough.css">
 <link rel="stylesheet" href="css/info.css">
 <link rel="stylesheet" href="css/buttons.css">
+<link rel="stylesheet" href="css/gate.css">
+<script>
+/* Gate-Weiche, synchron VOR dem ersten Paint: Liegt keine Supabase-Session
+   im localStorage, zeigt html.gate-open die Startpage statt des Loading
+   Screens. Ob die Session wirklich (noch) gültig ist, prüft js/app.js
+   danach in Ruhe – hier geht es nur darum, dass weder das Gate für
+   Eingeloggte noch der Loading Screen für Fremde kurz aufblitzt. */
+(function(){
+  var authed = false;
+  try{ authed = !!localStorage.getItem('sb-uvfuxnwinuakbqanaxtp-auth-token'); }catch(e){}
+  if(!authed) document.documentElement.classList.add('gate-open');
+})();
+</script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
 <body>
+
+<!-- ── Gate / Startpage ────────────────────────────────────────────────
+     Zugriffs-Schleuse VOR dem Loading Screen, im selben Pixel-Look.
+     Freunde tragen Name + E-Mail ein; die Prüfung (Anfrage, Freigabe,
+     Login) läuft komplett serverseitig in der Edge Function "gate".
+     Logik: js/app.js (initGate). Sichtbar nur mit html.gate-open. -->
+<div id="gate" class="gate" role="dialog" aria-label="Zugang zu Marvin's Place">
+  <div class="gate-inner">
+    <div class="gate-title" aria-hidden="true">MARVIN'S<br>PLACE</div>
+    <div class="gate-sub">PRIVATE SESSION – NUR AUF EINLADUNG</div>
+    <form class="gate-form" id="gateForm" autocomplete="on">
+      <input class="gate-input" id="gateName" placeholder="DEIN NAME" maxlength="64" autocomplete="name">
+      <input class="gate-input" id="gateEmail" type="email" placeholder="DEINE E-MAIL" maxlength="254" autocomplete="email">
+      <input class="gate-input" id="gatePassword" type="password" placeholder="PASSWORT" autocomplete="current-password">
+      <button class="gate-btn" id="gateSubmit" type="submit">EINTRETEN</button>
+    </form>
+    <div class="gate-status" id="gateStatus" role="status"></div>
+    <button class="gate-owner-link" id="gateOwnerLink" type="button">Owner-Login</button>
+  </div>
+  <button class="gate-info-btn" id="gateInfoBtn" type="button" aria-label="Nutzungshinweise" aria-haspopup="dialog">i</button>
+</div>
+
+<!-- Nutzungshinweise (öffnet über den runden i-Button auf dem Gate) -->
+<div class="gate-info-popup" id="gateInfoPopup" role="dialog" aria-modal="true" aria-label="Nutzungshinweise">
+  <div class="gip-content">
+    <div class="gip-head">
+      <span class="gip-title">NUTZUNGSHINWEISE</span>
+      <button class="gip-close" id="gateInfoClose" aria-label="Schließen">X</button>
+    </div>
+    <div class="gip-body">
+      <h3>WAS IST DAS HIER?</h3>
+      <p>Marvin's Place ist ein privates Moodboard. Der Zugang ist nur auf Einladung möglich: Du fragst mit deinem Namen und deiner E-Mail-Adresse Zugriff an, und Marvin entscheidet, ob du reinkommst.</p>
+
+      <h3>WELCHE DATEN WERDEN ERHOBEN?</h3>
+      <ul>
+        <li>Der Name, den du hier angibst</li>
+        <li>Deine E-Mail-Adresse</li>
+        <li>Zeitpunkt deiner Anfrage und der Freigabe-Status (offen / freigegeben / gesperrt)</li>
+      </ul>
+      <p>Mehr nicht – es gibt kein Tracking, keine Analyse-Tools und keine Werbung.</p>
+
+      <h3>WOFÜR WERDEN SIE VERWENDET?</h3>
+      <p>Ausschließlich für die Zugangskontrolle: Marvin sieht Name und E-Mail deiner Anfrage und kann sie annehmen oder ablehnen. Beim Einloggen wird geprüft, ob deine Angaben mit einer freigegebenen Anfrage übereinstimmen. Die Daten werden nicht an Dritte weitergegeben.</p>
+
+      <h3>WO LIEGEN DIE DATEN?</h3>
+      <p>Auf Servern von Supabase in der EU (Region Frankfurt). Im Browser wird nach dem Login eine Sitzung gespeichert (localStorage), damit du eingeloggt bleibst – auch das ist kein Tracking.</p>
+
+      <h3>LÖSCHUNG</h3>
+      <p>Wenn du deinen Zugang und deine Daten löschen lassen willst, sag Marvin einfach Bescheid – dann werden Name, E-Mail und dein Zugang entfernt.</p>
+    </div>
+  </div>
+</div>
 
 <!-- ── Loading Screen ──────────────────────────────────────────────────
      Pixelig animiertes Boot-Overlay über allem (auch dem Header). Wird in
@@ -50,25 +115,33 @@
 /* Den Balken bis 12 % "kriechen" lassen, solange die Daten noch laden –
    danach übernimmt js/app.js den echten Bild-Fortschritt (ab 15 %). */
 (function(){
+  // Steht das Gate davor, ruht der Loading Screen komplett (Kriechen UND
+  // Watchdog): er startet erst, wenn app.js nach erfolgreichem Login
+  // window.MB.startBootProgress() aufruft.
   var fill = document.getElementById('lsBarFill');
   var pct = document.getElementById('lsPercent');
-  var p = 0;
-  var t = setInterval(function(){
-    if(!document.getElementById('bootMsg')){ clearInterval(t); return; }
-    var w = parseFloat(fill.style.width) || 0;
-    if(w > 12){ clearInterval(t); return; }
-    p = Math.min(12, p + 0.8 + Math.random() * 1.6);
-    fill.style.width = p + '%';
-    pct.textContent = Math.round(p) + '%';
-  }, 200);
-  // Watchdog: Falls app.js gar nicht erst lädt (CDN/Netz kaputt), darf der
-  // Screen die Seite nicht für immer blockieren – nach 20 s ausblenden.
-  setTimeout(function(){
-    var boot = document.getElementById('bootMsg');
-    if(!boot) return;
-    boot.classList.add('hide');
-    setTimeout(function(){ boot.remove(); }, 600);
-  }, 20000);
+  function startCrawl(){
+    var p = 0;
+    var t = setInterval(function(){
+      if(!document.getElementById('bootMsg')){ clearInterval(t); return; }
+      var w = parseFloat(fill.style.width) || 0;
+      if(w > 12){ clearInterval(t); return; }
+      p = Math.min(12, p + 0.8 + Math.random() * 1.6);
+      fill.style.width = p + '%';
+      pct.textContent = Math.round(p) + '%';
+    }, 200);
+    // Watchdog: Falls app.js gar nicht erst lädt (CDN/Netz kaputt), darf der
+    // Screen die Seite nicht für immer blockieren – nach 20 s ausblenden.
+    setTimeout(function(){
+      var boot = document.getElementById('bootMsg');
+      if(!boot) return;
+      boot.classList.add('hide');
+      setTimeout(function(){ boot.remove(); }, 600);
+    }, 20000);
+  }
+  window.MB = window.MB || {};
+  window.MB.startBootProgress = startCrawl;
+  if(!document.documentElement.classList.contains('gate-open')) startCrawl();
 })();
 </script>
 
@@ -97,13 +170,20 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
-        </span> Login</button>
+        </span> <span id="hubLoginLabel">Login</span></button>
       <button class="hub-item admin-only" data-hub="menu" role="menuitem">
         <span class="hub-ic">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
             <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </span> Verwalten</button>
+      <button class="hub-item admin-only" data-hub="access" id="hubAccessItem" role="menuitem">
+        <span class="hub-ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M17 11l2 2 4-4"/>
+          </svg>
+        </span> Zugriffe<span class="acc-dot"></span></button>
     </div>
   </div>
 
@@ -130,6 +210,7 @@
         <line x1="3" y1="18" x2="21" y2="18"/>
       </svg>
     </button>
+    <button class="menubtn admin-only" id="accessBtn" aria-label="Zugriffe"></button>
   </div>
 </div>
 
@@ -383,6 +464,18 @@
       <button id="mmgAddBtn">Hinzufügen</button>
     </div>
     <button class="mmg-close" id="mmgClose">Schließen</button>
+  </div>
+</div>
+
+<!-- ── Zugriffe-Verwaltung (nur Owner) ─────────────────────
+     Anfragen von Freunden annehmen / ablehnen / sperren. Die Liste
+     kommt per RLS nur beim Owner an; Entscheidungen laufen über die
+     Edge Function "gate" (siehe js/app.js). -->
+<div class="access-popup" id="accessPopup" role="dialog" aria-modal="true" aria-label="Zugriffe verwalten">
+  <div class="acc-content">
+    <div class="acc-title">Zugriffe</div>
+    <div class="acc-list" id="accList"><div class="acc-empty">Lade…</div></div>
+    <button class="acc-close" id="accClose">Schließen</button>
   </div>
 </div>
 <div class="spotify-popup" id="spotifyPopup">
