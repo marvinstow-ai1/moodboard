@@ -18,8 +18,9 @@
      Grid-Bilder ohne DNS-/TLS-Wartezeit laden. -->
 <link rel="preconnect" href="https://uvfuxnwinuakbqanaxtp.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://uvfuxnwinuakbqanaxtp.supabase.co">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/loading.css">
 <link rel="stylesheet" href="css/header.css">
 <link rel="stylesheet" href="css/grid.css">
 <link rel="stylesheet" href="css/lightbox.css">
@@ -32,6 +33,56 @@
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
 <body>
+
+<!-- ── Loading Screen ──────────────────────────────────────────────────
+     Pixelig animiertes Boot-Overlay über allem (auch dem Header). Wird in
+     js/app.js (revealWhenReady) ausgeblendet, sobald die ersten ~40 Bilder
+     geladen sind; der Balken zeigt den echten Ladefortschritt. -->
+<div id="bootMsg" class="loading-screen" role="status" aria-label="Marvin's Place wird geladen">
+  <div class="ls-inner">
+    <div class="ls-pixelgrid" id="lsPixelGrid" aria-hidden="true"></div>
+    <div class="ls-title" aria-hidden="true">MARVIN'S<br>PLACE</div>
+    <div class="ls-sub" aria-hidden="true">WIRD GELADEN<span class="ls-dots"><span class="ls-dot">.</span><span class="ls-dot">.</span><span class="ls-dot">.</span></span></div>
+    <div class="ls-bar"><div class="ls-bar-fill" id="lsBarFill"></div></div>
+    <div class="ls-percent" id="lsPercent">0%</div>
+  </div>
+</div>
+<script>
+/* Pixel-Zellen fürs Flacker-Feld erzeugen (zufällige Dauer/Verzögerung pro
+   Zelle) und den Balken bis 12 % "kriechen" lassen, solange die Daten noch
+   laden – danach übernimmt js/app.js den echten Bild-Fortschritt (ab 15 %). */
+(function(){
+  var grid = document.getElementById('lsPixelGrid');
+  var frag = document.createDocumentFragment();
+  for(var i = 0; i < 64; i++){
+    var c = document.createElement('span');
+    c.className = 'ls-px';
+    c.style.animationDelay = (Math.random() * 1.4).toFixed(2) + 's';
+    c.style.animationDuration = (0.6 + Math.random() * 1.4).toFixed(2) + 's';
+    frag.appendChild(c);
+  }
+  grid.appendChild(frag);
+  var fill = document.getElementById('lsBarFill');
+  var pct = document.getElementById('lsPercent');
+  var p = 0;
+  var t = setInterval(function(){
+    if(!document.getElementById('bootMsg')){ clearInterval(t); return; }
+    var w = parseFloat(fill.style.width) || 0;
+    if(w > 12){ clearInterval(t); return; }
+    p = Math.min(12, p + 0.8 + Math.random() * 1.6);
+    fill.style.width = p + '%';
+    pct.textContent = Math.round(p) + '%';
+  }, 200);
+  // Watchdog: Falls app.js gar nicht erst lädt (CDN/Netz kaputt), darf der
+  // Screen die Seite nicht für immer blockieren – nach 20 s ausblenden.
+  setTimeout(function(){
+    var boot = document.getElementById('bootMsg');
+    if(!boot) return;
+    boot.classList.add('hide');
+    setTimeout(function(){ boot.remove(); }, 600);
+  }, 20000);
+})();
+</script>
 
 <div class="topbar">
   <span class="board-title" id="boardTitle">Marvin's Place</span>
@@ -255,19 +306,7 @@
 </div>
 
 <div class="gridwrap" id="gridWrap">
-  <div class="grid" id="grid">
-    <div id="bootMsg" class="boot-spinner">
-      <!-- From Uiverse.io by Pradeepsaranbishnoi -->
-      <div class="🤚">
-        <div class="👉"></div>
-        <div class="👉"></div>
-        <div class="👉"></div>
-        <div class="👉"></div>
-        <div class="🌴"></div>
-        <div class="👍"></div>
-      </div>
-    </div>
-  </div>
+  <div class="grid" id="grid"></div>
 
   <!-- Ende-der-Liste-Disclaimer: erscheint unter dem Grid, wenn man ganz
        durchgescrollt hat. Text wechselt bei jedem renderGrid() zufällig. -->

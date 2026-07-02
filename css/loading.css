@@ -1,0 +1,77 @@
+/* ── Boot-Loading-Screen ("MARVIN'S PLACE wird geladen") ─────────────────
+   Vollflächiges, pixelig animiertes Overlay über ALLEM (auch dem Header),
+   bis die ersten ~40 Grid-Bilder geladen sind. Fortschritt & Ausblenden
+   steuert js/app.js (revealWhenReady); die Pixel-Zellen und der frühe
+   "Kriech"-Fortschritt kommen aus dem Inline-Script in index.html. */
+.loading-screen{
+  position:fixed;inset:0;z-index:999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .45s steps(6);
+}
+.loading-screen.hide{opacity:0;pointer-events:none}
+
+/* CRT-Scanlines über dem ganzen Screen für den Retro-Look */
+.loading-screen::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.22) 3px 4px);
+}
+
+.ls-inner{display:flex;flex-direction:column;align-items:center;gap:22px;padding:24px;text-align:center}
+
+/* Flackerndes Pixel-Feld über dem Titel. Die Zellen erzeugt das
+   Inline-Script mit zufälliger Dauer/Verzögerung – wirkt dadurch lebendig
+   statt wie ein starrer Loop. */
+.ls-pixelgrid{display:grid;grid-template-columns:repeat(16,10px);gap:4px}
+.ls-px{width:10px;height:10px;background:#fff;opacity:.07;animation:ls-px-blink 1.2s steps(2,jump-none) infinite alternate}
+@keyframes ls-px-blink{from{opacity:.05}to{opacity:.85}}
+
+.ls-title{
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(16px,5vw,28px);
+  color:#fff;letter-spacing:.06em;line-height:1.6;
+  text-shadow:3px 3px 0 rgba(255,255,255,.18);
+  animation:ls-flicker 3.2s steps(1) infinite;
+}
+@keyframes ls-flicker{
+  0%,100%{opacity:1}
+  88%{opacity:1}89%{opacity:.35}90%{opacity:1}
+  94%{opacity:1}95%{opacity:.6}96%{opacity:1}
+}
+
+.ls-sub{
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(9px,2.4vw,12px);
+  color:rgba(255,255,255,.75);letter-spacing:.1em;
+}
+/* Tippende Punkte hinter "WIRD GELADEN": erscheinen nacheinander im
+   Pixel-Takt (steps statt weichem Fade). */
+.ls-dot{animation:1.6s steps(1,end) infinite}
+.ls-dot:nth-child(1){animation-name:ls-dot-a}
+.ls-dot:nth-child(2){animation-name:ls-dot-b}
+.ls-dot:nth-child(3){animation-name:ls-dot-c}
+@keyframes ls-dot-a{0%,24%{opacity:0}25%,100%{opacity:1}}
+@keyframes ls-dot-b{0%,49%{opacity:0}50%,100%{opacity:1}}
+@keyframes ls-dot-c{0%,74%{opacity:0}75%,100%{opacity:1}}
+
+/* Klobiger Pixel-Fortschrittsbalken: die Füllung ruckt in Stufen vorwärts
+   (steps) statt weich zu gleiten. */
+.ls-bar{
+  width:min(300px,74vw);height:24px;
+  border:3px solid #fff;background:#000;padding:3px;
+  box-shadow:4px 4px 0 rgba(255,255,255,.15);
+}
+.ls-bar-fill{
+  height:100%;width:0%;
+  background:repeating-linear-gradient(90deg,#fff 0 8px,rgba(255,255,255,.35) 8px 11px);
+  transition:width .3s steps(4,jump-end);
+}
+.ls-percent{font-family:'Press Start 2P',monospace;font-size:11px;color:rgba(255,255,255,.85);margin-top:-8px}
+
+@media (prefers-reduced-motion:reduce){
+  .ls-px,.ls-title,.ls-dot{animation:none}
+  .ls-px{opacity:.3}
+  .ls-dot{opacity:1}
+  .loading-screen{transition:opacity .2s linear}
+  .ls-bar-fill{transition:width .3s linear}
+}

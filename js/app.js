@@ -30,6 +30,11 @@ let _observer = null;
 let sortNewest = false;
 let chatResultIds = null;   // Mood-Chat: aktive Treffer-IDs (oder null = aus)
 let _isInitialLoad = true;
+// Solange der Loading Screen sichtbar ist: mehr Bilder eager vorladen und
+// den Eingangs-Tween aufschieben (das Grid ist ja noch komplett verdeckt).
+let _bootPending = true;
+// So viele Bilder lädt der Loading Screen vor, bevor er sich ausblendet.
+const BOOT_EAGER_COUNT = 40;
 let sleepTimeout = null;
 let slideshowActive = false;
 
@@ -690,10 +695,10 @@ function renderGrid(){
   }
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
-  // Erste ~3 Reihen sofort & priorisiert laden (statt pauschal "lazy"), damit
-  // der sichtbare Bereich direkt nach dem Boot-Spinner gefüllt ist; der Rest
-  // bleibt lazy.
-  const eagerCount = Math.min(arr.length, Math.max(gridCols * 3, 6));
+  // Erste Reihen sofort & priorisiert laden (statt pauschal "lazy"), damit
+  // der sichtbare Bereich direkt nach dem Boot gefüllt ist; der Rest bleibt
+  // lazy. Beim allerersten Boot lädt der Loading Screen ~40 Bilder vor.
+  const eagerCount = Math.min(arr.length, _bootPending ? BOOT_EAGER_COUNT : Math.max(gridCols * 3, 6));
   gridEl.innerHTML = arr.map((it, idx) => {
     const eager = idx < eagerCount;
     const loadAttr = eager
@@ -728,7 +733,9 @@ function renderGrid(){
   // Früher wurde über ALLE Kacheln getweent – bei großen Boards blockierte das
   // GSAP-Stagger den Main-Thread sekundenlang und ließ das Einblenden haken.
   // Die weiter unten liegenden Kacheln erscheinen beim Lazy-Load ganz ohne Tween.
-  if(_isInitialLoad && typeof gsap !== 'undefined' && arr.length > 0){
+  // Solange der Loading Screen das Grid verdeckt, wird der Tween aufgeschoben –
+  // revealWhenReady() spielt ihn beim Ausblenden des Screens ab.
+  if(_isInitialLoad && !_bootPending && typeof gsap !== 'undefined' && arr.length > 0){
     const cells = gridEl.children;
     const n = Math.min(cells.length, eagerCount);
     const targets = [];
@@ -1223,32 +1230,67 @@ $('saveTagsBtn').onclick = () => {
   sbUpdate(it); renderGrid(); toast('Tags gespeichert');
 };
 
-// Den großen Boot-Spinner erst entfernen, wenn die sofort sichtbaren Kacheln
-// (die "eager" geladenen der ersten Reihen) wirklich geladen sind. So sieht man
-// beim Verschwinden echte Bilder statt leerer Platzhalter, die "nochmal" laden.
-// Sicherheits-Timeout, damit der Spinner nie hängen bleibt (langsames Netz/Fehler).
+// Den Loading Screen erst ausblenden, wenn die vorgeladenen Kacheln (die
+// ~40 "eager" geladenen Bilder der ersten Reihen) wirklich da sind. Der
+// Fortschrittsbalken zeigt echten Fortschritt: bis ~12 % kriecht er während
+// der Datenphase (Inline-Script in index.html), ab 15 % zählt er die
+// geladenen Bilder hoch. Sicherheits-Timeout, damit der Screen nie hängen
+// bleibt (langsames Netz/Fehler).
 function revealWhenReady(){
   const boot = $('bootMsg');
-  if(!boot) return;
+  if(!boot){ _bootPending = false; return; }
   const imgs = [...gridEl.querySelectorAll('img[data-eager="1"]')];
+  const fill = $('lsBarFill'), pct = $('lsPercent');
+  const setProgress = f => {
+    const p = Math.round(Math.max(0, Math.min(1, f)) * 100);
+    if(fill) fill.style.width = p + '%';
+    if(pct) pct.textContent = p + '%';
+  };
   let done = false;
-  const finish = () => { if(done) return; done = true; boot.remove(); };
+  const finish = () => {
+    if(done) return; done = true;
+    _bootPending = false;
+    setProgress(1);
+    // Die 100 % kurz stehen lassen, dann pixelig ausblenden und entfernen.
+    setTimeout(() => {
+      boot.classList.add('hide');
+      setTimeout(() => boot.remove(), 500);
+    }, 200);
+    // Aufgeschobener Eingangs-Tween der ersten Kacheln – während des Boots
+    // hat der Loading Screen das Grid verdeckt (s. renderGrid).
+    if(_isInitialLoad && typeof gsap !== 'undefined'){
+      const targets = [...gridEl.querySelectorAll('.cell')].slice(0, Math.max(imgs.length, 12));
+      if(targets.length){
+        gsap.from(targets, {
+          opacity: 0, y: 12, duration: 0.4,
+          stagger: { amount: Math.min(0.35, targets.length * 0.03), from: 'start' },
+          ease: 'power2.out', clearProps: 'transform,opacity'
+        });
+      }
+      _isInitialLoad = false;
+    }
+  };
   if(imgs.length === 0){ finish(); return; }
-  let pending = imgs.length;
-  const tick = () => { if(--pending <= 0) finish(); };
+  let loaded = 0;
+  setProgress(0.15);
+  const tick = () => {
+    loaded++;
+    setProgress(0.15 + 0.85 * (loaded / imgs.length));
+    if(loaded >= imgs.length) finish();
+  };
   imgs.forEach(im => {
     if(im.complete && im.naturalWidth){ tick(); return; }
     im.addEventListener('load', tick, { once:true });
     im.addEventListener('error', tick, { once:true });
   });
-  setTimeout(finish, 2500);
+  setTimeout(finish, 8000);
 }
 
 async function loadItems(){
   const {data,error} = await sb.from(S().table)
     .select('id,title,moods,tags,media_url,media_type,thumb_url')
     .order('created_at',{ascending:false});
-  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; $('bootMsg')?.remove(); return; }
+  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; _bootPending = false; $('bootMsg')?.remove(); return; }
   S().items=data||[];
   mergeMoodsFromItems();
   renderGrid(); revealWhenReady();
