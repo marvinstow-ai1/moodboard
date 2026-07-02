@@ -55,9 +55,24 @@ function pumpImgQueue(){
   if(_bootPending) return;
   while(_imgActive < LAZY_CONCURRENCY && _imgQueue.length){
     const im = _imgQueue.shift();
-    if(!im.isConnected || !im.dataset.src) continue;
-    _imgActive++;
+    if(!im.isConnected) continue;
     const done = () => { _imgActive = Math.max(0, _imgActive - 1); pumpImgQueue(); };
+    if(im.tagName === 'VIDEO'){
+      // Video-Kachel (echtes Video oder GIF→MP4): nur das kleine WebP-Poster
+      // vorladen und setzen – die Videodaten selbst holt erst der Video-
+      // Observer beim Sichtbarwerden. Das Poster läuft über ein separates
+      // Image-Objekt, damit sein Lade-Ende die Warteschlange weiterpumpt.
+      const url = im.dataset.poster;
+      if(!url) continue;
+      im.removeAttribute('data-poster');
+      _imgActive++;
+      const pre = new Image();
+      pre.onload = pre.onerror = () => { im.poster = url; done(); };
+      pre.src = url;
+      continue;
+    }
+    if(!im.dataset.src) continue;
+    _imgActive++;
     im.addEventListener('load', done, { once:true });
     im.addEventListener('error', done, { once:true });
     im.src = im.dataset.src;
@@ -236,7 +251,10 @@ function ambientSwap(fill){
 function setAmbientFor(it){
   const token = ++ambientToken;
   lbAmbient.style.opacity = '';
-  if(it.media_type === 'video'){
+  // Echte Videos (und posterlose GIF-Clips) als Ambient-Video; GIF-Clips mit
+  // WebP-Poster nehmen unten den Bild-Zweig – fürs unscharfe Ambient reicht
+  // das Poster völlig und es ist meist schon aus dem Grid gecached.
+  if(it.media_type === 'video' || (isClip(it) && !it.thumb_url)){
     ambientSwap(layer => {
       const v = document.createElement('video');
       v.src = it.media_url; v.muted = true; v.loop = true;
@@ -538,6 +556,10 @@ function toast(t){
 }
 function isVid(n){ return /\.(mp4|webm|mov|m4v)$/i.test(n||''); }
 function isGif(n){ return /\.gif$/i.test(n||''); }
+// Wird dieses Item als <video> gerendert? Echte Videos UND zu MP4 konvertierte
+// GIFs – letztere behalten media_type 'gif' (u. a. für den Mood-Chat-Filter),
+// ihre media_url zeigt aber auf eine .mp4-Datei.
+function isClip(it){ return it.media_type === 'video' || /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(it.media_url || ''); }
 function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600); }
 function compress(file, maxPx=MAX_PX, q=0.88){
   // GIFs gehen durch den Gifsicle-Pfad (WASM), der die Animation erhält –
@@ -635,6 +657,104 @@ async function makeGifThumb(file, maxPx=GIF_THUMB_PX){
     if(f && f.size < file.size * 0.75) return new File([f], 'thumb.gif', { type: 'image/gif' });
   }catch(e){}
   return null;
+}
+// ── GIF → MP4 (ffmpeg.wasm) ──────────────────────────────
+// Animierte GIFs werden beim Upload nach H.264-MP4 gewandelt: typisch 5–20×
+// kleiner, hardware-dekodiert und streambar. media_type bleibt 'gif' (u. a.
+// für den Mood-Chat), gerendert wird als <video muted loop> mit Autoplay –
+// verhält sich also exakt wie das GIF. ffmpeg.wasm (~10 MB Core) wird erst
+// beim ersten GIF nachgeladen und nur in Owner-Pfaden (Upload/Konvertierung)
+// gebraucht – normale Besuche kostet es nichts.
+// Bewusst die UMD-Builds: die ESM-Worker-Datei hat relative Imports und lässt
+// sich deshalb nicht als (nötige) Blob-URL instanziieren – der UMD-Worker-Chunk
+// (814.ffmpeg.js) ist dagegen self-contained.
+const FFMPEG_PKG  = 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd';
+const FFMPEG_UTIL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js';
+// Core bewusst als ESM: mit classWorkerURL läuft der Worker als module-Worker,
+// der den Core per import() lädt – dafür braucht es den Build mit default-Export.
+const FFMPEG_CORE = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
+function loadScriptTag(src){
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error('script '+src));
+    document.head.appendChild(s);
+  });
+}
+let _ffmpeg = null;
+function loadFFmpeg(){
+  if(!_ffmpeg){
+    _ffmpeg = (async () => {
+      if(!window.FFmpegWASM) await loadScriptTag(`${FFMPEG_PKG}/ffmpeg.js`);
+      if(!window.FFmpegUtil) await loadScriptTag(FFMPEG_UTIL);
+      const { FFmpeg } = window.FFmpegWASM;
+      const { toBlobURL } = window.FFmpegUtil;
+      const ff = new FFmpeg();
+      // Worker & Core als Blob-URLs: cross-origin lassen sie sich nicht
+      // direkt vom CDN instanziieren.
+      await ff.load({
+        coreURL:        await toBlobURL(`${FFMPEG_CORE}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL:        await toBlobURL(`${FFMPEG_CORE}/ffmpeg-core.wasm`, 'application/wasm'),
+        classWorkerURL: await toBlobURL(`${FFMPEG_PKG}/814.ffmpeg.js`, 'text/javascript'),
+      });
+      return ff;
+    })();
+    // Bei Netzwerkfehler beim nächsten Versuch neu laden statt dauerhaft kaputt.
+    _ffmpeg.catch(() => { _ffmpeg = null; });
+  }
+  return _ffmpeg;
+}
+// GIF-Datei nach MP4 konvertieren; gibt null zurück, wenn irgendetwas schief
+// geht (CDN offline, exotisches GIF …) – der Aufrufer fällt dann transparent
+// auf den bisherigen Gifsicle-Weg zurück, es geht also nie etwas kaputt.
+async function gifToMp4(file){
+  try{
+    const ff = await loadFFmpeg();
+    await ff.writeFile('in.gif', new Uint8Array(await file.arrayBuffer()));
+    // yuv420p + gerade Kantenlängen sind Pflicht für H.264; Deckel bei
+    // GIF_MAX_PX, kleinere GIFs behalten ihre Größe. veryfast, weil der
+    // WASM-Encoder single-threaded läuft.
+    await ff.exec([
+      '-i', 'in.gif',
+      '-vf', `scale=trunc(min(iw\\,${GIF_MAX_PX})/2)*2:-2`,
+      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '25',
+      '-pix_fmt', 'yuv420p',
+      '-movflags', '+faststart',
+      '-an',
+      'out.mp4',
+    ]);
+    const data = await ff.readFile('out.mp4');
+    try{ await ff.deleteFile('in.gif'); }catch(e){}
+    try{ await ff.deleteFile('out.mp4'); }catch(e){}
+    if(data && data.length > 0){
+      const name = file.name.replace(/\.gif$/i, '') + '.mp4';
+      return new File([data], name, { type: 'video/mp4' });
+    }
+  }catch(e){}
+  return null;
+}
+// Statisches WebP-Poster (erster Frame) aus einer Videodatei erzeugen.
+// Grid & Lightbox zeigen es sofort als poster, ganz ohne Videodaten zu laden –
+// Videos verhalten sich damit im Grid wie GIFs mit WebP-Thumbnail.
+function makeVideoPoster(file, maxPx=THUMB_PX, q=0.7){
+  return new Promise(res=>{
+    const v = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    let settled = false;
+    const finish = out => { if(settled) return; settled = true; clearTimeout(t); URL.revokeObjectURL(url); v.removeAttribute('src'); res(out); };
+    const t = setTimeout(() => finish(null), 10000);
+    v.muted = true; v.playsInline = true; v.preload = 'auto';
+    v.onerror = () => finish(null);
+    v.onloadeddata = () => {
+      try{
+        const scale = Math.min(1, maxPx/Math.max(v.videoWidth, v.videoHeight));
+        const w = Math.max(1, Math.round(v.videoWidth*scale)), h = Math.max(1, Math.round(v.videoHeight*scale));
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(v, 0, 0, w, h);
+        c.toBlob(b => finish(b ? new File([b], 'thumb.webp', { type:'image/webp' }) : null), 'image/webp', q);
+      }catch(e){ finish(null); }
+    };
+    v.src = url;
+  });
 }
 let _lockedScrollY = 0;
 function updateBodyLock(){
@@ -786,8 +906,12 @@ function renderGrid(){
   // Noch laufende Downloads der ALTEN Kacheln abbrechen: nach einem Re-Render
   // (Shuffle/Filter/Sync) würden sie sonst unsichtbar weiterladen und den
   // neuen, tatsächlich sichtbaren Bildern die Bandbreite streitig machen.
-  for(const im of gridEl.querySelectorAll('img')){
-    if(im.src && !im.complete){ im.removeAttribute('data-full'); im.src = ''; }
+  // Bewusst NICHT während des Boots: das erste Laden steuert revealWhenReady
+  // exklusiv, da darf ein Zwischen-Render nichts abwürgen.
+  if(!_bootPending){
+    for(const im of gridEl.querySelectorAll('img')){
+      if(im.src && !im.complete){ im.removeAttribute('data-full'); im.src = ''; }
+    }
   }
   gridEl.innerHTML = arr.map((it, idx) => {
     const eager = idx < eagerCount;
@@ -799,12 +923,21 @@ function renderGrid(){
       ? 'loading="eager" fetchpriority="high" data-eager="1"'
       : '';
     let media;
-    if(it.media_type==='video'){
-      // Nur die ersten Reihen ziehen ihre Metadaten (= erstes Standbild)
-      // sofort; alle weiteren erst beim Sichtbarwerden (Video-Observer).
-      // Vorher lud JEDES Video bei JEDEM Re-Render sofort Metadaten – bei
-      // videolastigen Boards fraß das nach einem Shuffle spürbar Bandbreite.
-      media = `<video src="${it.media_url}" muted loop playsinline preload="${eager ? 'metadata' : 'none'}"></video>`;
+    if(isClip(it)){
+      // Konvertierte GIFs (MP4) verhalten sich wie GIFs: Autoplay/Loop macht
+      // der Video-Observer, data-gif kennzeichnet sie fürs Killswitch-Umfeld.
+      const gifClip = it.media_type !== 'video';
+      // Statisches WebP-Poster: eager/boot sofort setzen, sonst als
+      // data-poster über die Prefetch-Warteschlange nachladen (wie Bilder).
+      const posterAttr = it.thumb_url
+        ? ((eager || _bootPending) ? ` poster="${it.thumb_url}"` : ` data-poster="${it.thumb_url}"`)
+        : '';
+      // Mit Poster reicht preload="none" – das Standbild kommt vom Poster,
+      // Videodaten lädt erst der Observer beim Sichtbarwerden. Ohne Poster:
+      // Metadaten sofort für die ersten Reihen bzw. während des Boots (das
+      // erste Laden bleibt damit unverändert), sonst aufgeschoben.
+      const preload = it.thumb_url ? 'none' : ((eager || _bootPending) ? 'metadata' : 'none');
+      media = `<video src="${it.media_url}" muted loop playsinline${posterAttr}${gifClip ? ' data-gif="1"' : ''} preload="${preload}"></video>`;
     } else {
       // Statische Bilder nutzen das kleine WebP-Thumbnail, GIFs ihr
       // verkleinertes animiertes GIF-Thumbnail (falls vorhanden) – die
@@ -827,7 +960,7 @@ function renderGrid(){
       media = `<img ${srcAttr} ${loadAttr}${gifAttr} decoding="async" alt=""${full}><div class="grid-spinner" aria-hidden="true"></div>`;
     }
     return `
-    <div class="cell${it.media_type==='video' ? '' : ' loading'}" data-id="${it.id}">
+    <div class="cell${isClip(it) ? '' : ' loading'}" data-id="${it.id}">
       <input class="selcheck" type="checkbox" data-id="${it.id}">
       ${media}
     </div>`;
@@ -886,13 +1019,13 @@ function renderGrid(){
   if(_lazyObserver){ _lazyObserver.disconnect(); _lazyObserver = null; }
   _imgQueue.length = 0;
   _imgActive = 0;
-  const lazyCells = gridEl.querySelectorAll('.cell:has(img[data-src]:not([data-eager]))');
+  const lazyCells = gridEl.querySelectorAll('.cell:has(img[data-src]:not([data-eager]), video[data-poster])');
   if(lazyCells.length){
     _lazyObserver = new IntersectionObserver(entries => {
       for(const e of entries){
         if(!e.isIntersecting) continue;
         _lazyObserver.unobserve(e.target);
-        const im = e.target.querySelector('img[data-src]');
+        const im = e.target.querySelector('img[data-src], video[data-poster]');
         if(im) _imgQueue.push(im);
       }
       pumpImgQueue();
@@ -1002,16 +1135,23 @@ function openLightbox(idx){
   lbIndex = idx;
   const it = S().currentItems[idx];
   lbInner.querySelectorAll('img,video').forEach(e=>e.remove());
-  if(it.media_type==='video'){
+  if(isClip(it)){
     const v = document.createElement('video');
     v.src=it.media_url; v.controls=false; v.autoplay=true; v.muted=true; v.loop=true; v.playsInline=true;
-    v.addEventListener('click', () => {
-      lbIsMuted = !lbIsMuted;
-      v.muted = lbIsMuted;
-      updateMuteSvg(lbIsMuted);
-    });
+    if(it.thumb_url) v.poster = it.thumb_url;
+    if(it.media_type === 'video'){
+      v.addEventListener('click', () => {
+        lbIsMuted = !lbIsMuted;
+        v.muted = lbIsMuted;
+        updateMuteSvg(lbIsMuted);
+      });
+      lbIsMuted=true; updateMuteSvg(true);
+    } else {
+      // Konvertiertes GIF: kein Ton, kein Mute-Toggle – Klick schließt die
+      // Lightbox wie bei Bildern (s. lightbox.onclick).
+      v.dataset.gif = '1';
+    }
     lbInner.appendChild(v);
-    lbIsMuted=true; updateMuteSvg(true);
   } else {
     const img = document.createElement('img');
     img.style.pointerEvents='none';
@@ -1091,7 +1231,10 @@ function lbNavigate(dir){
   openLightbox(next);
 }
 lightbox.onclick = e => {
-  if(!e.target.closest('video')) closeLb();
+  // Klicks auf echte Videos toggeln den Ton (eigener Listener); konvertierte
+  // GIFs (data-gif) schließen wie Bilder.
+  const v = e.target.closest('video');
+  if(!v || v.dataset.gif) closeLb();
 };
 function closeLb(){
   lightbox.classList.remove('show');
@@ -1199,7 +1342,9 @@ async function upload(files){
   toast(`${arr.length} Datei${arr.length>1?'en':''} wird${arr.length>1?'en':''} hochgeladen…`);
   let done = 0;
   const uploadOne = async (f) => {
-    const cf = await compress(f);
+    // GIFs zuerst nach MP4 wandeln; klappt das nicht (CDN offline o. Ä.),
+    // läuft transparent der bisherige Gifsicle-Weg (komprimiertes GIF).
+    const cf = isGif(f.name) ? ((await gifToMp4(f)) || await compress(f)) : await compress(f);
     const ext = cf.name.split('.').pop().toLowerCase();
     const path = `${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}.${ext}`;
     // cacheControl auf 1 Jahr: Die Dateinamen sind einmalig und werden nie
@@ -1210,13 +1355,14 @@ async function upload(files){
     if(e1){ toast('Upload-Fehler: '+e1.message); return null; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
     const mediaType = isVid(f.name) ? 'video' : isGif(f.name) ? 'gif' : 'image';
-    // Kleines Grid-Thumbnail erzeugen & hochladen: statische Bilder als WebP,
-    // GIFs als verkleinertes animiertes GIF (Gifsicle). Videos bleiben
-    // unangetastet (thumb_url = null → Grid nutzt media_url).
+    // Kleines Grid-Thumbnail erzeugen & hochladen: statische Bilder als WebP;
+    // konvertierte GIFs bekommen ein statisches WebP-Poster (erster GIF-Frame),
+    // der Gifsicle-Fallback wie bisher ein animiertes GIF-Thumbnail; Videos
+    // ein WebP-Poster aus dem ersten Frame (Grid/Lightbox nutzen es als poster).
     let thumbUrl = null;
     const tf = mediaType === 'image' ? await makeThumb(cf)
-             : mediaType === 'gif'   ? await makeGifThumb(cf)
-             : null;
+             : mediaType === 'gif'   ? (isVid(cf.name) ? await makeThumb(f) : await makeGifThumb(cf))
+             : await makeVideoPoster(cf);
     if(tf){
       const tpath = `thumb/${path}`;
       const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, {upsert:false, contentType:tf.type, cacheControl:'31536000'});
@@ -1286,7 +1432,8 @@ async function backfillThumbs(){
   // dass Gifsicle schon drüber lief). Nur Bucket-Dateien – extern verlinkte
   // GIFs (Quick-Add per URL) lassen sich nicht ersetzen.
   const gifTodo = S().items.filter(it =>
-    it.media_type === 'gif' && !it.thumb_url && (it.media_url || '').includes(marker));
+    it.media_type === 'gif' && !it.thumb_url && /\.gif(\?|#|$)/i.test(it.media_url || '')
+    && (it.media_url || '').includes(marker));
   const total = todo.length + gifTodo.length;
   if(total === 0){ toast('Alles schon optimiert ✓'); return; }
   if(!window.confirm(`${todo.length} Bilder → WebP + Thumbnail, ${gifTodo.length} GIFs → komprimieren + Thumbnail.\nJetzt starten? Das kann etwas dauern.`)) return;
@@ -1396,6 +1543,73 @@ async function backfillThumbs(){
 }
 $('thumbBackfillBtn')?.addEventListener('click', backfillThumbs);
 $('thumbBackfillBtnSheet')?.addEventListener('click', backfillThumbs);
+
+// ── GIF → MP4 KONVERTIERUNG (Owner) ──────────────────────
+// Wandelt bereits hochgeladene GIFs in MP4 + statisches WebP-Poster um –
+// das Pendant zum Medien-optimieren-Button fürs neue GIF-Format. media_type
+// bleibt 'gif'; alte GIF-Dateien (Volldatei + animiertes Thumbnail) werden
+// nach erfolgreichem Umstieg aufgeräumt.
+async function convertGifsToMp4(){
+  if(!owner){ toast('Nur als Owner möglich'); return; }
+  const marker = `/public/${BUCKET}/`;
+  // Nur Bucket-GIFs, deren Volldatei noch .gif ist – extern verlinkte lassen
+  // sich nicht ersetzen, bereits konvertierte (.mp4) sind fertig.
+  const todo = S().items.filter(it =>
+    it.media_type === 'gif' && /\.gif(\?|#|$)/i.test(it.media_url || '')
+    && (it.media_url || '').includes(marker));
+  if(!todo.length){ toast('Keine GIFs zu konvertieren ✓'); return; }
+  if(!window.confirm(`${todo.length} GIF${todo.length>1?'s':''} → MP4 (+ WebP-Poster) konvertieren?\nJetzt starten? Das kann etwas dauern.`)) return;
+  closeMenu();
+  let done = 0, failed = 0;
+  toast(`Konvertiere… 0/${todo.length}`);
+  for(const it of todo){
+    try{
+      const i = it.media_url.indexOf(marker);
+      const path = it.media_url.slice(i + marker.length).split('?')[0];
+      const resp = await fetch(it.media_url);
+      if(!resp.ok) throw new Error('fetch');
+      const srcFile = new File([await resp.blob()], 'src.gif', { type:'image/gif' });
+
+      const mp4 = await gifToMp4(srcFile);
+      if(!mp4) throw new Error('convert');
+      // Neuer Pfad statt Upsert auf .gif: die alte URL ist 1 Jahr immutable
+      // gecacht, Besucher bekämen sonst weiter die alte Datei.
+      const vpath = path.replace(/\.gif$/i, '') + '.mp4';
+      const {error:ve} = await sb.storage.from(BUCKET).upload(vpath, mp4, { upsert:true, contentType:'video/mp4', cacheControl:'31536000' });
+      if(ve) throw ve;
+      const vurl = sb.storage.from(BUCKET).getPublicUrl(vpath).data.publicUrl;
+
+      // Statisches WebP-Poster aus dem ersten GIF-Frame.
+      let turl = null;
+      const tf = await makeThumb(srcFile);
+      if(tf){
+        const tpath = `thumb/${vpath}`;
+        const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, { upsert:true, contentType:'image/webp', cacheControl:'31536000' });
+        if(!te) turl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
+      }
+
+      const oldThumb = it.thumb_url;
+      const {error:ue} = await sb.from(S().table).update({ media_url: vurl, thumb_url: turl }).eq('id', it.id);
+      if(ue) throw ue;
+      it.media_url = vurl; it.thumb_url = turl;
+
+      // Alte Dateien aufräumen: GIF-Volldatei + evtl. animiertes GIF-Thumbnail.
+      const oldPaths = [path];
+      if(oldThumb && oldThumb.includes(marker)){
+        const op = oldThumb.slice(oldThumb.indexOf(marker) + marker.length).split('?')[0];
+        if(op !== path && op !== vpath && op !== `thumb/${vpath}`) oldPaths.push(op);
+      }
+      try{ await sb.storage.from(BUCKET).remove(oldPaths); }catch(e){}
+    }catch(e){ failed++; }
+    done++;
+    prog(Math.round(done / todo.length * 100));
+    if(done % 3 === 0 || done === todo.length) toast(`Konvertiere… ${done}/${todo.length}`);
+  }
+  renderGrid();
+  toast(`Fertig ✓ (${todo.length - failed} GIF${todo.length - failed !== 1 ? 's' : ''} → MP4${failed ? `, ${failed} Fehler` : ''})`);
+}
+$('gifConvertBtn')?.addEventListener('click', convertGifsToMp4);
+$('gifConvertBtnSheet')?.addEventListener('click', convertGifsToMp4);
 
 function openEditor(id){
   editId=id; const it=S().items.find(x=>x.id===id); if(!it) return;
@@ -1605,8 +1819,8 @@ function renderMoodsView(){
     const it = pickMainItem(m);
     const count = S().items.filter(x => Array.isArray(x.moods) && x.moods.includes(m)).length;
     const media = it
-      ? (it.media_type === 'video'
-          ? `<video src="${it.media_url}" muted loop playsinline ${autoplayMedia ? 'autoplay ' : ''}preload="metadata"></video>`
+      ? (isClip(it)
+          ? `<video src="${it.media_url}"${it.thumb_url ? ` poster="${it.thumb_url}"` : ''} muted loop playsinline ${autoplayMedia ? 'autoplay ' : ''}preload="metadata"></video>`
           : `<img src="${it.media_url}" loading="lazy" decoding="async" alt="">`)
       : `<div class="mt-empty">Kein Bild</div>`;
     return `
