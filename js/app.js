@@ -39,6 +39,31 @@ const BOOT_EAGER_COUNT = 40;
 // einmal": die ersten Kacheln werden schnell fertig, statt dass sich alle
 // Downloads die Bandbreite teilen.
 const BOOT_CONCURRENCY = 8;
+
+// ── Nachladen im Instagram-Stil ───────────────────────────
+// Alle Nicht-Boot-Bilder laufen durch EINE Batch-Warteschlange (max.
+// LAZY_CONCURRENCY parallel). Gefüllt wird sie vom Prefetch-Observer in
+// renderGrid: Kacheln melden sich 2–3 Viewports BEVOR sie sichtbar werden,
+// sodass ein Bild beim Hinscrollen in der Regel schon fertig geladen ist.
+const LAZY_CONCURRENCY = 8;
+let _lazyObserver = null;
+let _imgQueue = [];
+let _imgActive = 0;
+function pumpImgQueue(){
+  // Während des Boots pausieren, damit der Prefetch dem Loading Screen
+  // nicht die Bandbreite stiehlt – revealWhenReady() pumpt danach an.
+  if(_bootPending) return;
+  while(_imgActive < LAZY_CONCURRENCY && _imgQueue.length){
+    const im = _imgQueue.shift();
+    if(!im.isConnected || !im.dataset.src) continue;
+    _imgActive++;
+    const done = () => { _imgActive = Math.max(0, _imgActive - 1); pumpImgQueue(); };
+    im.addEventListener('load', done, { once:true });
+    im.addEventListener('error', done, { once:true });
+    im.src = im.dataset.src;
+    im.removeAttribute('data-src');
+  }
+}
 let sleepTimeout = null;
 let slideshowActive = false;
 
@@ -705,9 +730,13 @@ function renderGrid(){
   const eagerCount = Math.min(arr.length, _bootPending ? BOOT_EAGER_COUNT : Math.max(gridCols * 3, 6));
   gridEl.innerHTML = arr.map((it, idx) => {
     const eager = idx < eagerCount;
+    // Nicht-eager Bilder bekommen KEIN natives loading="lazy" mehr – ihr
+    // Laden steuert die Prefetch-Warteschlange (s. u.), und loading="lazy"
+    // würde den vorausschauenden Abruf wieder bis kurz vor den Viewport
+    // verzögern.
     const loadAttr = eager
       ? 'loading="eager" fetchpriority="high" data-eager="1"'
-      : 'loading="lazy" fetchpriority="low"';
+      : '';
     let media;
     if(it.media_type==='video'){
       media = `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`;
@@ -724,10 +753,11 @@ function renderGrid(){
       // der Autoplay-Killswitch sie einfrieren kann.
       const isGifItem = it.media_type==='gif' || /\.gif(\?|#|$)/i.test(it.media_url||'');
       const gifAttr = isGifItem ? ' data-gif="1"' : '';
-      // Während des Boots bekommen die Eager-Bilder ihre URL nur als data-src:
-      // revealWhenReady() lädt sie dann kontrolliert in Batches (GIFs zuerst),
-      // statt dass der Browser alle ~40 gleichzeitig anfordert.
-      const srcAttr = (eager && _bootPending) ? `data-src="${src}"` : `src="${src}"`;
+      // Nur Eager-Bilder außerhalb des Boots laden sofort per src. Alle
+      // anderen bekommen ihre URL als data-src: die Boot-Bilder lädt
+      // revealWhenReady() kontrolliert in Batches (GIFs zuerst), die
+      // restlichen holt die Prefetch-Warteschlange beim Scrollen vorab.
+      const srcAttr = (eager && !_bootPending) ? `src="${src}"` : `data-src="${src}"`;
       media = `<img ${srcAttr} ${loadAttr}${gifAttr} decoding="async" alt=""${full}><div class="grid-spinner" aria-hidden="true"></div>`;
     }
     return `
@@ -777,6 +807,28 @@ function renderGrid(){
       else { v.pause(); v.currentTime=0; }
     }), { threshold:0.25, rootMargin:'100px' });
     videoCells.forEach(c => _observer.observe(c));
+  }
+
+  // Prefetch-Observer im Instagram-Stil: dank fester aspect-ratio der Zellen
+  // steht das Layout sofort, daher meldet der große rootMargin Kacheln
+  // zuverlässig ~3 Viewports vor Sichtbarkeit. Deren Bilder wandern in die
+  // Batch-Warteschlange (max. LAZY_CONCURRENCY parallel, in Scroll-Richtung
+  // sortiert, da die Einträge in DOM-Reihenfolge kommen).
+  if(_lazyObserver){ _lazyObserver.disconnect(); _lazyObserver = null; }
+  _imgQueue.length = 0;
+  _imgActive = 0;
+  const lazyCells = gridEl.querySelectorAll('.cell:has(img[data-src]:not([data-eager]))');
+  if(lazyCells.length){
+    _lazyObserver = new IntersectionObserver(entries => {
+      for(const e of entries){
+        if(!e.isIntersecting) continue;
+        _lazyObserver.unobserve(e.target);
+        const im = e.target.querySelector('img[data-src]');
+        if(im) _imgQueue.push(im);
+      }
+      pumpImgQueue();
+    }, { rootMargin:'150% 0px 300% 0px' });
+    lazyCells.forEach(c => _lazyObserver.observe(c));
   }
 
   // Bei deaktiviertem Autoplay direkt nach dem Rendern anwenden (GIFs einfrieren).
@@ -1241,8 +1293,9 @@ $('saveTagsBtn').onclick = () => {
 // Boot-Bilder, die noch auf ihre URL warten (data-src), sofort normal
 // anstoßen – Fallback, falls der Loading Screen schon weg ist, das Timeout
 // zuschlägt oder ein Re-Render während des Boots neue Kacheln erzeugt hat.
+// (Nur die Eager-Bilder: die restlichen gehören der Prefetch-Warteschlange.)
 function flushBootSrcs(){
-  gridEl.querySelectorAll('img[data-src]').forEach(im => {
+  gridEl.querySelectorAll('img[data-src][data-eager="1"]').forEach(im => {
     im.src = im.dataset.src;
     im.removeAttribute('data-src');
   });
@@ -1258,8 +1311,8 @@ function flushBootSrcs(){
 // hängen bleibt (langsames Netz/Fehler).
 function revealWhenReady(){
   const boot = $('bootMsg');
-  if(!boot){ _bootPending = false; flushBootSrcs(); return; }
-  const queue = [...gridEl.querySelectorAll('img[data-src]')];
+  if(!boot){ _bootPending = false; flushBootSrcs(); pumpImgQueue(); return; }
+  const queue = [...gridEl.querySelectorAll('img[data-src][data-eager="1"]')];
   // GIFs an den Anfang der Warteschlange: sie brauchen am längsten und
   // sollen beim Ausblenden sicher fertig sein.
   queue.sort((a, b) => (b.dataset.gif ? 1 : 0) - (a.dataset.gif ? 1 : 0));
@@ -1274,6 +1327,9 @@ function revealWhenReady(){
     if(done) return; done = true;
     _bootPending = false;
     flushBootSrcs();
+    // Jetzt darf der Prefetch loslegen: der Observer hat die Kacheln der
+    // nächsten Viewports während des Boots bereits eingesammelt.
+    pumpImgQueue();
     setProgress(1);
     // Die 100 % kurz stehen lassen, dann pixelig ausblenden und entfernen.
     setTimeout(() => {
