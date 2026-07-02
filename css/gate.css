@@ -42,11 +42,13 @@ html.gate-open .loading-screen{display:none}
 .gate-form{display:flex;flex-direction:column;gap:12px;width:100%;margin-top:6px}
 .gate-input{
   width:100%;padding:13px 14px;
-  font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:.04em;
+  font-family:'Press Start 2P',monospace;letter-spacing:.04em;
   color:#fff;background:#000;
   border:3px solid #fff;border-radius:0;outline:none;
   box-shadow:4px 4px 0 rgba(255,255,255,.15);
   -webkit-appearance:none;appearance:none;
+  /* Mind. 16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus. */
+  font-size:16px;
 }
 .gate-input::placeholder{color:rgba(255,255,255,.35)}
 .gate-input:focus{background:#111}
