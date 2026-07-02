@@ -540,11 +540,12 @@ function isVid(n){ return /\.(mp4|webm|mov|m4v)$/i.test(n||''); }
 function isGif(n){ return /\.gif$/i.test(n||''); }
 function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600); }
 function compress(file, maxPx=MAX_PX, q=0.88){
+  // GIFs gehen durch den Gifsicle-Pfad (WASM), der die Animation erhält –
+  // ein Canvas würde nur den ersten Frame erfassen.
+  if(isGif(file.name)) return compressGif(file);
   return new Promise(res=>{
-    // Videos und (animierte) GIFs nicht anfassen: Ein Canvas würde bei GIFs nur
-    // den ersten Frame erfassen und die Animation zerstören – animiertes WebP
-    // lässt sich clientseitig nicht erzeugen.
-    if(isVid(file.name) || isGif(file.name)){ res(file); return; }
+    // Videos nicht anfassen.
+    if(isVid(file.name)){ res(file); return; }
     const img=new Image(), url=URL.createObjectURL(file);
     img.onload=()=>{
       URL.revokeObjectURL(url);
@@ -580,6 +581,60 @@ function makeThumb(file, maxPx=THUMB_PX, q=0.7){
     img.onerror=()=>{ URL.revokeObjectURL(url); res(null); };
     img.src=url;
   });
+}
+// ── GIF-KOMPRESSION (Gifsicle als WebAssembly) ───────────
+// Animierte GIFs lassen sich nicht über Canvas verkleinern, ohne die Animation
+// zu zerstören. Stattdessen läuft das echte Gifsicle als WASM im Browser:
+// Frames re-optimieren (-O3), leicht verlustbehaftet komprimieren (--lossy)
+// und auf eine sinnvolle Kantenlänge verkleinern – die Animation bleibt
+// vollständig erhalten. Die Bibliothek (~150 KB gzipped) wird erst beim ersten
+// GIF nachgeladen, normale Besuche kostet sie nichts.
+const GIF_MAX_PX   = 720;  // Kantenlänge der Volldatei (Lightbox)
+const GIF_THUMB_PX = 480;  // Kantenlänge des animierten Grid-Thumbnails
+const GIF_LOSSY    = 80;   // kaum sichtbar, spart typisch 30–60 % Dateigröße
+
+let _gifsicle = null;
+function loadGifsicle(){
+  if(!_gifsicle){
+    _gifsicle = import('https://cdn.jsdelivr.net/npm/gifsicle-wasm-browser@1.5.19/dist/gifsicle.min.js')
+      .then(m => m.default);
+    // Bei Netzwerkfehler beim nächsten GIF erneut versuchen statt dauerhaft kaputt.
+    _gifsicle.catch(() => { _gifsicle = null; });
+  }
+  return _gifsicle;
+}
+// Gifsicle über eine Datei laufen lassen; gibt das Ergebnis-File oder null zurück.
+// --resize-fit verkleinert nur (vergrößert nie) und erhält das Seitenverhältnis.
+// --colors 256 verhindert, dass beim Resampling >256 Farben pro Frame entstehen
+// (lokale Colormaps würden die Datei sonst wieder aufblähen).
+async function runGifsicle(file, maxPx, lossy){
+  const gifsicle = await loadGifsicle();
+  const out = await gifsicle.run({
+    input: [{ file, name: 'in.gif' }],
+    command: [`-O3 --lossy=${lossy} --colors 256 --resize-fit ${maxPx}x${maxPx} in.gif -o /out/out.gif`],
+  });
+  const f = out && out[0];
+  return (f && f.size > 0) ? f : null;
+}
+// Volldatei: Ergebnis nur übernehmen, wenn es wirklich spürbar spart – sonst
+// bleibt das Original (Qualität geht nie grundlos verloren). Fehler (z. B.
+// CDN nicht erreichbar) fallen transparent aufs Original zurück.
+async function compressGif(file){
+  try{
+    const f = await runGifsicle(file, GIF_MAX_PX, GIF_LOSSY);
+    if(f && f.size < file.size * 0.95) return new File([f], file.name, { type: 'image/gif' });
+  }catch(e){}
+  return file;
+}
+// Animiertes Grid-Thumbnail: kleinere Kante + etwas stärkeres Lossy. Nur
+// sinnvoll, wenn deutlich kleiner als die Volldatei – sonst null (das Grid
+// nutzt dann wie bisher die Volldatei).
+async function makeGifThumb(file, maxPx=GIF_THUMB_PX){
+  try{
+    const f = await runGifsicle(file, maxPx, GIF_LOSSY + 40);
+    if(f && f.size < file.size * 0.75) return new File([f], 'thumb.gif', { type: 'image/gif' });
+  }catch(e){}
+  return null;
 }
 let _lockedScrollY = 0;
 function updateBodyLock(){
@@ -741,10 +796,11 @@ function renderGrid(){
     if(it.media_type==='video'){
       media = `<video src="${it.media_url}" muted loop playsinline preload="metadata"></video>`;
     } else {
-      // Statische Bilder nutzen das kleine Thumbnail (falls vorhanden); GIFs
-      // immer die Originaldatei, damit sie animiert bleiben (autoplay). Fällt
+      // Statische Bilder nutzen das kleine WebP-Thumbnail, GIFs ihr
+      // verkleinertes animiertes GIF-Thumbnail (falls vorhanden) – die
+      // Animation bleibt so erhalten, lädt aber deutlich schneller. Fällt
       // ein Thumbnail aus, wird transparent auf die Volldatei zurückgeschaltet.
-      const useThumb = it.media_type==='image' && it.thumb_url;
+      const useThumb = (it.media_type==='image' || it.media_type==='gif') && it.thumb_url;
       const src = useThumb ? it.thumb_url : it.media_url;
       // Bei Thumbnail-Fehler wird per delegiertem 'error'-Listener (s. u.) auf
       // die Volldatei zurückgeschaltet – dafür hier die Voll-URL hinterlegen.
@@ -1136,16 +1192,17 @@ async function upload(files){
     if(e1){ toast('Upload-Fehler: '+e1.message); return null; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
     const mediaType = isVid(f.name) ? 'video' : isGif(f.name) ? 'gif' : 'image';
-    // Nur für statische Bilder ein kleines Thumbnail erzeugen & hochladen.
-    // GIFs/Videos bleiben unangetastet (thumb_url = null → Grid nutzt media_url).
+    // Kleines Grid-Thumbnail erzeugen & hochladen: statische Bilder als WebP,
+    // GIFs als verkleinertes animiertes GIF (Gifsicle). Videos bleiben
+    // unangetastet (thumb_url = null → Grid nutzt media_url).
     let thumbUrl = null;
-    if(mediaType === 'image'){
-      const tf = await makeThumb(cf);
-      if(tf){
-        const tpath = `thumb/${path}`;
-        const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, {upsert:false, contentType:'image/webp', cacheControl:'31536000'});
-        if(!te) thumbUrl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
-      }
+    const tf = mediaType === 'image' ? await makeThumb(cf)
+             : mediaType === 'gif'   ? await makeGifThumb(cf)
+             : null;
+    if(tf){
+      const tpath = `thumb/${path}`;
+      const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, {upsert:false, contentType:tf.type, cacheControl:'31536000'});
+      if(!te) thumbUrl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
     }
     const suggestedMoods = mediaType === 'image' ? await autoSuggestMoods(pub.publicUrl) : [];
     const item = { title:f.name.replace(/\.[^.]+$/,''), moods:suggestedMoods, tags:[], media_url:pub.publicUrl, media_type:mediaType, thumb_url:thumbUrl};
@@ -1195,22 +1252,29 @@ function startDeleteMode(){
 $('pickDeleteBtn').onclick = startDeleteMode;
 $('pickDeleteBtnSheet').onclick = startDeleteMode;
 
-// ── THUMBNAIL-/WEBP-BACKFILL (Owner) ─────────────────────
+// ── THUMBNAIL-/WEBP-/GIF-BACKFILL (Owner) ────────────────
 // Für bestehende statische Bilder: (1) Volldatei nach WebP konvertieren, falls
 // sie noch kein WebP ist (verkleinert auf MAX_PX), media_url umstellen und die
-// alte Datei aufräumen; (2) ein kleines Grid-Thumbnail erzeugen. GIFs/Videos
-// werden übersprungen, damit sie animiert bleiben.
+// alte Datei aufräumen; (2) ein kleines Grid-Thumbnail erzeugen. Videos werden
+// übersprungen. GIFs werden per Gifsicle (WASM) verlustarm re-komprimiert und
+// bekommen ein verkleinertes animiertes Grid-Thumbnail – die Animation bleibt.
 async function backfillThumbs(){
   if(!owner){ toast('Nur als Owner möglich'); return; }
-  // Alles erfassen, dem entweder das Thumbnail ODER das WebP-Format fehlt.
+  const marker = `/public/${BUCKET}/`;
+  // Bilder erfassen, denen entweder das Thumbnail ODER das WebP-Format fehlt.
   const todo = S().items.filter(it =>
     it.media_type === 'image' && (!it.thumb_url || !/\.webp(\?|$)/i.test(it.media_url || '')));
-  if(todo.length === 0){ toast('Alle Bilder sind schon WebP + Thumbnail ✓'); return; }
-  if(!window.confirm(`${todo.length} Bilder werden zu WebP konvertiert und mit Thumbnail versehen.\nJetzt starten? Das kann etwas dauern.`)) return;
+  // GIFs ohne thumb_url gelten als unoptimiert (thumb_url dient als Marker,
+  // dass Gifsicle schon drüber lief). Nur Bucket-Dateien – extern verlinkte
+  // GIFs (Quick-Add per URL) lassen sich nicht ersetzen.
+  const gifTodo = S().items.filter(it =>
+    it.media_type === 'gif' && !it.thumb_url && (it.media_url || '').includes(marker));
+  const total = todo.length + gifTodo.length;
+  if(total === 0){ toast('Alles schon optimiert ✓'); return; }
+  if(!window.confirm(`${todo.length} Bilder → WebP + Thumbnail, ${gifTodo.length} GIFs → komprimieren + Thumbnail.\nJetzt starten? Das kann etwas dauern.`)) return;
   closeMenu();
-  const marker = `/public/${BUCKET}/`;
-  let done = 0, failed = 0, converted = 0;
-  toast(`Verarbeite… 0/${todo.length}`);
+  let done = 0, failed = 0, converted = 0, gifShrunk = 0;
+  toast(`Verarbeite… 0/${total}`);
   for(const it of todo){
     try{
       const i = it.media_url.indexOf(marker);
@@ -1256,11 +1320,61 @@ async function backfillThumbs(){
       }
     }catch(e){ failed++; }
     done++;
-    prog(Math.round(done / todo.length * 100));
-    if(done % 5 === 0 || done === todo.length) toast(`Verarbeite… ${done}/${todo.length}`);
+    prog(Math.round(done / total * 100));
+    if(done % 5 === 0 || done === total) toast(`Verarbeite… ${done}/${total}`);
+  }
+  for(const it of gifTodo){
+    try{
+      const i = it.media_url.indexOf(marker);
+      const path = it.media_url.slice(i + marker.length).split('?')[0];
+      const resp = await fetch(it.media_url);
+      if(!resp.ok) throw new Error('fetch');
+      const blob = await resp.blob();
+      const srcFile = new File([blob], 'src.gif', { type: 'image/gif' });
+
+      // (1) Volldatei re-komprimieren; nur ersetzen, wenn es wirklich spart.
+      // Neuer Pfad nötig: die alte Datei ist 1 Jahr immutable gecacht, ein
+      // Upsert auf denselben Pfad würde Besuchern weiter die alte liefern.
+      const opt = await compressGif(srcFile);
+      let finalFile = srcFile, finalPath = path, newMediaUrl = null;
+      if(opt !== srcFile){
+        const wpath = path.replace(/\.gif$/i, '') + '-o.gif';
+        const {error:fe} = await sb.storage.from(BUCKET).upload(wpath, opt, { upsert:true, contentType:'image/gif', cacheControl:'31536000' });
+        if(fe) throw fe;
+        finalFile = opt; finalPath = wpath;
+        newMediaUrl = sb.storage.from(BUCKET).getPublicUrl(wpath).data.publicUrl;
+      }
+
+      // (2) Animiertes Grid-Thumbnail – Pfad parallel zur finalen Volldatei.
+      let turl = null;
+      const tf = await makeGifThumb(finalFile);
+      if(tf){
+        const tpath = `thumb/${finalPath}`;
+        const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, { upsert:true, contentType:'image/gif', cacheControl:'31536000' });
+        if(te) throw te;
+        turl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
+      }
+
+      // thumb_url immer setzen (notfalls auf die Volldatei), damit das GIF als
+      // verarbeitet markiert ist und der Backfill es nicht erneut anfasst.
+      const patch = { thumb_url: turl || newMediaUrl || it.media_url };
+      if(newMediaUrl) patch.media_url = newMediaUrl;
+      const {error:ue} = await sb.from(S().table).update(patch).eq('id', it.id);
+      if(ue) throw ue;
+      it.thumb_url = patch.thumb_url;
+      if(newMediaUrl){ it.media_url = newMediaUrl; gifShrunk++; }
+
+      // Alte, größere Originaldatei aufräumen (Pfad hat sich geändert).
+      if(newMediaUrl && finalPath !== path){
+        try{ await sb.storage.from(BUCKET).remove([path]); }catch(e){}
+      }
+    }catch(e){ failed++; }
+    done++;
+    prog(Math.round(done / total * 100));
+    if(done % 5 === 0 || done === total) toast(`Verarbeite… ${done}/${total}`);
   }
   renderGrid();
-  toast(`Fertig ✓ (${todo.length - failed} ok, ${converted}× WebP${failed ? `, ${failed} Fehler` : ''})`);
+  toast(`Fertig ✓ (${total - failed} ok, ${converted}× WebP, ${gifShrunk}× GIF verkleinert${failed ? `, ${failed} Fehler` : ''})`);
 }
 $('thumbBackfillBtn')?.addEventListener('click', backfillThumbs);
 $('thumbBackfillBtnSheet')?.addEventListener('click', backfillThumbs);
