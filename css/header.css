@@ -1,7 +1,10 @@
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:calc(70px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top) 20px 0;gap:16px;background:var(--bg)}
 .topbar-left{display:flex;align-items:center;gap:24px;min-width:0}
-/* Centred in the header band (below the safe-area). */
-.board-title{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 35px);transform:translate(-50%,-50%);z-index:2;background:transparent;border:0;color:#fff;font-size:20px;font-weight:700;letter-spacing:.04em;cursor:pointer;opacity:.95;user-select:none;padding:4px 0;white-space:nowrap}
+/* Centred in the header band (below the safe-area). Same pixel look as the
+   loading-screen title (css/loading.css), just single-line and smaller;
+   reuses its ls-flicker keyframes. */
+.board-title{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 35px);transform:translate(-50%,-50%);z-index:2;background:transparent;border:0;color:#fff;font-family:'Press Start 2P',monospace;font-size:clamp(10px,3.4vw,13px);font-weight:400;letter-spacing:.06em;line-height:1;text-transform:uppercase;text-shadow:2px 2px 0 rgba(255,255,255,.18);animation:ls-flicker 3.2s steps(1) infinite;cursor:pointer;opacity:.95;user-select:none;padding:4px 0;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.board-title{animation:none}}
 
 /* Original Info/Login/Menü buttons live on (hidden) so their wiring stays;
    the hub menu routes to them. */
