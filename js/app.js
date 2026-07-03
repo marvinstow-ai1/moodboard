@@ -1013,7 +1013,9 @@ $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
 sheetOverlay.onclick = closeMenu;
 document.addEventListener('click', e => { if(!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show'); });
 
-// Klick auf den Titel macht exakt dasselbe wie der Shuffle-Button.
+// Klick auf den Titel = komplettes Neu-Mischen (hebt Chat-Suche auf und
+// kehrt zur Archiv-Ansicht zurück) – der Pill-Button mischt dagegen nur
+// innerhalb der aktuellen Ansicht (doShuffleInView).
 $('boardTitle').onclick = () => { $('boardTitle').blur(); doShuffle(); };
 
 function renderMoodChips(){
@@ -1071,8 +1073,9 @@ function renderGrid(){
   s.items = s.items.filter(i => { if(seen.has(i.id)) return false; seen.add(i.id); return true; });
   let arr;
   if(chatResultIds){
-    // Mood-Chat aktiv: nur die Treffer in Ranking-Reihenfolge zeigen
-    // (Mood-Filter und Shuffle werden hier bewusst übersprungen).
+    // Mood-Chat aktiv: nur die Treffer in der Reihenfolge der IDs zeigen –
+    // anfangs das Ranking, nach dem Pill-Shuffle die permutierte Reihenfolge
+    // (Mood-Filter und sortNewest werden hier bewusst übersprungen).
     const byId = new Map(s.items.map(i => [i.id, i]));
     arr = chatResultIds.map(id => byId.get(id)).filter(Boolean);
   } else {
@@ -1586,13 +1589,13 @@ function playShuffleOverlay(applyFn){
   }, 1000);
 }
 
-function doShuffle() {
+// Gemeinsamer Ablauf beider Shuffle-Varianten (Header & Pill): identisches
+// Schema mit Misch-Overlay bzw. Toast bei reduzierter Bewegung. `mutateFn`
+// stellt nur den jeweiligen Ziel-Zustand her, gerendert wird hier.
+function runShuffle(mutateFn) {
   if(_shuffleBusy) return;
   const apply = () => {
-    sortNewest = false;
-    chatResultIds = null;   // Shuffle hebt eine aktive Mood-Chat-Suche auf
-    // Shuffle ist die Archiv-Ansicht: aus "Zuletzt hinzugefügt" zurückwechseln
-    if(currentView === 'recent') currentView = 'archive';
+    mutateFn();
     // VOR dem Rendern sofort nach oben springen statt hinterher smooth zu
     // scrollen: Rendert man erst in alter Scroll-Tiefe, meldet der
     // Prefetch-Observer zunächst die Kacheln dort unten – und während der
@@ -1610,7 +1613,39 @@ function doShuffle() {
   _shuffleBusy = true;
   playShuffleOverlay(apply);
 }
-$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); doShuffle(); };
+
+// Komplettes Neu-Mischen (Header: Titel-Klick & Menü "Zufällig anordnen"):
+// hebt eine aktive Mood-Chat-Suche auf und kehrt zur Archiv-Ansicht zurück.
+function doShuffle() {
+  runShuffle(() => {
+    sortNewest = false;
+    chatResultIds = null;   // Header-Shuffle hebt eine aktive Mood-Chat-Suche auf
+    // Shuffle ist die Archiv-Ansicht: aus "Zuletzt hinzugefügt" zurückwechseln
+    if(currentView === 'recent') currentView = 'archive';
+  });
+}
+
+// Shuffle in der Bottombar-Pill: mischt IN der aktuellen Ansicht. Eine aktive
+// Mood-Chat-/Kategorie-Suche bleibt bestehen – nur deren Treffer werden neu
+// angeordnet (die IDs selbst permutieren, renderGrid zeigt sie 1:1 in dieser
+// Reihenfolge). Ohne Chat-Suche wie das komplette Mischen, inkl. aktivem
+// Mood-Filter (renderGrid mischt innerhalb des Filters).
+function doShuffleInView() {
+  runShuffle(() => {
+    if(chatResultIds){
+      const ids = [...chatResultIds];
+      for(let i = ids.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+      }
+      chatResultIds = ids;
+    } else {
+      sortNewest = false;
+      if(currentView === 'recent') currentView = 'archive';
+    }
+  });
+}
+$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); doShuffleInView(); };
 $('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
 $('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
 fileInput.onchange = e => upload(e.target.files);

@@ -29,7 +29,7 @@ const steps = [
   },
   {
     element: '#shuffleBtn',
-    popover: { title: 'Neu mischen', description: 'Würfelt die Bilder neu durch – jedes Mal ’ne andere Anordnung.' },
+    popover: { title: 'Neu mischen', description: 'Würfelt die Bilder in deiner aktuellen Ansicht neu durch – jedes Mal ’ne andere Anordnung.' },
   },
   {
     element: '#filterBtn',
