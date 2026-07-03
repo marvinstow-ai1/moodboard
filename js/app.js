@@ -972,7 +972,8 @@ function updateBodyLock(){
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
     || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'))
-    || !!document.getElementById('infoPage')?.classList.contains('show');
+    || !!document.getElementById('infoPage')?.classList.contains('show')
+    || !!document.getElementById('gbPage')?.classList.contains('show');
   const isLocked = document.documentElement.classList.contains('no-scroll');
   if(lock && !isLocked){
     _lockedScrollY = window.scrollY || window.pageYOffset || 0;
@@ -1995,7 +1996,8 @@ function isUiBusy(){
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
     || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'))
-    || !!document.getElementById('infoPage')?.classList.contains('show');
+    || !!document.getElementById('infoPage')?.classList.contains('show')
+    || !!document.getElementById('gbPage')?.classList.contains('show');
 }
 async function refetchItems(){
   if(isUiBusy()){ scheduleSync(1500); return; }
@@ -2403,6 +2405,9 @@ window.MB = Object.assign(window.MB || {}, {
   showChatResults,
   clearChatResults,
   showRecentView,
+  // Fürs Gästebuch (js/guestbook.js): Toasts und Scroll-Lock der Haupt-App.
+  toast,
+  updateBodyLock,
   // Lightbox der Haupt-App wiederverwenden (Swipe/Ambient inklusive).
   openItems(items, idx){
     state.moodboard.currentItems = items;

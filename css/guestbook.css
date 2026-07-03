@@ -1,0 +1,207 @@
+/* ── Gästebuch ────────────────────────────────────────────────────────────
+   Vollflächige Seite im Stil der Info-Page (css/info.css – Ambient, Top-
+   Leiste und Hero-Badge werden von dort wiederverwendet). Dazu: Einträge-
+   Liste, "Eintragen"-Modal und das Malfeld für die Unterschrift.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Seite – gleiche Show/Hide-Mechanik wie .info-page. */
+.gb-page{
+  position:fixed;inset:0;z-index:70;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateY(12px);
+  transition:opacity .2s ease,
+             transform .2s ease,
+             visibility 0s linear .2s;
+  overflow:hidden;
+}
+.gb-page.show{
+  opacity:1;visibility:visible;pointer-events:auto;
+  transform:none;
+  transition:opacity .26s cubic-bezier(.22,1,.36,1),
+             transform .28s cubic-bezier(.22,1,.36,1),
+             visibility 0s;
+}
+.gb-page.is-animating{will-change:opacity,transform}
+.gb-page.show .info-ambient{opacity:1;animation:infoAmbientDrift 26s ease-in-out infinite}
+
+/* Scroll-Bereich. */
+.gb-scroll{
+  position:relative;z-index:1;flex:1;min-height:0;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:8px 20px calc(120px + env(safe-area-inset-bottom));
+}
+.gb-inner{width:min(640px,100%);margin:0 auto}
+
+.gb-hero{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  gap:14px;padding:18px 8px 30px;
+  opacity:0;transform:translateY(16px);
+}
+.gb-page.show .gb-hero{animation:infoRise .36s cubic-bezier(.22,1,.36,1) .04s forwards}
+.gb-hero-sub{font-size:14px;line-height:1.5;max-width:42ch;opacity:.5;font-weight:500}
+
+/* Einträge-Liste. */
+.gb-list{display:flex;flex-direction:column;gap:14px}
+.gb-status{text-align:center;font-size:13px;opacity:.45;padding:26px 0;letter-spacing:.03em}
+
+.gb-entry{
+  display:flex;align-items:center;gap:16px;
+  border:1px solid var(--border);border-radius:20px;
+  background:rgba(20,20,22,.55);
+  padding:16px 18px;
+  box-shadow:0 10px 36px rgba(0,0,0,.32);
+  opacity:0;transform:translateY(14px);
+  animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
+}
+/* Leichtes Staffeln der ersten Einträge beim Öffnen. */
+.gb-entry:nth-child(1){animation-delay:.05s}
+.gb-entry:nth-child(2){animation-delay:.09s}
+.gb-entry:nth-child(3){animation-delay:.13s}
+.gb-entry:nth-child(4){animation-delay:.17s}
+.gb-entry:nth-child(5){animation-delay:.21s}
+
+.gb-entry-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.gb-entry-name{font-size:15px;font-weight:700;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gb-entry-insta{
+  font-size:13px;font-weight:500;color:#fff;opacity:.5;text-decoration:none;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
+.gb-entry-date{font-size:11px;opacity:.3;letter-spacing:.03em}
+.gb-entry-sig{
+  flex-shrink:0;width:150px;height:66px;border-radius:12px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  display:grid;place-items:center;overflow:hidden;
+}
+.gb-entry-sig img{max-width:92%;max-height:88%;object-fit:contain;display:block}
+
+/* Löschen (nur Owner, via .admin-only ein-/ausgeblendet). */
+.gb-entry-del{
+  flex-shrink:0;width:32px;height:32px;border-radius:999px;border:0;
+  background:transparent;color:#fff;opacity:.35;cursor:pointer;
+  display:grid;place-items:center;transition:.15s;
+}
+.gb-entry-del:hover{opacity:.9;background:rgba(255,255,255,.08)}
+
+/* Schwebender "Eintragen"-Button über der Liste. */
+.gb-add{
+  position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);z-index:3;
+  display:flex;align-items:center;gap:8px;
+  border:1px solid rgba(255,255,255,.16);border-radius:999px;
+  background:rgba(255,255,255,.12);color:#fff;
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  padding:13px 22px;font-size:14px;font-weight:700;letter-spacing:.02em;
+  cursor:pointer;box-shadow:0 8px 32px rgba(0,0,0,.5);
+  transition:background-color .15s,transform .15s;
+}
+.gb-add:hover{background:rgba(255,255,255,.18)}
+.gb-add:active{transform:translateX(-50%) scale(.95)}
+
+/* ── Eintrags-Modal (Optik wie .mood-create-modal) ─────────── */
+.gb-modal,.gb-draw{
+  position:fixed;inset:0;z-index:80;
+  display:grid;place-items:center;padding:20px;
+  background:rgba(0,0,0,.6);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .2s ease,visibility 0s linear .2s;
+}
+.gb-modal.show,.gb-draw.show{
+  opacity:1;visibility:visible;pointer-events:auto;
+  transition:opacity .22s ease,visibility 0s;
+}
+.gb-draw{z-index:85}
+
+.gbm-content,.gbd-content{
+  width:min(420px,100%);
+  border:1px solid var(--border);border-radius:22px;
+  background:rgba(22,22,24,.92);
+  padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;gap:12px;
+  transform:translateY(10px) scale(.97);transition:transform .2s ease;
+}
+.gb-modal.show .gbm-content,.gb-draw.show .gbd-content{transform:none}
+.gbd-content{width:min(520px,100%)}
+
+.gbm-title{font-size:16px;font-weight:700;letter-spacing:.02em;margin-bottom:2px}
+
+.gbm-input{
+  width:100%;height:46px;border-radius:12px;
+  border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;
+  padding:0 14px;font-size:16px;font-weight:500;outline:none;transition:border-color .15s;
+}
+.gbm-input::placeholder{color:rgba(255,255,255,.35)}
+.gbm-input:focus{border-color:rgba(255,255,255,.32)}
+
+.gbm-insta-row{position:relative}
+.gbm-insta-row .gbm-at{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  font-size:15px;font-weight:600;opacity:.45;pointer-events:none;
+}
+.gbm-insta-row .gbm-input{padding-left:32px}
+
+/* Unterschrift-Feld: öffnet das Malfeld, zeigt danach die Vorschau. */
+.gbm-sig-box{
+  position:relative;width:100%;height:110px;border-radius:14px;
+  border:1px dashed rgba(255,255,255,.25);background:rgba(255,255,255,.04);
+  color:#fff;cursor:pointer;display:grid;place-items:center;overflow:hidden;
+  transition:border-color .15s,background-color .15s;
+}
+.gbm-sig-box:hover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.07)}
+.gbm-sig-box.has-sig{border-style:solid;border-color:rgba(255,255,255,.18)}
+.gbm-sig-hint{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;opacity:.55}
+.gbm-sig-preview{max-width:88%;max-height:82%;object-fit:contain;display:block}
+
+.gbm-error{font-size:12.5px;color:#ff7b7b;min-height:16px;opacity:0;transition:opacity .15s}
+.gbm-error.show{opacity:1}
+
+.gbm-actions{display:flex;gap:10px;margin-top:2px}
+.gbm-btn{
+  flex:1;height:46px;border-radius:12px;border:1px solid var(--border);
+  font-size:14px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:.15s;
+}
+.gbm-btn.cancel{background:transparent;color:#fff;opacity:.7}
+.gbm-btn.cancel:hover{opacity:1;background:rgba(255,255,255,.06)}
+.gbm-btn.confirm{background:#fff;color:#000;border-color:#fff}
+.gbm-btn.confirm:hover{background:rgba(255,255,255,.85)}
+.gbm-btn:disabled{opacity:.4;cursor:default}
+
+/* ── Malfeld ───────────────────────────────────────────────── */
+.gbd-head{display:flex;align-items:center;justify-content:space-between}
+.gbd-title{font-size:15px;font-weight:700;letter-spacing:.02em}
+.gbd-clear{
+  border:0;background:transparent;color:#fff;opacity:.55;cursor:pointer;
+  font-size:13px;font-weight:600;padding:6px 10px;border-radius:9px;transition:.15s;
+}
+.gbd-clear:hover{opacity:1;background:rgba(255,255,255,.08)}
+
+.gbd-canvas-wrap{
+  position:relative;width:100%;height:230px;border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background:
+    linear-gradient(to top, rgba(255,255,255,.14) 0, rgba(255,255,255,.14) 1px, transparent 1px) no-repeat 50% 78% / 84% 100%,
+    rgba(255,255,255,.05);
+  overflow:hidden;
+  touch-action:none;   /* Zeichnen statt Scrollen/Zoomen */
+}
+.gbd-canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.gbd-hint{
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-size:14px;font-weight:600;opacity:.35;pointer-events:none;
+  transition:opacity .2s;
+}
+.gbd-canvas-wrap.has-ink .gbd-hint{opacity:0}
+
+@media(max-width:480px){
+  .gb-entry{gap:12px;padding:14px}
+  .gb-entry-sig{width:118px;height:56px}
+  .gbd-canvas-wrap{height:200px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .gb-page,.gb-page.show{transition:opacity .2s ease,visibility 0s}
+  .gb-page.show .gb-hero,.gb-entry{animation:none;opacity:1;transform:none}
+}

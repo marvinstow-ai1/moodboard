@@ -31,6 +31,7 @@
 <link rel="stylesheet" href="css/info.css">
 <link rel="stylesheet" href="css/buttons.css">
 <link rel="stylesheet" href="css/gate.css">
+<link rel="stylesheet" href="css/guestbook.css">
 <script>
 /* Gate-Weiche, synchron VOR dem ersten Paint: Liegt keine Supabase-Session
    im localStorage, zeigt html.gate-open die Startpage statt des Loading
@@ -442,6 +443,7 @@
 <script type="module" src="js/app.js"></script>
 <script defer src="js/header-menu.js"></script>
 <script type="module" src="js/mood-chat.js"></script>
+<script type="module" src="js/guestbook.js"></script>
 <script type="module" src="js/walkthrough.js"></script>
 
 <!-- ── Confirm Delete Popup ──────────────────────────── -->
@@ -518,6 +520,13 @@
   <button class="bottombar-btn" id="chatBtn" aria-label="Stimmungs-Suche">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+    </svg>
+  </button>
+  <div class="bottombar-divider"></div>
+  <button class="bottombar-btn" id="guestbookBtn" aria-label="Gästebuch">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
     </svg>
   </button>
   <button class="moods-mgmt-btn" id="moodsMgmtBtn">
@@ -649,6 +658,87 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       </div>
 
       <div class="info-foot"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Gästebuch ────────────────────────────────────────────
+     Vollflächige Seite im Stil der Info-Page: Liste aller Einträge
+     (Name, Instagram, gemalte Unterschrift) + "Eintragen"-Flow mit
+     Malfeld. Logik in js/guestbook.js, Styles in css/guestbook.css. -->
+<div class="gb-page" id="gbPage" role="dialog" aria-modal="true" aria-label="Gästebuch" aria-hidden="true">
+  <div class="info-ambient" aria-hidden="true"></div>
+
+  <header class="info-top">
+    <button class="info-back" id="gbClose" aria-label="Zurück">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <span class="info-top-title">Gästebuch</span>
+  </header>
+
+  <div class="gb-scroll" id="gbScroll">
+    <div class="gb-inner">
+      <div class="gb-hero">
+        <div class="info-hero-badge">✍️</div>
+        <h1 class="info-hero-title">Gästebuch</h1>
+        <p class="gb-hero-sub">Verewige dich mit deiner Unterschrift.</p>
+      </div>
+      <div class="gb-list" id="gbList">
+        <div class="gb-status" id="gbStatus">Lade…</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="gb-add" id="gbAddBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    Eintragen
+  </button>
+</div>
+
+<!-- Eintrags-Modal: Name + Instagram + Unterschrift-Feld -->
+<div class="gb-modal" id="gbModal" role="dialog" aria-modal="true" aria-label="Gästebuch-Eintrag">
+  <div class="gbm-content">
+    <div class="gbm-title">Dein Eintrag</div>
+    <input class="gbm-input" id="gbmName" placeholder="Dein Name" maxlength="60" autocomplete="name">
+    <div class="gbm-insta-row">
+      <span class="gbm-at">@</span>
+      <input class="gbm-input" id="gbmInsta" placeholder="Instagram (optional)" maxlength="60" autocomplete="off" autocapitalize="none">
+    </div>
+    <button class="gbm-sig-box" id="gbmSigBox" type="button" aria-label="Unterschrift malen">
+      <img class="gbm-sig-preview" id="gbmSigPreview" alt="" hidden>
+      <span class="gbm-sig-hint" id="gbmSigHint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+          <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+        </svg>
+        Tippen &amp; Unterschrift malen
+      </span>
+    </button>
+    <div class="gbm-error" id="gbmError">&nbsp;</div>
+    <div class="gbm-actions">
+      <button class="gbm-btn cancel" id="gbmCancel" type="button">Abbrechen</button>
+      <button class="gbm-btn confirm" id="gbmSave" type="button">Eintragen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Malfeld: öffnet sich über dem Modal, Canvas zum Unterschreiben -->
+<div class="gb-draw" id="gbDraw" role="dialog" aria-modal="true" aria-label="Unterschrift malen">
+  <div class="gbd-content">
+    <div class="gbd-head">
+      <span class="gbd-title">Deine Unterschrift</span>
+      <button class="gbd-clear" id="gbdClear" type="button">Löschen</button>
+    </div>
+    <div class="gbd-canvas-wrap" id="gbdCanvasWrap">
+      <canvas id="gbdCanvas"></canvas>
+      <span class="gbd-hint" id="gbdHint">Hier malen ✍️</span>
+    </div>
+    <div class="gbm-actions">
+      <button class="gbm-btn cancel" id="gbdCancel" type="button">Abbrechen</button>
+      <button class="gbm-btn confirm" id="gbdDone" type="button">Fertig</button>
     </div>
   </div>
 </div>
