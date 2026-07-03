@@ -1013,12 +1013,8 @@ $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
 sheetOverlay.onclick = closeMenu;
 document.addEventListener('click', e => { if(!e.target.closest('#dropdown') && !e.target.closest('#menuBtn')) dropdown.classList.remove('show'); });
 
-$('boardTitle').onclick = () => {
-  goArchive();
-  activeMoods.clear();
-  saveFilterState();
-  if(!moodsViewOpen) renderGrid();
-};
+// Klick auf den Titel macht exakt dasselbe wie der Shuffle-Button.
+$('boardTitle').onclick = () => { $('boardTitle').blur(); doShuffle(); };
 
 function renderMoodChips(){
   document.querySelectorAll('[data-mood-chip]').forEach(chip => {
