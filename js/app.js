@@ -1024,7 +1024,9 @@ function renderMoodChips(){
     chip.classList.toggle('active', activeMoods.has(m));
     chip.onclick = () => {
       if(activeMoods.has(m)) activeMoods.delete(m); else activeMoods.add(m);
-      saveFilterState(); renderGrid(); renderMoodChips();
+      // Filter ordnet das Grid neu → wie Shuffle/Suche instant nach oben +
+      // rendern (renderFromTop), sonst spinnern die sichtbaren Kacheln.
+      saveFilterState(); renderFromTop(); renderMoodChips();
     };
   });
 }
@@ -1063,6 +1065,21 @@ function updateGridEnd(count){
 function scrollToTop(){
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+}
+
+// Neu-Anordnen des Grids (Shuffle, Suche, Filter, View-Wechsel): IMMER erst
+// INSTANT nach oben springen, DANN rendern – identisch zum Shuffle-Schema.
+// Grund: die sofort geladenen "eager"-Kacheln sind stets die ERSTEN in
+// DOM-Reihenfolge (die obersten). Rendert man in alter Scroll-Tiefe, laden
+// also die UNSICHTBAREN oberen Kacheln sofort, während die tatsächlich
+// sichtbaren nur ein data-src tragen und erst der Prefetch-Observer sie
+// nachzieht → lange Spinner. Ein HINTERHER gestarteter Smooth-Scroll macht es
+// noch schlimmer: der Observer meldet JEDE überflogene Reihe und verstopft die
+// Warteschlange, bevor die sichtbaren Kacheln an der Reihe sind. Sofort nach
+// oben + eager oben = sichtbare Kacheln sind sofort geladen (smoothes Schema).
+function renderFromTop(){
+  window.scrollTo(0, 0);
+  renderGrid();
 }
 
 // ── GRID RENDERING ─────────────────────────────────────
@@ -1596,14 +1613,9 @@ function runShuffle(mutateFn) {
   if(_shuffleBusy) return;
   const apply = () => {
     mutateFn();
-    // VOR dem Rendern sofort nach oben springen statt hinterher smooth zu
-    // scrollen: Rendert man erst in alter Scroll-Tiefe, meldet der
-    // Prefetch-Observer zunächst die Kacheln dort unten – und während der
-    // Smooth-Scroll-Animation dann JEDE überflogene Reihe. Deren Bilder
-    // verstopfen die Warteschlange, bevor die oben sichtbaren Kacheln an der
-    // Reihe sind (Hauptursache für die langen Spinner nach dem Shuffle).
-    window.scrollTo(0, 0);
-    renderGrid();
+    // Sofort nach oben + rendern (s. renderFromTop): sonst lange Spinner, weil
+    // die eager geladenen obersten Kacheln nicht die sichtbaren wären.
+    renderFromTop();
   };
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
     apply();
@@ -2228,6 +2240,7 @@ function hideMoodsView(target){
   // Nach der Ausblend-Animation: GridWrap einblenden
   setTimeout(() => {
     gridWrap.style.display = '';
+    window.scrollTo(0, 0);   // vor dem Render nach oben – eager-Kacheln = sichtbare
     renderGrid(); // sortNewest steuert: shuffle (Archive) bzw. neueste zuerst (Recent)
     // Animation starten: kurz warten bis display gesetzt ist
     requestAnimationFrame(() => {
@@ -2257,7 +2270,9 @@ function showGridView(view){
     return;
   }
   currentView = view;
-  renderGrid();
+  // Ansichtswechsel (Archive-Shuffle bzw. Recent) ordnet neu → instant nach
+  // oben + rendern, damit die sichtbaren Kacheln sofort laden (renderFromTop).
+  renderFromTop();
 }
 
 function goArchive(){ showGridView('archive'); }
@@ -2487,15 +2502,19 @@ function showChatResults(ids){
   // DANN die Treffer setzen und rendern – sonst würde goArchive sie löschen.
   if(currentView === 'moods') goArchive();
   chatResultIds = Array.isArray(ids) ? ids : null;
-  renderGrid();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Wie beim Shuffle: erst instant nach oben, DANN rendern (renderFromTop) –
+  // so laden die sichtbaren Treffer sofort (smoothes Schema) statt lange zu
+  // spinnern, wie es der frühere renderGrid()+Smooth-Scroll verursacht hat.
+  renderFromTop();
   return S().currentItems.length;   // tatsächlich sichtbare Treffer
 }
 // Vom Mood-Chat aus zur Ansicht „Zuletzt hinzugefügt" wechseln (Chip unter den Emojis).
 function showRecentView(){
+  // Instant nach oben VOR dem Rendern (goRecent → renderGrid), damit die oben
+  // sichtbaren Kacheln sofort laden statt zu spinnern (s. renderFromTop).
+  window.scrollTo(0, 0);
   clearChatResults();
   goRecent();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 // Object.assign statt Zuweisung: bewahrt Helfer, die zuvor gesetzt wurden
 // (z. B. window.MB.closeSpotify aus dem Inline-Script in index.html).
