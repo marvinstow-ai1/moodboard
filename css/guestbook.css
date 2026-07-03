@@ -90,7 +90,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));
   transform:translateX(-50%);z-index:3;
   display:flex;align-items:center;gap:8px;
-  height:46px;border:1px solid rgba(255,255,255,.16);border-radius:999px;
+  height:40px;border:1px solid rgba(255,255,255,.16);border-radius:999px;
   background:rgba(255,255,255,.12);color:#fff;
   -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
   padding:0 22px;font-size:14px;font-weight:700;letter-spacing:.02em;
