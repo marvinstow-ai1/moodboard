@@ -15,7 +15,10 @@
     if (!hubBtn || !hubMenu) return;
 
     const close = () => { hubMenu.classList.remove('show'); hubBtn.setAttribute('aria-expanded', 'false'); };
-    const open  = () => { hubMenu.classList.add('show');    hubBtn.setAttribute('aria-expanded', 'true');  };
+    const open  = () => { window.MB?.closeOtherPopups?.('hub'); hubMenu.classList.add('show'); hubBtn.setAttribute('aria-expanded', 'true'); };
+
+    window.MB = window.MB || {};
+    window.MB.closeHubMenu = close;
 
     hubBtn.addEventListener('click', (e) => {
       e.stopPropagation();

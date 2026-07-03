@@ -11,8 +11,8 @@
 .legacy-controls{display:none}
 
 /* Single hub button + its dropdown */
-.hub-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:184px;z-index:41;display:none;flex-direction:column;gap:2px;padding:6px;border:1px solid var(--border);border-radius:14px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6)}
-.hub-menu.show{display:flex}
+.hub-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:184px;z-index:41;display:flex;flex-direction:column;gap:2px;padding:6px;border:1px solid var(--border);border-radius:14px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.96);transform-origin:100% 0;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
+.hub-menu.show{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
 .hub-item{display:flex;align-items:center;gap:11px;width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:11px 12px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500}
 .hub-item .hub-ic{width:18px;height:18px;display:grid;place-items:center;opacity:.7;flex-shrink:0}
 .board-title:hover{opacity:1}

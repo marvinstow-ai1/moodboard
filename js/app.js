@@ -1000,6 +1000,7 @@ function closeAllOverlays(){
   if(sp){ sp.classList.remove('show'); document.getElementById('spotifyBtn').classList.remove('active'); }
   if(typeof closePageNav === 'function') closePageNav();
   window.MB?.closeChat?.();
+  window.MB?.closeHubMenu?.();
 }
 function isAnyOverlayOpen(){
   return dropdown.classList.contains('show') ||
@@ -1007,7 +1008,8 @@ function isAnyOverlayOpen(){
          filterPopup.classList.contains('show') ||
          editorWrap.classList.contains('show') ||
          !!document.getElementById('spotifyPopup')?.classList.contains('show') ||
-         !!document.getElementById('moodChatPanel')?.classList.contains('show');
+         !!document.getElementById('moodChatPanel')?.classList.contains('show') ||
+         !!document.getElementById('hubMenu')?.classList.contains('show');
 }
 $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
 sheetOverlay.onclick = closeMenu;
@@ -2540,6 +2542,7 @@ window.MB.closeOtherPopups = function(except){
   if(except !== 'spotify') window.MB.closeSpotify?.();
   if(except !== 'filter')  window.MB.closeFilter?.();
   if(except !== 'chat')    window.MB.closeChat?.();
+  if(except !== 'hub')     window.MB.closeHubMenu?.();
 };
 
 // ── Zugriffe-Verwaltung (nur Owner) ───────────────────────
