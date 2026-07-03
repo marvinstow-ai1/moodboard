@@ -312,7 +312,7 @@ async function loadTaggedImages() {
   _cachePromise = (async () => {
     const { data, error } = await sb
       .from('moodboard_items')
-      .select('id,media_url,media_type,ai_tags')
+      .select('id,media_url,media_type,thumb_url,ai_tags')
       .in('media_type', ['image', 'gif'])
       .eq('ai_status', 'processed')
       .order('created_at', { ascending: false });
@@ -325,6 +325,264 @@ async function loadTaggedImages() {
   } finally {
     _cachePromise = null;
   }
+}
+
+// ============================================================================
+// Farb-Filter — echte Bild-Farbanalyse statt reiner Text-Tags
+// ----------------------------------------------------------------------------
+// Problem der reinen ai_tags-Suche: der KI-Tagger schreibt „blau" auch dann,
+// wenn Blau nur ein Nebenton ist. „blau" liefert dann Bilder, die eigentlich
+// überwiegend grün o. ä. sind. Deshalb wird hier die TATSÄCHLICHE Farbe der
+// Bilder pixelweise gemessen und eine Dominanz-/Qualitätskontrolle angewandt:
+// Eine Farbe „zählt" nur, wenn sie das Bild wirklich prägt (dominant + genug
+// Fläche). Suche nach „blau" → nur Bilder, die klar blau sind.
+//
+// Geschwindigkeit bleibt erhalten:
+//   • Das Haupt-Grid und dessen Ladelogik werden NICHT angefasst.
+//   • Die Analyse läuft nur bei einer Farbsuche, gedrosselt (Worker-Pool) und
+//     wird pro Bild dauerhaft in localStorage gecacht → ab dem zweiten Mal
+//     sofort. Die eigentliche Suche gibt nur IDs an das Grid weiter
+//     (showChatResults), sodass der Pill-Shuffle automatisch NUR die Auswahl
+//     mischt (identisch zur normalen Chat-Suche).
+// ============================================================================
+
+// Reihenfolge der Farb-Buckets = Speicherreihenfolge im Cache. Nicht umsortieren!
+const COLOR_KEYS = ['rot', 'orange', 'gelb', 'gruen', 'tuerkis', 'blau', 'lila', 'pink', 'braun', 'schwarz', 'grau', 'weiss'];
+// Bunte (chromatische) Farben — nur diese zählen für die Dominanz-Rechnung.
+const CHROMA_KEYS = ['rot', 'orange', 'gelb', 'gruen', 'tuerkis', 'blau', 'lila', 'pink'];
+const NEUTRAL_KEYS = new Set(['schwarz', 'grau', 'weiss', 'braun']);
+
+// Definition der gängigsten Farben: Anzeigename, Swatch fürs Chip, Wort-Stämme
+// (gefaltet) zum Erkennen getippter Eingaben und für den ai_tags-Fallback.
+const COLOR_DEFS = [
+  { key: 'rot',     label: 'Rot',     swatch: '#e5484d', stems: ['rot', 'red'] },
+  { key: 'orange',  label: 'Orange',  swatch: '#f2811d', stems: ['orange'] },
+  { key: 'gelb',    label: 'Gelb',    swatch: '#f5d90a', stems: ['gelb', 'yellow'] },
+  { key: 'gruen',   label: 'Grün',    swatch: '#30a46c', stems: ['grun', 'green'] },
+  { key: 'tuerkis', label: 'Türkis',  swatch: '#0fb5ba', stems: ['turkis', 'tuerkis', 'teal', 'cyan', 'aqua'] },
+  { key: 'blau',    label: 'Blau',    swatch: '#3b82f6', stems: ['blau', 'blue'] },
+  { key: 'lila',    label: 'Lila',    swatch: '#8e4ec6', stems: ['lila', 'violett', 'violet', 'purple', 'purpur'] },
+  { key: 'pink',    label: 'Pink',    swatch: '#e93d82', stems: ['pink', 'rosa', 'magenta'] },
+  { key: 'braun',   label: 'Braun',   swatch: '#8a5a2b', stems: ['braun', 'brown'] },
+  { key: 'schwarz', label: 'Schwarz', swatch: '#111318', stems: ['schwarz', 'black'] },
+  { key: 'grau',    label: 'Grau',    swatch: '#9aa0a6', stems: ['grau', 'gray', 'grey'] },
+  { key: 'weiss',   label: 'Weiß',    swatch: '#f4f4f5', stems: ['weiss', 'white'] },
+];
+const COLOR_BY_KEY = new Map(COLOR_DEFS.map(c => [c.key, c]));
+
+// ── Schwellen (Thresholds) — bewusst zentral & tunbar ──────────────────────
+// MIN_SHARE   : Anteil der Farbe an ALLEN bunten Pixeln. Das ist die eigentliche
+//               Dominanz-/Qualitätskontrolle. 0.6 ≈ „das Bunt im Bild ist zu
+//               ~60–80 % diese Farbe" → fühlt sich als „das Foto ist blau" an.
+//               Höher = strenger (weniger, dafür eindeutigere Treffer).
+// MIN_COVERAGE: Mindestanteil der Farbe am GESAMTEN Bild, damit ein kleiner,
+//               knallbunter Fleck nicht reicht.
+const COLOR_THRESHOLDS = {
+  minShare: 0.6,
+  minCoverage: 0.18,
+  // Neutrale Farben haben keine „Bunt-Dominanz"; sie brauchen schlicht genug Fläche.
+  neutralCoverage: { schwarz: 0.5, weiss: 0.5, grau: 0.45, braun: 0.28 },
+};
+
+// ── HSL-Klassifikation eines Pixels → Farb-Bucket ──────────────────────────
+function classifyPixel(r, g, b) {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  const l = (max + min) / 510;               // Helligkeit 0..1
+  const s = d === 0 ? 0 : d / (255 - Math.abs(max + min - 255)); // Sättigung 0..1
+
+  // Neutral: kaum Sättigung → nach Helligkeit in schwarz/grau/weiß einordnen.
+  if (s < 0.15 || d < 24) {
+    if (l < 0.16) return 'schwarz';
+    if (l > 0.82) return 'weiss';
+    return 'grau';
+  }
+
+  // Farbton (Hue) 0..360
+  let h;
+  if (max === r)      h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else                h = (r - g) / d + 4;
+  h = (h * 60 + 360) % 360;
+
+  // Braun = dunkler/gedämpfter Orangeton — vor den Bunt-Buckets abfangen.
+  if (h >= 8 && h <= 46 && l < 0.42 && !(s > 0.8 && l > 0.34)) return 'braun';
+
+  if (h < 14 || h >= 346) return 'rot';
+  if (h < 44)  return 'orange';
+  if (h < 68)  return 'gelb';
+  if (h < 162) return 'gruen';
+  if (h < 192) return 'tuerkis';
+  if (h < 258) return 'blau';
+  if (h < 292) return 'lila';
+  return 'pink';
+}
+
+// Kleines, wiederverwendetes Analyse-Canvas (Worker laufen sequenziell darauf,
+// da analyzePixels synchron ist — kein Interleaving auf dem geteilten Canvas).
+const SAMPLE = 36;
+let _cv = null, _ctx = null;
+function analyzePixels(img) {
+  if (!_cv) {
+    _cv = document.createElement('canvas');
+    _cv.width = _cv.height = SAMPLE;
+    _ctx = _cv.getContext('2d', { willReadFrequently: true });
+  }
+  _ctx.clearRect(0, 0, SAMPLE, SAMPLE);
+  _ctx.drawImage(img, 0, 0, SAMPLE, SAMPLE);
+  const data = _ctx.getImageData(0, 0, SAMPLE, SAMPLE).data; // wirft bei getaintetem Canvas
+  const counts = Object.create(null);
+  let total = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 128) continue;         // transparente Pixel ignorieren
+    const cat = classifyPixel(data[i], data[i + 1], data[i + 2]);
+    counts[cat] = (counts[cat] || 0) + 1;
+    total++;
+  }
+  const f = Object.create(null);
+  for (const k of COLOR_KEYS) f[k] = total ? (counts[k] || 0) / total : 0;
+  return f;
+}
+
+// ── Bewertung: passt ein Bild-Farbprofil zur gesuchten Farbe? ──────────────
+// Liefert { pass, score }. `score` sortiert die Treffer (dominanteste zuerst).
+function colorMetrics(key, f) {
+  const coverage = f[key] || 0;
+  if (NEUTRAL_KEYS.has(key)) {
+    const min = COLOR_THRESHOLDS.neutralCoverage[key] ?? 0.5;
+    return { pass: coverage >= min, score: coverage };
+  }
+  let coloredMass = 0, top = 0;
+  for (const k of CHROMA_KEYS) {
+    const v = f[k] || 0;
+    coloredMass += v;
+    if (v > top) top = v;
+  }
+  const share = coloredMass > 0 ? coverage / coloredMass : 0;
+  const isTop = coverage > 0 && coverage >= top - 1e-9;   // dominante Buntfarbe
+  const pass = isTop && share >= COLOR_THRESHOLDS.minShare && coverage >= COLOR_THRESHOLDS.minCoverage;
+  const score = share * 0.75 + Math.min(coverage, 0.6) * 0.25;
+  return { pass, score };
+}
+
+// ── Farbprofil-Cache (Memory + localStorage) ───────────────────────────────
+const _colorCache = new Map();   // id → { u: urlHash, f: {bucket→fraction} }
+const LS_KEY = 'mb_colors_v1';
+
+function hashStr(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+function profileUrl(it) { return it.thumb_url || it.media_url || ''; }
+function cachedProfile(it) {
+  const rec = _colorCache.get(it.id);
+  return rec && rec.u === hashStr(profileUrl(it)) ? rec.f : null;
+}
+
+(function loadPersisted() {
+  try {
+    const obj = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (!obj || obj.v !== 1 || !obj.m) return;
+    for (const id in obj.m) {
+      const rec = obj.m[id];                 // [urlHash, f0..f11 (‰)]
+      const f = Object.create(null);
+      for (let i = 0; i < COLOR_KEYS.length; i++) f[COLOR_KEYS[i]] = (rec[i + 1] || 0) / 1000;
+      _colorCache.set(id, { u: rec[0], f });
+    }
+  } catch { /* Cache defekt/deaktiviert → einfach neu aufbauen */ }
+})();
+
+let _persistTimer = null;
+function schedulePersist() {
+  if (_persistTimer) return;
+  _persistTimer = setTimeout(() => {
+    _persistTimer = null;
+    try {
+      const m = {};
+      for (const [id, rec] of _colorCache) {
+        const arr = [rec.u];
+        for (const k of COLOR_KEYS) arr.push(Math.round((rec.f[k] || 0) * 1000));
+        m[id] = arr;
+      }
+      localStorage.setItem(LS_KEY, JSON.stringify({ v: 1, m }));
+    } catch { /* z. B. Quota voll → Cache bleibt im Memory */ }
+  }, 1200);
+}
+
+function loadImg(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';           // nötig, damit das Canvas lesbar bleibt
+    img.decoding = 'async';
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('load'));
+    img.src = url;
+  });
+}
+
+async function computeProfile(it) {
+  const url = profileUrl(it);
+  const u = hashStr(url);
+  const rec = _colorCache.get(it.id);
+  if (rec && rec.u === u) return rec.f;       // schon analysiert
+  const img = await loadImg(url);
+  const f = analyzePixels(img);
+  _colorCache.set(it.id, { u, f });
+  schedulePersist();
+  return f;
+}
+
+// Gedrosselt viele Bilder analysieren (Worker-Pool). Fehler pro Bild werden
+// verschluckt (CORS/Ladefehler/getaintetes Canvas) → das Bild fällt einfach aus
+// der Farbsuche. onProgress meldet Fortschritt für die Status-Zeile.
+async function analyzeMany(items, onProgress) {
+  const queue = [...items];
+  let done = 0;
+  const worker = async () => {
+    while (queue.length) {
+      const it = queue.shift();
+      try { await computeProfile(it); } catch { /* skip */ }
+      done++;
+      onProgress && onProgress(done, items.length);
+    }
+  };
+  const CONCURRENCY = 8;
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, items.length) }, worker));
+}
+
+// Fallback, falls Pixel-Analyse gar nicht möglich ist (CORS/Canvas blockiert):
+// wenigstens die ai_tags nach dem Farbwort durchsuchen. Weniger präzise als die
+// Pixel-Dominanz, aber die Farbsuche liefert dann trotzdem etwas.
+function tagColorMatch(colorKeys, items) {
+  const words = new Set();
+  for (const key of colorKeys) (COLOR_BY_KEY.get(key)?.stems || []).forEach(w => words.add(w));
+  return items
+    .filter(it => (it.ai_tags || []).some(t => {
+      const parts = fold(t).split(/[^a-z0-9]+/);
+      return [...words].some(w => parts.includes(w));
+    }))
+    .map(it => it.id);
+}
+
+// Getippte Eingabe → Farb-Keys, aber NUR wenn die Eingabe reine Farbwörter sind
+// (z. B. „blau", „blaues", „rot grün"). Mischtext wie „blaues meer" bleibt der
+// normalen Tag-Suche überlassen. Erkennung per Wortstamm-Präfix, damit auch
+// gebeugte Formen („blaue", „grünes") greifen.
+function detectColorQuery(text) {
+  const tokens = fold(text).split(/[^a-z0-9]+/).filter(Boolean);
+  const meaningful = tokens.filter(t => t.length >= 3 && !STOPWORDS.has(t));
+  if (!meaningful.length) return null;
+  const keys = [];
+  for (const tok of meaningful) {
+    let hit = null;
+    for (const def of COLOR_DEFS) {
+      if (def.stems.some(st => tok.startsWith(st) && tok.length <= st.length + 3)) { hit = def.key; break; }
+    }
+    if (!hit) return null;                    // ein Nicht-Farbwort → keine reine Farbsuche
+    if (!keys.includes(hit)) keys.push(hit);
+  }
+  return keys.length ? keys : null;
 }
 
 // ── UI-Controller ──────────────────────────────────────────────────────────
@@ -358,6 +616,7 @@ function initMoodChat() {
   const input = $('mcInput');
   const sendBtn = $('mcSend');
   const suggestEl = $('mcSuggest');
+  const colorsEl = $('mcColors');
   const statusEl = $('mcStatus');
 
   // Vorschlags-Chips rendern (Emoji sichtbar, Label im aria-label/title)
@@ -373,6 +632,22 @@ function initMoodChat() {
       else { input.value = s.q; runSearch(s.q); }
     };
   });
+
+  // Farb-Chips: kleine Swatches der gängigsten Farben. Klick startet eine
+  // Farbsuche (nur klar von dieser Farbe geprägte Bilder, s. runColorSearch).
+  if (colorsEl) {
+    colorsEl.innerHTML = COLOR_DEFS
+      .map(c => `<button class="mc-color" type="button" data-key="${c.key}" ` +
+        `aria-label="Nur ${c.label.replace(/"/g, '&quot;')}-Bilder" title="${c.label}">` +
+        `<span class="mc-color-dot" style="background:${c.swatch}"></span></button>`)
+      .join('');
+    colorsEl.querySelectorAll('.mc-color').forEach(btn => {
+      btn.onclick = () => {
+        const def = COLOR_BY_KEY.get(btn.dataset.key);
+        if (def) runColorSearch([def.key], def.label);
+      };
+    });
+  }
 
   // Quick-Chip „Zuletzt hinzugefügt": wechselt direkt zur Recent-Ansicht
   // (ersetzt den früheren Eintrag aus dem Header-Dropdown) und schließt das Panel.
@@ -502,6 +777,15 @@ function initMoodChat() {
   async function runSearch(text) {
     const q = (text ?? input.value ?? '').trim();
     if (!q) { input.focus(); return; }
+
+    // Reine Farb-Eingabe („blau", „blaues", „rot grün") → Farbsuche mit
+    // Pixel-Dominanz statt Tag-Suche. So kommen bei „blau" keine grünen Bilder.
+    const colorKeys = detectColorQuery(q);
+    if (colorKeys) {
+      const label = colorKeys.map(k => COLOR_BY_KEY.get(k)?.label || k).join(' & ');
+      return runColorSearch(colorKeys, label);
+    }
+
     const token = ++_runToken;
 
     sendBtn.classList.add('is-busy');
@@ -568,6 +852,77 @@ function initMoodChat() {
         return needles.some(n => ft.includes(n));
       }))
       .map(it => it.id);
+
+    if (!imgs.length) {
+      setStatus('empty', 'Noch keine getaggten Bilder vorhanden.');
+      return;
+    }
+    if (!ids.length) {
+      setStatus('empty', `Keine Bilder in „${escapeHtmlLite(label)}" gefunden 👀`);
+      return;
+    }
+
+    window.MB?.showChatResults?.(ids);
+    input.blur();
+    closePanel();
+  }
+
+  // ── Farb-Suche ──────────────────────────────────────────────────────────
+  // Zeigt nur Bilder, die von der/den gewählten Farbe(n) wirklich geprägt sind
+  // (Pixel-Analyse + Dominanz-/Qualitätskontrolle, s. colorMetrics). Die Analyse
+  // läuft gedrosselt und wird gecacht; danach werden — wie die übrige Chat-Suche —
+  // nur IDs ans Grid übergeben, sodass der Pill-Shuffle allein die Auswahl mischt.
+  async function runColorSearch(colorKeys, label) {
+    const token = ++_runToken;
+    sendBtn.classList.add('is-busy');
+    setStatus('loading', '<span class="mc-spin"></span><span>Suche passende Bilder …</span>');
+
+    let imgs;
+    try {
+      imgs = await loadTaggedImages();
+    } catch (e) {
+      if (token !== _runToken) return;
+      sendBtn.classList.remove('is-busy');
+      setStatus('error', 'Konnte gerade nicht laden. Versuch es nochmal.');
+      return;
+    }
+    if (token !== _runToken) return;
+
+    // Nur noch nicht analysierte Bilder wirklich laden (Rest kommt aus dem Cache).
+    const todo = imgs.filter(it => !cachedProfile(it));
+    if (todo.length) {
+      let lastPct = -1;
+      await analyzeMany(todo, (done, total) => {
+        if (token !== _runToken) return;
+        const pct = Math.round(done / total * 100);
+        if (pct >= lastPct + 5 || done === total) {
+          lastPct = pct;
+          setStatus('loading', `<span class="mc-spin"></span><span>Analysiere Farben … ${pct}%</span>`);
+        }
+      });
+    }
+    if (token !== _runToken) return; // veraltete Antwort verwerfen
+    sendBtn.classList.remove('is-busy');
+
+    // Bewertung: bestes Match unter den gewünschten Farben; nach Dominanz sortiert.
+    const scored = [];
+    let analyzed = 0;
+    for (const it of imgs) {
+      const f = cachedProfile(it);
+      if (!f) continue;
+      analyzed++;
+      let best = null;
+      for (const k of colorKeys) {
+        const m = colorMetrics(k, f);
+        if (m.pass && (best === null || m.score > best)) best = m.score;
+      }
+      if (best !== null) scored.push({ id: it.id, score: best });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    let ids = scored.map(s => s.id);
+
+    // Pixel-Analyse gar nicht verfügbar (z. B. CORS/Canvas blockiert) → Fallback.
+    if (!analyzed) ids = tagColorMatch(colorKeys, imgs);
 
     if (!imgs.length) {
       setStatus('empty', 'Noch keine getaggten Bilder vorhanden.');
