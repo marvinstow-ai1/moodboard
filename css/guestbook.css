@@ -7,10 +7,13 @@
 /* Seite – gleiche Show/Hide-Mechanik wie .info-page. */
 .gb-page{
   position:fixed;top:0;left:0;right:0;z-index:70;
-  /* Höhe über die live gemessene --app-vh (index.html) statt inset:0 –
-     so bleibt die Seite exakt bündig mit der Bildschirmunterkante, auch
-     wenn Safaris Adressleiste ein-/ausfährt. Fallback 100vh ohne JS. */
-  height:100vh;height:var(--app-vh,100vh);
+  /* Vollbild wie die Grid-Ansicht: 100lvh = größtmöglicher Viewport
+     (Safari-Toolbar eingefahren). Die Seite deckt den Screen damit in
+     JEDEM Toolbar-Zustand komplett ab – unten kann nichts mehr abge-
+     schnitten werden und kein Streifen entstehen. Die Bottom-UI
+     (Eintragen-Button, Scroll-Padding) wird separat per --app-vh an der
+     tatsächlich SICHTBAREN Unterkante ausgerichtet. Fallback 100vh. */
+  height:100vh;height:100lvh;
   display:flex;flex-direction:column;
   /* Grünes Ambient-Licht direkt auf der Vollbild-Seite verankert (fixed=
      exakter Screen), damit es garantiert bis zum untersten Bildschirmrand
@@ -45,6 +48,9 @@
   position:relative;z-index:1;flex:1;min-height:0;
   overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   padding:8px 20px calc(120px + env(safe-area-inset-bottom));
+  /* Seite ist 100lvh hoch (ggf. höher als sichtbar) – das Extra-Padding
+     (100lvh - sichtbare Höhe) hebt das Listenende über die Toolbar. */
+  padding-bottom:calc(100lvh - var(--app-vh,100lvh) + 120px + env(safe-area-inset-bottom));
 }
 .gb-inner{width:min(640px,100%);margin:0 auto}
 
@@ -55,6 +61,12 @@
 }
 .gb-page.show .gb-hero{animation:infoRise .36s cubic-bezier(.22,1,.36,1) .04s forwards}
 .gb-hero-sub{font-size:14px;line-height:1.5;max-width:42ch;opacity:.5;font-weight:500}
+/* Badge schwebt sanft – läuft unabhängig vom Rise des Hero-Containers. */
+.gb-hero .info-hero-badge{animation:gbBadgeFloat 5.5s ease-in-out infinite}
+@keyframes gbBadgeFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
 
 /* Einträge-Liste. */
 .gb-list{display:flex;flex-direction:column;gap:14px}
@@ -68,6 +80,12 @@
   box-shadow:0 10px 36px rgba(0,0,0,.32);
   opacity:0;transform:translateY(14px);
   animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
+  transition:border-color .25s,background-color .25s,box-shadow .25s;
+}
+/* Nur Border/Glow, kein transform – das hielte die forwards-Animation fest. */
+.gb-entry:hover{
+  border-color:rgba(255,255,255,.22);background:rgba(28,28,30,.6);
+  box-shadow:0 14px 44px rgba(0,0,0,.42);
 }
 /* Leichtes Staffeln der ersten Einträge beim Öffnen. */
 .gb-entry:nth-child(1){animation-delay:.05s}
@@ -75,9 +93,13 @@
 .gb-entry:nth-child(3){animation-delay:.13s}
 .gb-entry:nth-child(4){animation-delay:.17s}
 .gb-entry:nth-child(5){animation-delay:.21s}
+.gb-entry:nth-child(6){animation-delay:.25s}
+.gb-entry:nth-child(7){animation-delay:.29s}
+.gb-entry:nth-child(8){animation-delay:.33s}
 
 .gb-entry-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .gb-entry-name{font-size:15px;font-weight:700;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gb-entry-warhier{font-size:13px;font-weight:500;opacity:.45;letter-spacing:.02em}
 .gb-entry-insta{
   font-size:13px;font-weight:500;color:#fff;opacity:.5;text-decoration:none;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -105,6 +127,10 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
    Pills bündig auf derselben Bildschirmhöhe sitzen. */
 .gb-add{
   position:absolute;left:50%;bottom:16px;
+  /* Die Seite reicht bis 100lvh (ggf. unter die Toolbar) – der Offset
+     hebt den Button auf 16px über die SICHTBARE Unterkante und damit
+     exakt auf die Höhe der Grid-Pill. */
+  bottom:calc(100lvh - var(--app-vh,100lvh) + 16px);
   transform:translateX(-50%);z-index:3;
   display:flex;align-items:center;gap:8px;
   height:56px;border:1px solid rgba(255,255,255,.16);border-radius:999px;
@@ -116,6 +142,12 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 .gb-add:hover{background:rgba(255,255,255,.18)}
 .gb-add:active{transform:translateX(-50%) scale(.95)}
+/* Sanfter Mint-Glow im Rhythmus des Ambient-Lichts. */
+.gb-page.show .gb-add{animation:gbAddGlow 3.8s ease-in-out infinite}
+@keyframes gbAddGlow{
+  0%,100%{box-shadow:0 8px 32px rgba(0,0,0,.5)}
+  50%{box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 26px rgba(120,255,210,.28)}
+}
 
 /* ── Eintrags-Modal (Optik wie .mood-create-modal) ─────────── */
 .gb-modal,.gb-draw{
@@ -141,7 +173,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   transform:translateY(10px) scale(.97);transition:transform .2s ease;
 }
 .gb-modal.show .gbm-content,.gb-draw.show .gbd-content{transform:none}
-.gbd-content{width:min(520px,100%)}
+.gbd-content{width:min(560px,100%)}
 
 .gbm-title{font-size:16px;font-weight:700;letter-spacing:.02em;margin-bottom:2px}
 
@@ -196,8 +228,22 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 .gbd-clear:hover{opacity:1;background:rgba(255,255,255,.08)}
 
+/* Farbauswahl für den Stift: runde Swatches, aktive Farbe mit Ring. */
+.gbd-colors{display:flex;gap:12px;justify-content:center;padding:2px 0}
+.gbd-color{
+  width:26px;height:26px;border-radius:999px;border:0;padding:0;flex-shrink:0;
+  background:var(--c);cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);
+  transition:transform .15s,box-shadow .15s;
+}
+.gbd-color:hover{transform:scale(1.12)}
+.gbd-color.is-active{
+  transform:scale(1.12);
+  box-shadow:0 0 0 2px #161618,0 0 0 4px var(--c);
+}
+
 .gbd-canvas-wrap{
-  position:relative;width:100%;height:230px;border-radius:16px;
+  position:relative;width:100%;height:280px;border-radius:16px;
   border:1px solid rgba(255,255,255,.14);
   background:
     linear-gradient(to top, rgba(255,255,255,.14) 0, rgba(255,255,255,.14) 1px, transparent 1px) no-repeat 50% 78% / 84% 100%,
@@ -216,10 +262,11 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 @media(max-width:480px){
   .gb-entry{gap:12px;padding:14px}
   .gb-entry-sig{width:118px;height:56px}
-  .gbd-canvas-wrap{height:200px}
+  .gbd-canvas-wrap{height:235px}
 }
 
 @media(prefers-reduced-motion:reduce){
   .gb-page,.gb-page.show{transition:opacity .2s ease,visibility 0s}
   .gb-page.show .gb-hero,.gb-entry{animation:none;opacity:1;transform:none}
+  .gb-hero .info-hero-badge,.gb-page.show .gb-add{animation:none}
 }

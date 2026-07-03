@@ -105,7 +105,7 @@ async function loadEntries(){
     return `
       <div class="gb-entry">
         <div class="gb-entry-meta">
-          <span class="gb-entry-name">${esc(e.name)}</span>
+          <span class="gb-entry-name">${esc(e.name)} <span class="gb-entry-warhier">war hier</span></span>
           ${insta}
           <span class="gb-entry-date">${fmtDate(e.created_at)}</span>
         </div>
@@ -172,6 +172,19 @@ modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
 // ── Malfeld (Canvas) ───────────────────────────────────────────────────────
 const ctx = canvas.getContext('2d');
 let drawing = false, hasInk = false, lastX = 0, lastY = 0;
+let penColor = '#ffffff';   // aktuelle Stiftfarbe (Swatches unterm Titel)
+
+// Farbauswahl: Klick auf einen Swatch wechselt die Stiftfarbe; bereits
+// Gemaltes bleibt stehen, nur neue Striche bekommen die neue Farbe.
+const colorsRow = $('gbdColors');
+colorsRow?.querySelectorAll('.gbd-color').forEach(btn => {
+  btn.addEventListener('click', () => {
+    penColor = btn.dataset.color;
+    ctx.strokeStyle = penColor;
+    colorsRow.querySelector('.is-active')?.classList.remove('is-active');
+    btn.classList.add('is-active');
+  });
+});
 
 // Canvas in Gerätepixeln aufziehen, damit die Linie auch auf Retina knackig ist.
 function setupCanvas(){
@@ -182,7 +195,7 @@ function setupCanvas(){
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = penColor;
   ctx.lineWidth = 3;
   hasInk = false;
   wrap.classList.remove('has-ink');
@@ -200,7 +213,7 @@ canvas.addEventListener('pointerdown', e => {
   // Punkt setzen, damit auch ein einzelner Tap sichtbar ist.
   ctx.beginPath();
   ctx.arc(lastX, lastY, ctx.lineWidth / 2, 0, Math.PI * 2);
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = penColor;
   ctx.fill();
   hasInk = true;
   wrap.classList.add('has-ink');
