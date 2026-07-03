@@ -1533,20 +1533,86 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ── SHUFFLE-OVERLAY ──────────────────────────────────────
+// Beim Neu-Mischen legt sich ~1 s ein Overlay über das Grid (Topbar und
+// Bottombar-Pill bleiben sichtbar, s. css/shuffle.css): Mini-Kacheln im
+// 9:16-Format wirbeln in mehreren Runden durcheinander. Sobald das Overlay
+// deckt, wird darunter unbemerkt gemischt, gerendert und nach oben
+// gescrollt – beim Ausblenden steht das Grid oben mit neuer Reihenfolge.
+let _shuffleBusy = false;
+function playShuffleOverlay(applyFn){
+  const COLS = 3, ROWS = 2, W = 36, H = 64, GAP = 7;
+  const overlay = document.createElement('div');
+  overlay.className = 'shuffle-overlay';
+  const stage = document.createElement('div');
+  stage.className = 'shuffle-stage';
+  stage.style.width  = (COLS*W + (COLS-1)*GAP) + 'px';
+  stage.style.height = (ROWS*H + (ROWS-1)*GAP) + 'px';
+  const slots = [];
+  for(let r = 0; r < ROWS; r++) for(let c = 0; c < COLS; c++) slots.push([c*(W+GAP), r*(H+GAP)]);
+  const tiles = slots.map(p => {
+    const t = document.createElement('div');
+    t.className = 'shuffle-tile';
+    t.style.width = W + 'px'; t.style.height = H + 'px';
+    t.style.transform = `translate(${p[0]}px,${p[1]}px)`;
+    stage.appendChild(t);
+    return t;
+  });
+  const label = document.createElement('div');
+  label.className = 'shuffle-label';
+  label.innerHTML = 'MISCHEN<span class="ls-dots"><span class="ls-dot">.</span><span class="ls-dot">.</span><span class="ls-dot">.</span></span>';
+  overlay.append(stage, label);
+  document.body.appendChild(overlay);
+
+  // Jede Runde: Slot-Zuordnung per Fisher-Yates permutieren, die Kacheln
+  // gleiten per CSS-Transition auf ihre neuen Plätze.
+  const order = tiles.map((_, i) => i);
+  const swapRound = () => {
+    for(let i = order.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    tiles.forEach((t, i) => {
+      const p = slots[order[i]];
+      t.style.transform = `translate(${p[0]}px,${p[1]}px)`;
+    });
+  };
+
+  // Doppeltes rAF: erst nach dem Initial-Paint .show setzen, sonst
+  // überspringt der Browser die Eingangs-Transition.
+  requestAnimationFrame(() => requestAnimationFrame(() => overlay.classList.add('show')));
+  // Overlay deckt nach ~180 ms → Grid darunter unbemerkt austauschen.
+  setTimeout(applyFn, 180);
+  [140, 380, 620, 860].forEach(t => setTimeout(swapRound, t));
+  setTimeout(() => {
+    overlay.classList.add('hide');
+    setTimeout(() => { overlay.remove(); _shuffleBusy = false; }, 320);
+  }, 1000);
+}
+
 function doShuffle() {
-  sortNewest = false;
-  chatResultIds = null;   // Shuffle hebt eine aktive Mood-Chat-Suche auf
-  // Shuffle ist die Archiv-Ansicht: aus "Zuletzt hinzugefügt" zurückwechseln
-  if(currentView === 'recent') currentView = 'archive';
-  // VOR dem Rendern sofort nach oben springen statt hinterher smooth zu
-  // scrollen: Rendert man erst in alter Scroll-Tiefe, meldet der
-  // Prefetch-Observer zunächst die Kacheln dort unten – und während der
-  // Smooth-Scroll-Animation dann JEDE überflogene Reihe. Deren Bilder
-  // verstopfen die Warteschlange, bevor die oben sichtbaren Kacheln an der
-  // Reihe sind (Hauptursache für die langen Spinner nach dem Shuffle).
-  window.scrollTo(0, 0);
-  renderGrid();
-  toast('Neu gemischt');
+  if(_shuffleBusy) return;
+  const apply = () => {
+    sortNewest = false;
+    chatResultIds = null;   // Shuffle hebt eine aktive Mood-Chat-Suche auf
+    // Shuffle ist die Archiv-Ansicht: aus "Zuletzt hinzugefügt" zurückwechseln
+    if(currentView === 'recent') currentView = 'archive';
+    // VOR dem Rendern sofort nach oben springen statt hinterher smooth zu
+    // scrollen: Rendert man erst in alter Scroll-Tiefe, meldet der
+    // Prefetch-Observer zunächst die Kacheln dort unten – und während der
+    // Smooth-Scroll-Animation dann JEDE überflogene Reihe. Deren Bilder
+    // verstopfen die Warteschlange, bevor die oben sichtbaren Kacheln an der
+    // Reihe sind (Hauptursache für die langen Spinner nach dem Shuffle).
+    window.scrollTo(0, 0);
+    renderGrid();
+  };
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    apply();
+    toast('Neu gemischt');
+    return;
+  }
+  _shuffleBusy = true;
+  playShuffleOverlay(apply);
 }
 $('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); doShuffle(); };
 $('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };

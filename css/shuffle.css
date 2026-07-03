@@ -1,0 +1,62 @@
+/* ── Shuffle-Overlay ──────────────────────────────────────────────────
+   Liegt beim Neu-Mischen ~1 s über dem Grid. z-index 29 hält es unter
+   Topbar und Bottombar-Pill (beide 30) – Header und Pill bleiben also
+   sichtbar, nur das Grid wird abgedeckt. Währenddessen wirbeln kleine
+   9:16-Rechtecke (Mini-Kacheln) durcheinander; darunter wird unbemerkt
+   neu gemischt, gerendert und nach oben gescrollt (js/app.js, doShuffle). */
+.shuffle-overlay{
+  position:fixed;inset:0;z-index:29;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+  background:rgba(5,5,5,.72);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
+  opacity:0;pointer-events:none;
+  transition:opacity .16s ease;
+}
+.shuffle-overlay.show{opacity:1;pointer-events:auto}
+.shuffle-overlay.hide{opacity:0;pointer-events:none;transition:opacity .22s ease .04s}
+
+/* Bühne der Mini-Kacheln: poppt mit Overshoot rein (sehr dynamisch) und
+   fliegt beim Schließen vergrößert wieder raus. */
+.shuffle-stage{
+  position:relative;
+  transform:scale(.35);opacity:0;
+  transition:transform .34s cubic-bezier(.26,1.5,.42,1),opacity .16s ease;
+}
+.shuffle-overlay.show .shuffle-stage{transform:scale(1);opacity:1}
+.shuffle-overlay.hide .shuffle-stage{
+  transform:scale(1.4);opacity:0;
+  transition:transform .24s cubic-bezier(.5,0,.75,.35),opacity .2s ease;
+}
+
+/* Mini-Kacheln im 9:16-Format der echten Grid-Zellen. Position kommt als
+   translate() aus js/app.js; die Transition lässt jede Misch-Runde mit der
+   App-typischen Feder-Kurve auf ihren neuen Platz gleiten. */
+.shuffle-tile{
+  position:absolute;left:0;top:0;
+  border-radius:5px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.1);
+  transition:transform .3s cubic-bezier(.32,1,.23,1);
+  will-change:transform;
+}
+/* Unterschiedliche Helligkeiten wie Bild-Platzhalter – so bleibt das
+   Durchmischen der Rechtecke ablesbar. */
+.shuffle-tile:nth-child(3n){background:rgba(255,255,255,.22)}
+.shuffle-tile:nth-child(3n+2){background:rgba(255,255,255,.05)}
+
+/* Pixel-Label im Stil des Boot-Screens; die .ls-dot-Keyframes kommen aus
+   loading.css und tippen die Punkte nacheinander. */
+.shuffle-label{
+  font-family:'Press Start 2P',monospace;
+  font-size:10px;letter-spacing:.14em;
+  color:rgba(255,255,255,.75);
+  transform:translateY(8px);opacity:0;
+  transition:transform .3s cubic-bezier(.32,1,.23,1),opacity .2s ease .06s;
+}
+.shuffle-overlay.show .shuffle-label{transform:translateY(0);opacity:1}
+.shuffle-overlay.hide .shuffle-label{opacity:0;transition:opacity .15s ease}
+
+@media (prefers-reduced-motion:reduce){
+  .shuffle-overlay,.shuffle-stage,.shuffle-tile,.shuffle-label{transition:none}
+}
