@@ -7,7 +7,7 @@
   /* Kein backdrop-filter: Der Hintergrund ist ohnehin fast deckend schwarz und
      wird komplett von den Ambient-Ebenen verdeckt – ein Vollbild-Backdrop-Blur
      pro Frame wäre reine GPU-Verschwendung und ließ das Öffnen ruckeln. */
-  touch-action: pan-y; overflow: hidden;
+  touch-action: none; overflow: hidden;
 }
 .lightbox.show { display: flex; }
 

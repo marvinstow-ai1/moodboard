@@ -1516,6 +1516,7 @@ lightbox.addEventListener('touchstart', e=>{ txS=e.touches[0].clientX; tyS=e.tou
 lightbox.addEventListener('touchend', e=>{
   const dx=e.changedTouches[0].clientX-txS, dy=e.changedTouches[0].clientY-tyS;
   if(Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>40) lbNavigate(dx<0?1:-1);
+  else if(Math.abs(dy)>Math.abs(dx) && Math.abs(dy)>40) lbNavigate(dy<0?1:-1);
 }, {passive:true});
 
 
