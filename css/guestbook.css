@@ -132,6 +132,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   width:100%;height:46px;border-radius:12px;
   border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;
   padding:0 14px;font-size:16px;font-weight:500;outline:none;transition:border-color .15s;
+  -webkit-appearance:none;appearance:none;
 }
 .gbm-input::placeholder{color:rgba(255,255,255,.35)}
 .gbm-input:focus{border-color:rgba(255,255,255,.32)}

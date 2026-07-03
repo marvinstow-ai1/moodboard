@@ -50,7 +50,7 @@
   background:
     radial-gradient(38% 32% at 22% 28%, rgba(120,150,255,.16), transparent 70%),
     radial-gradient(34% 30% at 80% 18%, rgba(255,140,200,.12), transparent 70%),
-    radial-gradient(40% 36% at 65% 72%, rgba(120,255,210,.10), transparent 70%);
+    radial-gradient(48% 42% at 60% 78%, rgba(120,255,210,.16), transparent 70%);
   opacity:0;
   transition:opacity .6s ease .05s;
 }
