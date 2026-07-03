@@ -17,7 +17,11 @@
 
 /* Die Seite selbst – standardmäßig verborgen. */
 .info-page{
-  position:fixed;inset:0;z-index:70;
+  position:fixed;top:0;left:0;right:0;z-index:70;
+  /* Höhe über die live gemessene --app-vh (index.html) statt inset:0 –
+     so bleibt die Seite exakt bündig mit der Bildschirmunterkante, auch
+     wenn Safaris Adressleiste ein-/ausfährt. Fallback 100vh ohne JS. */
+  height:100vh;height:var(--app-vh,100vh);
   display:flex;flex-direction:column;
   background:var(--bg);
   opacity:0;visibility:hidden;pointer-events:none;

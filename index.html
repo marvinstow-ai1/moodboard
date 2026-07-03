@@ -45,6 +45,24 @@
   if(!authed) document.documentElement.classList.add('gate-open');
 })();
 </script>
+<script>
+/* Echte sichtbare Höhe als CSS-Var (--app-vh), synchron VOR dem ersten
+   Paint gesetzt und bei jeder Änderung nachgeführt. iOS Safari ändert die
+   Höhe der ein-/ausfahrenden Adressleiste, ohne dass 100vh/100dvh das an
+   position:fixed-Vollbild-Seiten (.info-page, .gb-page) zuverlässig
+   weitergibt – dadurch blieb unten ein abgeschnittener Streifen stehen.
+   window.visualViewport misst die tatsächlich sichtbare Fläche live. */
+(function(){
+  function setAppVh(){
+    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    document.documentElement.style.setProperty('--app-vh', h + 'px');
+  }
+  setAppVh();
+  window.addEventListener('resize', setAppVh);
+  window.addEventListener('orientationchange', setAppVh);
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', setAppVh);
+})();
+</script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
 <body>

@@ -6,7 +6,11 @@
 
 /* Seite – gleiche Show/Hide-Mechanik wie .info-page. */
 .gb-page{
-  position:fixed;inset:0;z-index:70;
+  position:fixed;top:0;left:0;right:0;z-index:70;
+  /* Höhe über die live gemessene --app-vh (index.html) statt inset:0 –
+     so bleibt die Seite exakt bündig mit der Bildschirmunterkante, auch
+     wenn Safaris Adressleiste ein-/ausfährt. Fallback 100vh ohne JS. */
+  height:100vh;height:var(--app-vh,100vh);
   display:flex;flex-direction:column;
   /* Grünes Ambient-Licht direkt auf der Vollbild-Seite verankert (fixed=
      exakter Screen), damit es garantiert bis zum untersten Bildschirmrand
@@ -95,12 +99,15 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 .gb-entry-del:hover{opacity:.9;background:rgba(255,255,255,.08)}
 
-/* Schwebender "Eintragen"-Button über der Liste. */
+/* Schwebender "Eintragen"-Button über der Liste – exakt auf Höhe der
+   .bottombar-Pill im Grid (42px Button + 6px Padding + 1px Border je
+   Seite = 56px Gesamthöhe), gleicher bottom-Abstand (16px), damit beide
+   Pills bündig auf derselben Bildschirmhöhe sitzen. */
 .gb-add{
   position:absolute;left:50%;bottom:16px;
   transform:translateX(-50%);z-index:3;
   display:flex;align-items:center;gap:8px;
-  height:40px;border:1px solid rgba(255,255,255,.16);border-radius:999px;
+  height:56px;border:1px solid rgba(255,255,255,.16);border-radius:999px;
   background:rgba(255,255,255,.12);color:#fff;
   -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
   padding:0 22px;font-size:14px;font-weight:700;letter-spacing:.02em;
