@@ -197,14 +197,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
-        </span> <span id="hubLoginLabel">Login</span></button>
+        </span> <span class="hub-login-label" id="hubLoginLabel">Login</span></button>
       <button class="hub-item admin-only" data-hub="menu" role="menuitem">
         <span class="hub-ic">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
             <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </span> Verwalten</button>
-      <button class="hub-item admin-only" data-hub="access" id="hubAccessItem" role="menuitem">
+      <button class="hub-item admin-only hub-access-item" data-hub="access" id="hubAccessItem" role="menuitem">
         <span class="hub-ic">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -633,14 +633,50 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 <div class="info-page" id="infoPage" role="dialog" aria-modal="true" aria-label="Info" aria-hidden="true">
   <div class="info-ambient" aria-hidden="true"></div>
 
-  <header class="info-top">
-    <button class="info-back" id="infoClose" aria-label="Zurück">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-    </button>
-    <span class="info-top-title">Info</span>
-  </header>
+  <!-- Kopfzeile: 1:1-Spiegelung des Haupt-Headers (.topbar). Titel führt zur
+       Startseite zurück, das Hamburger-Menü verhält sich wie im Board. -->
+  <div class="topbar in-page">
+    <span class="board-title page-home" role="button" tabindex="0" aria-label="Zur Startseite">Marvin's Place</span>
+
+    <div class="topbar-right">
+      <button class="menubtn hubbtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
+      <div class="hub-menu" role="menu">
+        <button class="hub-item" data-hub="info" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/>
+              <circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none"/>
+            </svg>
+          </span> Info</button>
+        <button class="hub-item" data-hub="login" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span> <span class="hub-login-label">Login</span></button>
+        <button class="hub-item admin-only" data-hub="menu" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </span> Verwalten</button>
+        <button class="hub-item admin-only hub-access-item" data-hub="access" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M17 11l2 2 4-4"/>
+            </svg>
+          </span> Zugriffe<span class="acc-dot"></span></button>
+      </div>
+    </div>
+  </div>
 
   <div class="info-scroll">
     <div class="info-inner">
@@ -689,14 +725,50 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 <div class="gb-page" id="gbPage" role="dialog" aria-modal="true" aria-label="Gästebuch" aria-hidden="true">
   <div class="info-ambient" aria-hidden="true"></div>
 
-  <header class="info-top">
-    <button class="info-back" id="gbClose" aria-label="Zurück">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-    </button>
-    <span class="info-top-title">Gästebuch</span>
-  </header>
+  <!-- Kopfzeile: 1:1-Spiegelung des Haupt-Headers (.topbar). Titel führt zur
+       Startseite zurück, das Hamburger-Menü verhält sich wie im Board. -->
+  <div class="topbar in-page">
+    <span class="board-title page-home" role="button" tabindex="0" aria-label="Zur Startseite">Marvin's Place</span>
+
+    <div class="topbar-right">
+      <button class="menubtn hubbtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
+      <div class="hub-menu" role="menu">
+        <button class="hub-item" data-hub="info" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/>
+              <circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none"/>
+            </svg>
+          </span> Info</button>
+        <button class="hub-item" data-hub="login" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span> <span class="hub-login-label">Login</span></button>
+        <button class="hub-item admin-only" data-hub="menu" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </span> Verwalten</button>
+        <button class="hub-item admin-only hub-access-item" data-hub="access" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M17 11l2 2 4-4"/>
+            </svg>
+          </span> Zugriffe<span class="acc-dot"></span></button>
+      </div>
+    </div>
+  </div>
 
   <div class="gb-scroll" id="gbScroll">
     <div class="gb-inner">

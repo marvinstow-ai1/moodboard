@@ -80,8 +80,10 @@ function updateAdminUI() {
   const btn = $('loginBtn');
   if (btn) btn.classList.toggle('is-owner', owner);
   // Der Hub-Menüpunkt "Login" wirkt für Eingeloggte als Abmelden.
-  const label = $('hubLoginLabel');
-  if (label) label.textContent = hasSession ? 'Abmelden' : 'Login';
+  // (querySelectorAll: der Header ist auf Info-/Gästebuch-Seite gespiegelt.)
+  document.querySelectorAll('.hub-login-label').forEach(label => {
+    label.textContent = hasSession ? 'Abmelden' : 'Login';
+  });
 }
 
 function isOwnerSession(session) {
@@ -1009,7 +1011,7 @@ function isAnyOverlayOpen(){
          editorWrap.classList.contains('show') ||
          !!document.getElementById('spotifyPopup')?.classList.contains('show') ||
          !!document.getElementById('moodChatPanel')?.classList.contains('show') ||
-         !!document.getElementById('hubMenu')?.classList.contains('show');
+         !!document.querySelector('.hub-menu.show');
 }
 $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
 sheetOverlay.onclick = closeMenu;
@@ -2564,7 +2566,8 @@ async function refreshAccessBadge() {
     .select('id', { count: 'exact', head: true })
     .eq('status', 'pending');
   if (error) return;
-  $('hubAccessItem')?.classList.toggle('has-pending', (count ?? 0) > 0);
+  document.querySelectorAll('.hub-access-item').forEach(el =>
+    el.classList.toggle('has-pending', (count ?? 0) > 0));
 }
 
 async function renderAccessList() {

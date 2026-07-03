@@ -58,7 +58,7 @@ function closePage(){
 }
 
 $('guestbookBtn')?.addEventListener('click', e => { e.stopPropagation(); openPage(); });
-$('gbClose').addEventListener('click', closePage);
+$('gbClose')?.addEventListener('click', closePage);
 
 // ── Einträge laden & rendern ───────────────────────────────────────────────
 async function isOwner(){
