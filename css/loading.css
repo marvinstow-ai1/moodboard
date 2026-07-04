@@ -19,6 +19,18 @@
 
 .ls-inner{display:flex;flex-direction:column;align-items:center;gap:22px;padding:24px;text-align:center}
 
+/* Master-Shake-Sprite über dem Titel: 7 Frames à 64px im Strip
+   (img/shake-sprite.png), 2x hochskaliert und im Pixel-Takt (steps)
+   endlos durchgeschaltet. */
+.ls-shake{
+  width:128px;height:128px;
+  background:url('../img/shake-sprite.png') 0 0 no-repeat;
+  background-size:896px 128px;
+  image-rendering:pixelated;
+  animation:ls-shake-cycle 1.05s steps(7) infinite;
+}
+@keyframes ls-shake-cycle{to{background-position-x:-896px}}
+
 .ls-title{
   font-family:'Press Start 2P',monospace;
   font-size:clamp(16px,5vw,28px);
@@ -62,7 +74,7 @@
 .ls-percent{font-family:'Press Start 2P',monospace;font-size:11px;color:rgba(255,255,255,.85);margin-top:-8px}
 
 @media (prefers-reduced-motion:reduce){
-  .ls-title,.ls-dot{animation:none}
+  .ls-title,.ls-dot,.ls-shake{animation:none}
   .ls-dot{opacity:1}
   .loading-screen{transition:opacity .2s linear}
   .ls-bar-fill{transition:width .3s linear}
