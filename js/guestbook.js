@@ -3,10 +3,13 @@
 // ----------------------------------------------------------------------------
 // Öffnet sich als vollflächige Seite (wie die Info-Page) über den Buch-Button
 // in der Bottom-Bar. "Eintragen" öffnet ein Modal mit Name + Instagram und
-// einem Unterschrift-Feld; ein Tipp darauf öffnet das Malfeld (Canvas).
-// Die Unterschrift wird als zugeschnittenes, transparentes PNG in den
-// Storage-Bucket (guestbook/) hochgeladen, der Eintrag landet in
+// einem Unterschrift-Feld; ein Tipp darauf öffnet das fast vollflächige
+// Malfeld (Canvas im 4:5-Format, Stift- & Hintergrundfarbe wählbar).
+// Das Bild wird als PNG (Hintergrundfarbe eingebacken) in den Storage-
+// Bucket (guestbook/) hochgeladen, der Eintrag landet in
 // public.guestbook_entries (RLS: nur Mitglieder, siehe db/guestbook.sql).
+// Die Einträge werden als 2-spaltiges Kachel-Raster im Insta-Feed-Stil
+// gerendert (css/guestbook.css).
 // ============================================================================
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -24,6 +27,7 @@ const modal   = $('gbModal');
 const draw    = $('gbDraw');
 const canvas  = $('gbdCanvas');
 const wrap    = $('gbdCanvasWrap');
+const area    = $('gbdCanvasArea');
 const sigBox  = $('gbmSigBox');
 const sigPrev = $('gbmSigPreview');
 const sigHint = $('gbmSigHint');
@@ -104,13 +108,17 @@ async function loadEntries(){
       : '';
     return `
       <div class="gb-entry">
+        <div class="gb-entry-media">
+          <img src="${esc(e.signature_url)}" loading="lazy" decoding="async" alt="Eintrag von ${esc(e.name)}">
+          ${del}
+        </div>
         <div class="gb-entry-meta">
           <span class="gb-entry-name">${esc(e.name)} <span class="gb-entry-warhier">war hier</span></span>
-          ${insta}
-          <span class="gb-entry-date">${fmtDate(e.created_at)}</span>
+          <div class="gb-entry-sub">
+            ${insta}
+            <span class="gb-entry-date">${fmtDate(e.created_at)}</span>
+          </div>
         </div>
-        <span class="gb-entry-sig"><img src="${esc(e.signature_url)}" loading="lazy" decoding="async" alt="Unterschrift von ${esc(e.name)}"></span>
-        ${del}
       </div>`;
   }).join('');
 
@@ -172,7 +180,8 @@ modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
 // ── Malfeld (Canvas) ───────────────────────────────────────────────────────
 const ctx = canvas.getContext('2d');
 let drawing = false, hasInk = false, lastX = 0, lastY = 0;
-let penColor = '#ffffff';   // aktuelle Stiftfarbe (Swatches unterm Titel)
+let penColor = '#ffffff';   // aktuelle Stiftfarbe
+let bgColor  = '#17171a';   // Hintergrundfarbe – live als Wrap-Farbe, beim Export eingebacken
 
 // Farbauswahl: Klick auf einen Swatch wechselt die Stiftfarbe; bereits
 // Gemaltes bleibt stehen, nur neue Striche bekommen die neue Farbe.
@@ -186,12 +195,37 @@ colorsRow?.querySelectorAll('.gbd-color').forEach(btn => {
   });
 });
 
-// Canvas in Gerätepixeln aufziehen, damit die Linie auch auf Retina knackig ist.
+// Hintergrundfarbe: liegt nur als Wrap-Hintergrund UNTER der (transparenten)
+// Zeichenfläche – Gemaltes bleibt beim Wechsel stehen. Auf hellen Farben
+// kippt der "Hier malen"-Hinweis auf dunkle Schrift.
+function isLightColor(hex){
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) > 150;
+}
+const bgRow = $('gbdBgColors');
+bgRow?.querySelectorAll('.gbd-color').forEach(btn => {
+  btn.addEventListener('click', () => {
+    bgColor = btn.dataset.color;
+    wrap.style.backgroundColor = bgColor;
+    wrap.classList.toggle('light-bg', isLightColor(bgColor));
+    bgRow.querySelector('.is-active')?.classList.remove('is-active');
+    btn.classList.add('is-active');
+  });
+});
+
+// Wrap als größtes 4:5-Rechteck in den freien Bereich einpassen (gleiche
+// Ratio wie die Feed-Kacheln) und den Canvas in Gerätepixeln aufziehen,
+// damit die Linie auch auf Retina knackig ist.
+const CANVAS_RATIO = 4 / 5;   // Breite : Höhe
 function setupCanvas(){
-  const r = wrap.getBoundingClientRect();
+  const a = area.getBoundingClientRect();
+  let w = a.width, h = w / CANVAS_RATIO;
+  if(h > a.height){ h = a.height; w = h * CANVAS_RATIO; }
+  wrap.style.width  = `${Math.round(w)}px`;
+  wrap.style.height = `${Math.round(h)}px`;
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  canvas.width  = Math.round(r.width * dpr);
-  canvas.height = Math.round(r.height * dpr);
+  canvas.width  = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -249,36 +283,24 @@ $('gbdClear').addEventListener('click', () => {
 $('gbdCancel').addEventListener('click', closeDraw);
 draw.addEventListener('click', e => { if(e.target === draw) closeDraw(); });
 
-// Unterschrift auf ihre Bounding-Box zuschneiden (mit etwas Rand), damit sie
-// im Eintrag ohne Riesen-Leerraum skaliert. Liefert einen PNG-Blob.
-function trimmedSignature(){
-  const w = canvas.width, h = canvas.height;
-  const img = ctx.getImageData(0, 0, w, h).data;
-  let minX = w, minY = h, maxX = -1, maxY = -1;
-  for(let y = 0; y < h; y++){
-    for(let x = 0; x < w; x++){
-      if(img[(y * w + x) * 4 + 3] > 0){
-        if(x < minX) minX = x;
-        if(x > maxX) maxX = x;
-        if(y < minY) minY = y;
-        if(y > maxY) maxY = y;
-      }
-    }
-  }
-  if(maxX < 0) return Promise.resolve(null);   // leer
-  const pad = 12;
-  minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
-  maxX = Math.min(w - 1, maxX + pad); maxY = Math.min(h - 1, maxY + pad);
+// Ganzes Bild exportieren, genau wie im Malfeld zu sehen: erst die
+// Hintergrundfarbe, darüber die Striche. Große Retina-Canvases werden auf
+// max. 900px Breite verkleinert, damit das PNG klein bleibt.
+function exportDrawing(){
+  const scale = Math.min(1, 900 / canvas.width);
   const out = document.createElement('canvas');
-  out.width = maxX - minX + 1;
-  out.height = maxY - minY + 1;
-  out.getContext('2d').drawImage(canvas, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+  out.width  = Math.round(canvas.width * scale);
+  out.height = Math.round(canvas.height * scale);
+  const octx = out.getContext('2d');
+  octx.fillStyle = bgColor;
+  octx.fillRect(0, 0, out.width, out.height);
+  octx.drawImage(canvas, 0, 0, out.width, out.height);
   return new Promise(res => out.toBlob(res, 'image/png'));
 }
 
 $('gbdDone').addEventListener('click', async () => {
   if(!hasInk){ closeDraw(); return; }
-  const blob = await trimmedSignature();
+  const blob = await exportDrawing();
   if(!blob){ closeDraw(); return; }
   sigBlob = blob;
   if(sigPrev.src) URL.revokeObjectURL(sigPrev.src);
@@ -295,7 +317,7 @@ $('gbmSave').addEventListener('click', async () => {
   const name = $('gbmName').value.trim();
   const insta = $('gbmInsta').value.trim().replace(/^@/, '').replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '').replace(/\/.*$/, '');
   if(!name){ showError('Bitte deinen Namen eintragen'); return; }
-  if(!sigBlob){ showError('Bitte noch unterschreiben ✍️'); return; }
+  if(!sigBlob){ showError('Bitte noch malen oder unterschreiben ✍️'); return; }
 
   const btn = $('gbmSave');
   btn.disabled = true;

@@ -776,7 +776,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <div class="gb-hero">
         <div class="info-hero-badge">✍️</div>
         <h1 class="info-hero-title">Gästebuch</h1>
-        <p class="gb-hero-sub">Verewige dich mit deiner Unterschrift.</p>
+        <p class="gb-hero-sub">Verewige dich mit einer Zeichnung oder deiner Unterschrift.</p>
       </div>
       <div class="gb-list" id="gbList">
         <div class="gb-status" id="gbStatus">Lade…</div>
@@ -801,13 +801,13 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <span class="gbm-at">@</span>
       <input class="gbm-input" id="gbmInsta" placeholder="Instagram (optional)" maxlength="60" autocomplete="off" autocapitalize="none">
     </div>
-    <button class="gbm-sig-box" id="gbmSigBox" type="button" aria-label="Unterschrift malen">
+    <button class="gbm-sig-box" id="gbmSigBox" type="button" aria-label="Zeichnung oder Unterschrift malen">
       <img class="gbm-sig-preview" id="gbmSigPreview" alt="" hidden>
       <span class="gbm-sig-hint" id="gbmSigHint">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
           <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
         </svg>
-        Tippen &amp; Unterschrift malen
+        Tippen &amp; malen
       </span>
     </button>
     <div class="gbm-error" id="gbmError">&nbsp;</div>
@@ -818,24 +818,45 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   </div>
 </div>
 
-<!-- Malfeld: öffnet sich über dem Modal, Canvas zum Unterschreiben -->
-<div class="gb-draw" id="gbDraw" role="dialog" aria-modal="true" aria-label="Unterschrift malen">
+<!-- Malfeld: öffnet sich fast vollflächig über dem Modal. Canvas im festen
+     4:5-Format (wie die Feed-Kacheln), Stift- UND Hintergrundfarbe wählbar. -->
+<div class="gb-draw" id="gbDraw" role="dialog" aria-modal="true" aria-label="Zeichnung oder Unterschrift malen">
   <div class="gbd-content">
     <div class="gbd-head">
-      <span class="gbd-title">Deine Unterschrift</span>
+      <span class="gbd-title">Deine Zeichnung</span>
       <button class="gbd-clear" id="gbdClear" type="button">Löschen</button>
     </div>
-    <div class="gbd-colors" id="gbdColors" role="radiogroup" aria-label="Stiftfarbe">
-      <button class="gbd-color is-active" type="button" data-color="#ffffff" style="--c:#ffffff" aria-label="Weiß"></button>
-      <button class="gbd-color" type="button" data-color="#78ffd2" style="--c:#78ffd2" aria-label="Mint"></button>
-      <button class="gbd-color" type="button" data-color="#7896ff" style="--c:#7896ff" aria-label="Blau"></button>
-      <button class="gbd-color" type="button" data-color="#ff8cc8" style="--c:#ff8cc8" aria-label="Pink"></button>
-      <button class="gbd-color" type="button" data-color="#ffd966" style="--c:#ffd966" aria-label="Gelb"></button>
-      <button class="gbd-color" type="button" data-color="#ff7b7b" style="--c:#ff7b7b" aria-label="Rot"></button>
+    <div class="gbd-tools">
+      <div class="gbd-tool">
+        <span class="gbd-tool-label">Stift</span>
+        <div class="gbd-colors" id="gbdColors" role="radiogroup" aria-label="Stiftfarbe">
+          <button class="gbd-color is-active" type="button" data-color="#ffffff" style="--c:#ffffff" aria-label="Weiß"></button>
+          <button class="gbd-color" type="button" data-color="#000000" style="--c:#000000" aria-label="Schwarz"></button>
+          <button class="gbd-color" type="button" data-color="#0a84ff" style="--c:#0a84ff" aria-label="Blau"></button>
+          <button class="gbd-color" type="button" data-color="#ff3b30" style="--c:#ff3b30" aria-label="Rot"></button>
+          <button class="gbd-color" type="button" data-color="#30d158" style="--c:#30d158" aria-label="Grün"></button>
+          <button class="gbd-color" type="button" data-color="#ffd60a" style="--c:#ffd60a" aria-label="Gelb"></button>
+          <button class="gbd-color" type="button" data-color="#ff8cc8" style="--c:#ff8cc8" aria-label="Pink"></button>
+          <button class="gbd-color" type="button" data-color="#78ffd2" style="--c:#78ffd2" aria-label="Mint"></button>
+        </div>
+      </div>
+      <div class="gbd-tool">
+        <span class="gbd-tool-label">Hintergrund</span>
+        <div class="gbd-colors" id="gbdBgColors" role="radiogroup" aria-label="Hintergrundfarbe">
+          <button class="gbd-color is-active" type="button" data-color="#17171a" style="--c:#17171a" aria-label="Dunkel"></button>
+          <button class="gbd-color" type="button" data-color="#000000" style="--c:#000000" aria-label="Schwarz"></button>
+          <button class="gbd-color" type="button" data-color="#ffffff" style="--c:#ffffff" aria-label="Weiß"></button>
+          <button class="gbd-color" type="button" data-color="#f2e7d5" style="--c:#f2e7d5" aria-label="Creme"></button>
+          <button class="gbd-color" type="button" data-color="#142c47" style="--c:#142c47" aria-label="Blau"></button>
+          <button class="gbd-color" type="button" data-color="#f6dce8" style="--c:#f6dce8" aria-label="Rosa"></button>
+        </div>
+      </div>
     </div>
-    <div class="gbd-canvas-wrap" id="gbdCanvasWrap">
-      <canvas id="gbdCanvas"></canvas>
-      <span class="gbd-hint" id="gbdHint">Hier malen ✍️</span>
+    <div class="gbd-canvas-area" id="gbdCanvasArea">
+      <div class="gbd-canvas-wrap" id="gbdCanvasWrap">
+        <canvas id="gbdCanvas"></canvas>
+        <span class="gbd-hint" id="gbdHint">Hier malen ✍️</span>
+      </div>
     </div>
     <div class="gbm-actions">
       <button class="gbm-btn cancel" id="gbdCancel" type="button">Abbrechen</button>
