@@ -19,10 +19,11 @@
 /* Die Seite selbst – standardmäßig verborgen. */
 .info-page{
   position:fixed;top:0;left:0;right:0;z-index:70;
-  /* Höhe über die live gemessene --app-vh (index.html) statt inset:0 –
-     so bleibt die Seite exakt bündig mit der Bildschirmunterkante, auch
-     wenn Safaris Adressleiste ein-/ausfährt. Fallback 100vh ohne JS. */
-  height:100vh;height:var(--app-vh,100vh);
+  /* Volle Bildschirmhöhe wie das Gästebuch: 100lvh = größtmöglicher Viewport
+     (Safari-Toolbar eingefahren). Das Glas deckt den Screen damit in JEDEM
+     Toolbar-Zustand komplett ab – unten bleibt kein abgeschnittener Streifen
+     mehr stehen. Fallback 100vh ohne lvh-Support. */
+  height:100vh;height:100lvh;
   display:flex;flex-direction:column;
   /* Fallback ohne backdrop-filter-Support: solide Fläche wie früher.
      Mit Support (siehe @supports unten) wird die Seite zum Glas-Popup:
@@ -90,7 +91,10 @@
 .info-scroll{
   position:relative;z-index:1;flex:1;min-height:0;
   overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  padding:8px 20px calc(40px + env(safe-area-inset-bottom));
+  /* Seite ist 100lvh hoch (ggf. höher als sichtbar) – das Extra-Padding
+     (100lvh - sichtbare Höhe) hebt das Inhaltsende über die Toolbar, die
+     +120px halten es zusätzlich über der global fixierten Bottom-Pill frei. */
+  padding:8px 20px calc(100lvh - var(--app-vh,100lvh) + 120px + env(safe-area-inset-bottom));
 }
 .info-inner{width:min(720px,100%);margin:0 auto}
 
