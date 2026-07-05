@@ -975,19 +975,20 @@ function updateBodyLock(){
   // Harte Sperre für Modals/Lightbox/Sheets: friert die Scrollposition per
   // body{position:fixed} + top:-scrollY ein und stellt sie beim Schließen wieder
   // her. Für Vollbild-Overlays mit eigenem Scrollbereich.
-  const lock = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'))
-    || (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
+  const lock = (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
     || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'));
-  // Weiche Sperre für die Glas-Popups (Info-Seite & Gästebuch): sie liegen als
-  // Vollbild-Overlay über dem Grid, der Hintergrund soll dabei still stehen. Ein
-  // harter Body-Lock (position:fixed) scheidet aus – er würde auf iOS die Toolbar
-  // ausfahren und die global fixierte Bottom-Pill springen lassen. Stattdessen
-  // nur html{overflow:hidden}: stoppt das Durchscrollen auf den Grid, lässt den
-  // Hintergrund aber an seiner Position sichtbar (Videos laufen weiter). Bei
-  // aktiver harter Sperre nicht nötig – die deckt overflow:hidden schon ab.
-  const softLock = !lock && !!document.querySelector('.info-page.show, .gb-page.show');
+  // Weiche Sperre für die Vollbild-Overlays (Lightbox, Info-Seite & Gästebuch):
+  // sie liegen über dem Grid, der Hintergrund soll dabei still stehen. Ein harter
+  // Body-Lock (position:fixed) scheidet aus – er fährt auf iOS Safari die Toolbar
+  // wieder AUS (obwohl sie beim Scrollen im Grid längst eingefahren war), wodurch
+  // unten ein dicker schwarzer Balken erscheint und die Lightbox nicht mehr
+  // vollflächig wirkt. html{overflow:hidden} stoppt das Durchscrollen ebenso,
+  // lässt die Toolbar aber eingefahren – die Lightbox bleibt so fullscreen wie
+  // das Grid dahinter.
+  const lbShown = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'));
+  const softLock = !lock && (lbShown || !!document.querySelector('.info-page.show, .gb-page.show'));
   document.documentElement.classList.toggle('no-scroll-soft', softLock);
   // Dynamische Pill: auf Info-/Gästebuch-Seiten Shuffle + Kachelgröße einziehen
   // (dort ohne Funktion) – nur Spotify, Chat und Navigation bleiben stehen.
