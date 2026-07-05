@@ -154,7 +154,7 @@
 .mood-tile-create .mtc-plus{width:48px;height:48px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;font-size:26px;display:grid;place-items:center;backdrop-filter:blur(16px);font-weight:300;line-height:1}
 .mood-tile-create .mtc-label{font-size:13px;font-weight:600;letter-spacing:.02em;opacity:.85}
 
-.mood-create-modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
+.mood-create-modal{position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
 .mood-create-modal.show{display:flex}
 .mcm-content{width:min(380px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
 .mcm-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}
@@ -169,7 +169,7 @@
 .mcm-error{font-size:12px;color:#ff7373;margin-top:-8px;margin-bottom:12px;min-height:14px;opacity:0;transition:opacity .15s}
 .mcm-error.show{opacity:1}
 /* ── Confirm Delete Popup ──────────────────────────── */
-.confirm-popup{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.78);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
+.confirm-popup{position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:95;background:rgba(0,0,0,.78);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
 .confirm-popup.show{display:flex}
 .cfm-content{width:min(360px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:28px 20px 20px;box-shadow:0 24px 60px rgba(0,0,0,.7);position:relative}
 .cfm-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;font-size:13px;display:grid;place-items:center;transition:.15s;flex-shrink:0;padding:0;line-height:1}
@@ -181,7 +181,7 @@
 .cfm-btn.cancel{background:rgba(255,255,255,.06);color:#fff}
 .cfm-btn.confirm{background:#ff4d4d;color:#fff;border-color:#ff4d4d}
 /* ── Moods Management Popup ──────────────────────────── */
-.moods-mgmt-popup{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
+.moods-mgmt-popup{position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
 .moods-mgmt-popup.show{display:flex}
 .mmg-content{width:min(420px,calc(100vw - 40px));max-height:80vh;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow-y:auto}
 .mmg-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}
@@ -231,7 +231,7 @@
 .moods-mgmt-btn:active{background:rgba(255,255,255,.22);transform:scale(.97);transition:background-color .05s ease,transform .05s ease}
 .moods-mgmt-btn svg{width:18px;height:18px;display:block;flex-shrink:0}
 /* ── Login Modal ─────────────────────────────────────── */
-.login-modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
+.login-modal{position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:90;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px}
 .login-modal.show{display:flex}
 .lm-content{width:min(340px,100%);background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.7)}
 .lm-title{font-size:15px;font-weight:700;margin-bottom:14px;letter-spacing:.02em}

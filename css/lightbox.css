@@ -1,6 +1,11 @@
 /* ── LIGHTBOX ────────────────────────────────────────── */
 .lightbox {
-  position: fixed; inset: 0; z-index: 80;
+  /* Volle Bildschirmhöhe wie Info-Seite & Gästebuch: 100lvh = größtmöglicher
+     Viewport (Safari-Toolbar eingefahren). So deckt die Lightbox den Screen in
+     JEDEM Toolbar-Zustand komplett ab – unten bleibt kein schwarzer Streifen
+     mehr stehen. Fallback 100vh ohne lvh-Support. */
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 100vh; height: 100lvh; z-index: 80;
   background: rgba(0,0,0,.92);
   display: none; flex-direction: column;
   align-items: stretch;
@@ -45,10 +50,10 @@
 }
 
 .lb-topbar {
-  flex-shrink: 0; height: 64px;
+  flex-shrink: 0; height: calc(64px + env(safe-area-inset-top));
   display: flex; align-items: center;
   justify-content: flex-end;
-  padding: 0 16px; z-index: 2; position: relative;
+  padding: env(safe-area-inset-top) 16px 0; z-index: 2; position: relative;
 }
 
 .lb-stage {
@@ -90,10 +95,10 @@
 }
 
 .lb-bottombar {
-  flex-shrink: 0; height: 72px;
+  flex-shrink: 0; height: calc(72px + env(safe-area-inset-bottom));
   display: flex; align-items: center;
   justify-content: center;
-  padding: 0 20px; gap: 10px; z-index: 2;
+  padding: 0 20px env(safe-area-inset-bottom); gap: 10px; z-index: 2;
   position: relative;
 }
 /* Herz-Button */

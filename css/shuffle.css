@@ -5,7 +5,7 @@
    9:16-Rechtecke (Mini-Kacheln) durcheinander; darunter wird unbemerkt
    neu gemischt, gerendert und nach oben gescrollt (js/app.js, doShuffle). */
 .shuffle-overlay{
-  position:fixed;inset:0;z-index:29;
+  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:29;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
   background:rgba(5,5,5,.72);
   backdrop-filter:blur(22px);

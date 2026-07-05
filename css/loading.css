@@ -4,7 +4,7 @@
    steuert js/app.js (revealWhenReady); die Pixel-Zellen und der frühe
    "Kriech"-Fortschritt kommen aus dem Inline-Script in index.html. */
 .loading-screen{
-  position:fixed;inset:0;z-index:999;
+  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:999;
   background:var(--bg);
   display:flex;align-items:center;justify-content:center;
   transition:opacity .45s steps(6);

@@ -6,7 +6,7 @@
    synchron, ob eine Session im localStorage liegt – so blitzt für bereits
    eingeloggte Nutzer kein Gate auf); die Logik wohnt in js/app.js. */
 .gate{
-  position:fixed;inset:0;z-index:1200;
+  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:1200;
   background:var(--bg);
   display:none;align-items:center;justify-content:center;
   transition:opacity .45s steps(6);
@@ -142,7 +142,7 @@ html.gate-open .loading-screen{display:none}
 
 /* ── Nutzungshinweise-Popup (über dem Gate) ─────────────────── */
 .gate-info-popup{
-  position:fixed;inset:0;z-index:1300;display:none;
+  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:1300;display:none;
   align-items:center;justify-content:center;padding:18px;
   background:rgba(0,0,0,.72);
 }
@@ -180,7 +180,7 @@ html.gate-open .loading-screen{display:none}
 
 /* ── Owner: "Zugriffe"-Verwaltung ───────────────────────────── */
 .access-popup{
-  position:fixed;inset:0;z-index:210;display:none;
+  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:210;display:none;
   align-items:center;justify-content:center;padding:18px;
   background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
 }

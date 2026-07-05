@@ -155,7 +155,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 
 /* ── Eintrags-Modal (Optik wie .mood-create-modal) ─────────── */
 .gb-modal,.gb-draw{
-  position:fixed;inset:0;z-index:80;
+  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:80;
   display:grid;place-items:center;padding:20px;
   background:rgba(0,0,0,.6);
   -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);

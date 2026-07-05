@@ -1004,8 +1004,11 @@ function updateBodyLock(){
   }
 }
 function openMenu(){
-  if(window.innerWidth<=600){ bottomSheet.classList.add('show'); sheetOverlay.classList.add('show'); updateBodyLock(); }
-  else dropdown.classList.toggle('show');
+  /* Immer als oben verankertes Dropdown öffnen (auch auf Mobile) – direkt unter
+     dem Menü-Button, statt als Sheet vom unteren Bildschirmrand hochzufahren.
+     So erscheint "Verwalten"/"Erstellen"/"Ansicht" oben, konsistent mit dem
+     "Zugriffe"-Popup, und der schwarze Balgen am unteren Rand entfällt. */
+  dropdown.classList.toggle('show');
 }
 function closeMenu(){ dropdown.classList.remove('show'); bottomSheet.classList.remove('show'); sheetOverlay.classList.remove('show'); editorWrap.classList.remove('show'); updateBodyLock(); }
 function closeAllOverlays(){
