@@ -1,11 +1,10 @@
 /* ============================================================================
-   Navigation — Vorschau-Karten der Seiten
+   Navigation — Vorschau-Karten als Pop-up
    ----------------------------------------------------------------------------
-   Der Kompass-Button in der Pill öffnet ein Vollbild-Overlay mit einem
-   horizontalen Swiper aus Vorschau-Karten (Startseite, Info, Gästebuch). Jede
-   Karte zeigt eine Miniatur der jeweiligen Seite – bewusst ohne Header und
-   Pill, damit sie clean wirkt. Ein Tipp auf eine Karte navigiert direkt dorthin
-   und schließt das Overlay.
+   Der Kompass-Button in der Pill öffnet ein kleines Pop-up über der Bottom-Bar
+   – im selben Look/Verhalten wie das Chat-Panel. Darin lassen sich die
+   Vorschau-Karten der Seiten (Startseite, Info, Gästebuch) horizontal swipen;
+   ein Tipp öffnet die jeweilige Unterseite dynamisch und schließt das Pop-up.
 
    Reine Ansteuerung; die eigentliche Navigation läuft über die schon
    vorhandenen Helfer in window.MB (goHome / openInfoPage / openGuestbook), die
@@ -15,15 +14,16 @@
   const $ = (id) => document.getElementById(id);
 
   // ── Mini-Vorschauen der einzelnen Seiten ──────────────────────────────────
-  // Startseite: kleines Kachel-Mosaik aus echten Thumbnails (falls schon
-  // geladen), sonst dezente Platzhalter – wie ein Mini-Screenshot des Grids.
+  // Startseite: dasselbe Grid-Design wie die echte Ansicht, mit einer festen
+  // Auswahl an Bildern. Bewusst nur <img> (Thumbnails) – nie <video>, damit in
+  // der Vorschau nichts autoplayt.
   function buildHome() {
     const grid = document.createElement('div');
     grid.className = 'nav-mini-grid';
-    const thumbs = window.MB?.getPreviewThumbs?.(9) || [];
-    for (let i = 0; i < 9; i++) {
-      const tile = document.createElement('div');
-      tile.className = 'nav-tile';
+    const thumbs = window.MB?.getPreviewThumbs?.(12) || [];
+    for (let i = 0; i < 12; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'nav-cell';
       const src = thumbs[i];
       if (src) {
         const img = document.createElement('img');
@@ -33,9 +33,9 @@
         // Lädt ein Thumbnail nicht, bleibt die dezente Platzhalter-Kachel stehen.
         img.onerror = () => img.remove();
         img.src = src;
-        tile.appendChild(img);
+        cell.appendChild(img);
       }
-      grid.appendChild(tile);
+      grid.appendChild(cell);
     }
     return grid;
   }
@@ -78,14 +78,14 @@
 
   function init() {
     const btn = $('navBtn');
-    const page = $('navPage');
+    const panel = $('navPanel');
     const swiper = $('navSwiper');
     const dotsEl = $('navDots');
     const closeBtn = $('navClose');
-    if (!btn || !page || !swiper) return;
+    if (!btn || !panel || !swiper) return;
 
-    // Karten einmalig aufbauen (Thumbnails der Startseite werden bei jedem
-    // Öffnen frisch nachgezogen, s. refreshHome()).
+    // Karten einmalig aufbauen (die Startseiten-Auswahl wird bei jedem Öffnen
+    // frisch nachgezogen, sobald Items geladen sind – s. refreshHome()).
     const cards = PAGES.map((p) => {
       const card = document.createElement('button');
       card.type = 'button';
@@ -141,17 +141,18 @@
     }
 
     function refreshHome() {
-      // Startseiten-Mosaik mit den aktuell geladenen Thumbnails neu füllen.
+      // Startseiten-Vorschau mit der aktuellen Bild-Auswahl neu füllen.
       const homeCard = cards.find((c) => c.dataset.key === 'home');
       const frame = homeCard?.querySelector('.nav-card-frame');
       if (frame) { frame.innerHTML = ''; frame.appendChild(buildHome()); }
     }
 
     function open() {
-      window.MB?.closeOtherPopups?.();
+      // Andere Bottom-Bar-Popups (Spotify, Kachelgröße, Chat) sanft schließen.
+      window.MB?.closeOtherPopups?.('nav');
       refreshHome();
-      page.classList.add('show');
-      page.setAttribute('aria-hidden', 'false');
+      panel.classList.add('show');
+      panel.setAttribute('aria-hidden', 'false');
       btn.classList.add('active');
       // Auf die Karte der aktuell offenen Seite zentrieren.
       const idx = Math.max(0, PAGES.findIndex((p) => p.key === currentKey()));
@@ -162,26 +163,28 @@
       });
     }
     function close() {
-      page.classList.remove('show');
-      page.setAttribute('aria-hidden', 'true');
+      panel.classList.remove('show');
+      panel.setAttribute('aria-hidden', 'true');
       btn.classList.remove('active');
     }
-    function toggle() { page.classList.contains('show') ? close() : open(); }
+    function toggle() { panel.classList.contains('show') ? close() : open(); }
 
     function navigateTo(p) {
       close();
-      // Kurz warten, damit das Overlay ausblendet, bevor die Zielseite auffährt.
+      // Kurz warten, damit das Pop-up ausblendet, bevor die Zielseite auffährt.
       setTimeout(() => p.go?.(), 120);
     }
 
     btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
     closeBtn?.addEventListener('click', close);
-    // Klick auf die leere Fläche (nicht auf eine Karte) schließt das Overlay.
-    page.addEventListener('click', (e) => {
-      if (!e.target.closest('.nav-card') && !e.target.closest('.nav-close')) close();
+    // Klick außerhalb des Pop-ups (und nicht auf den Nav-Button) schließt es.
+    document.addEventListener('click', (e) => {
+      if (!panel.classList.contains('show')) return;
+      if (e.target.closest('#navPanel') || e.target.closest('#navBtn')) return;
+      close();
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && page.classList.contains('show')) close();
+      if (e.key === 'Escape' && panel.classList.contains('show')) close();
     });
 
     window.MB = window.MB || {};

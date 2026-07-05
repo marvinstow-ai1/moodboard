@@ -2566,8 +2566,13 @@ window.MB = Object.assign(window.MB || {}, {
   // Für die Navigations-Vorschau (js/nav.js): zur Startseite (alle Glas-Seiten
   // schließen) und ein paar echte Thumbnails fürs Mini-Grid der Startseite.
   goHome(){ closeSubpages(); },
-  getPreviewThumbs(n = 9){
-    return (S().items || [])
+  getPreviewThumbs(n = 12){
+    // Feste Auswahl fürs Startseiten-Grid: nur echte Bilder (keine Videos/GIFs,
+    // damit in der Vorschau nichts autoplayt) und deterministisch die ersten n.
+    const items = S().items || [];
+    const imgs = items.filter(it => it.media_type === 'image');
+    const pool = imgs.length >= n ? imgs : items;
+    return pool
       .map(it => it.thumb_url || it.media_url)
       .filter(Boolean)
       .slice(0, n);
