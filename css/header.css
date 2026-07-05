@@ -1,7 +1,10 @@
 .topbar{position:fixed;top:0;left:0;right:0;z-index:30;height:calc(70px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top) 20px 0;gap:16px;background:var(--bg)}
 /* Gespiegelter Header innerhalb der Info-/Gästebuch-Seite: identische Optik,
-   aber als normales Flex-Kind (nicht fixed), damit er oben in der Seite sitzt. */
-.topbar.in-page{position:relative;z-index:3;flex-shrink:0}
+   aber als normales Flex-Kind (nicht fixed), damit er oben in der Seite sitzt.
+   Transparent statt --bg: die Seiten sind Glas-Popups, deren Hintergrund
+   durchscheinen soll; der Scroll-Bereich liegt als eigenes Flex-Kind
+   darunter und läuft nie hinter die Kopfzeile. */
+.topbar.in-page{position:relative;z-index:3;flex-shrink:0;background:transparent}
 .topbar-left{display:flex;align-items:center;gap:24px;min-width:0}
 /* Centred in the header band (below the safe-area). Same pixel look as the
    loading-screen title (css/loading.css), just single-line and smaller;

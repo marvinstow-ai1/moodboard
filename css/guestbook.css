@@ -1,7 +1,8 @@
 /* ── Gästebuch ────────────────────────────────────────────────────────────
-   Vollflächige Seite im Stil der Info-Page (css/info.css – Ambient, Top-
-   Leiste und Hero-Badge werden von dort wiederverwendet). Dazu: Einträge-
-   Liste, "Eintragen"-Modal und das Malfeld für die Unterschrift.
+   Vollflächiges Glas-Popup im Stil der Info-Page (css/info.css – Ambient,
+   Top-Leiste und Hero-Badge werden von dort wiederverwendet): öffnet sich
+   über der zuletzt offenen Ansicht, die glassmorph durchschimmert. Dazu:
+   Einträge-Liste, "Eintragen"-Modal und das Malfeld für die Unterschrift.
    ─────────────────────────────────────────────────────────────────────── */
 
 /* Seite – gleiche Show/Hide-Mechanik wie .info-page. */
@@ -19,7 +20,11 @@
      exakter Screen), damit es garantiert bis zum untersten Bildschirmrand
      inkl. Safe-Area füllt. Das .info-ambient-Kind (inset:-30%) verzerrte
      die Prozent-Anker so, dass der Verlauf stets über den unteren Rand
-     hinausrutschte – daher der schwarze Streifen unten. */
+     hinausrutschte – daher der schwarze Streifen unten.
+     Fallback ohne backdrop-filter: solide Fläche; mit Support wird die
+     Basisschicht transluzent (siehe @supports unten) und die zuletzt
+     offene Ansicht schimmert glassmorph durch – GIFs/Videos laufen dort
+     weiter, die Seite ist nur noch ein Popup darüber. */
   background:
     radial-gradient(135% 60% at 50% 100%,
       rgba(120,255,210,.22) 0%,
@@ -27,11 +32,23 @@
       transparent 78%),
     var(--bg);
   opacity:0;visibility:hidden;pointer-events:none;
-  transform:translateY(12px);
+  transform:translateY(14px) scale(.98);
   transition:opacity .2s ease,
              transform .2s ease,
              visibility 0s linear .2s;
   overflow:hidden;
+}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .gb-page{
+    background:
+      radial-gradient(135% 60% at 50% 100%,
+        rgba(120,255,210,.20) 0%,
+        rgba(90,220,180,.09) 40%,
+        transparent 78%),
+      rgba(8,8,10,.52);
+    -webkit-backdrop-filter:blur(26px) saturate(1.2);
+    backdrop-filter:blur(26px) saturate(1.2);
+  }
 }
 .gb-page.show{
   opacity:1;visibility:visible;pointer-events:auto;
@@ -77,7 +94,9 @@
 .gb-entry{
   display:flex;flex-direction:column;
   border:1px solid var(--border);border-radius:20px;overflow:hidden;
-  background:rgba(20,20,22,.55);
+  /* Etwas deckender als früher: die Seite ist jetzt ein Glas-Popup, hinter
+     dem bunte Grid-Medien durchschimmern – Name/Datum sollen lesbar bleiben. */
+  background:rgba(18,18,20,.72);
   box-shadow:0 10px 36px rgba(0,0,0,.32);
   opacity:0;transform:translateY(14px);
   animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
@@ -85,7 +104,7 @@
 }
 /* Nur Border/Glow, kein transform – das hielte die forwards-Animation fest. */
 .gb-entry:hover{
-  border-color:rgba(255,255,255,.22);background:rgba(28,28,30,.6);
+  border-color:rgba(255,255,255,.22);background:rgba(26,26,28,.78);
   box-shadow:0 14px 44px rgba(0,0,0,.42);
 }
 /* Leichtes Staffeln der ersten Einträge beim Öffnen. */

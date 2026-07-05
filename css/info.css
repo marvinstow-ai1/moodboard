@@ -1,9 +1,10 @@
 /* ── Info-Page ───────────────────────────────────────────────────────────
-   Eine vollflächige „Seite", die sich INNERHALB der App öffnet (keine
-   Weiterleitung). Sie legt sich über das Grid und steigt mit einem sanften
-   Fade-/Slide-Up auf. Inhalt wird später ergänzt – hier liegt der Fokus auf
-   einem angenehmen, dynamischen UI-Gerüst (animierter Ambient-Hintergrund,
-   gestaffelt einfahrende Karten, Skeleton-Platzhalter).
+   Ein vollflächiges Glas-Popup, das sich INNERHALB der App öffnet (keine
+   Weiterleitung): Es poppt mit einem sanften Fade-/Slide-Up über der
+   zuletzt offenen Ansicht auf, deren Inhalt (inkl. laufender GIFs/Videos)
+   glassmorph durchschimmert. Inhalt wird später ergänzt – hier liegt der
+   Fokus auf einem angenehmen, dynamischen UI-Gerüst (animierter Ambient-
+   Hintergrund, gestaffelt einfahrende Karten, Skeleton-Platzhalter).
    ─────────────────────────────────────────────────────────────────────── */
 
 /* Info-Button im Header (gleiche Optik wie Login-/Menü-Button). */
@@ -23,15 +24,30 @@
      wenn Safaris Adressleiste ein-/ausfährt. Fallback 100vh ohne JS. */
   height:100vh;height:var(--app-vh,100vh);
   display:flex;flex-direction:column;
+  /* Fallback ohne backdrop-filter-Support: solide Fläche wie früher.
+     Mit Support (siehe @supports unten) wird die Seite zum Glas-Popup:
+     die zuletzt offene Ansicht (Grid, Moods, …) bleibt darunter sichtbar
+     und schimmert weichgezeichnet durch – GIFs/Videos laufen dort weiter. */
   background:var(--bg);
   opacity:0;visibility:hidden;pointer-events:none;
-  transform:translateY(12px);
-  /* Schließen ist die Default-Transition (schnell). Nur transform/opacity –
-     kein scale(), das die Blur-Layer der Kinder jeden Frame neu rastern würde. */
+  transform:translateY(14px) scale(.98);
+  /* Schließen ist die Default-Transition (schnell). Der minimale scale()
+     gibt den Popup-Charakter; er läuft nur ~0,3s, solange ohnehin schon
+     der Seiten-Backdrop-Blur pro Frame neu gesampelt wird – dauerhaft
+     rastert danach nichts mehr. */
   transition:opacity .2s ease,
              transform .2s ease,
              visibility 0s linear .2s;
   overflow:hidden;
+}
+/* Glassmorpher Popup-Hintergrund: transluzent + Blur statt deckendem --bg.
+   visibility:hidden im zugeklappten Zustand hält die Blur-Kosten bei 0. */
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .info-page{
+    background:rgba(8,8,10,.52);
+    -webkit-backdrop-filter:blur(26px) saturate(1.2);
+    backdrop-filter:blur(26px) saturate(1.2);
+  }
 }
 .info-page.show{
   opacity:1;visibility:visible;pointer-events:auto;
@@ -74,7 +90,9 @@
   display:flex;align-items:center;gap:12px;
   height:calc(64px + env(safe-area-inset-top));
   padding:env(safe-area-inset-top) 16px 0;
-  background:linear-gradient(to bottom, var(--bg) 55%, transparent);
+  /* Transluzent statt deckendem --bg, damit der Glas-Look der Seite auch
+     hinter der Kopfzeile durchscheint (Text bleibt dank Verlauf lesbar). */
+  background:linear-gradient(to bottom, rgba(5,5,5,.78) 55%, transparent);
 }
 .info-back{
   width:40px;height:40px;border-radius:999px;flex-shrink:0;
@@ -119,9 +137,10 @@
 .info-card{
   position:relative;
   border:1px solid var(--border);border-radius:20px;
-  /* Solider (statt translucent + backdrop-blur): über dem fast schwarzen
-     Hintergrund optisch identisch, aber ohne teure Blur-Komposition. */
-  background:rgba(20,20,22,.55);
+  /* Ohne eigenen backdrop-blur (den erledigt die Glas-Seite dahinter schon);
+     etwas deckender als früher, damit Text auch über bunten, durch-
+     schimmernden Grid-Medien lesbar bleibt. */
+  background:rgba(18,18,20,.72);
   padding:22px 22px 24px;
   box-shadow:0 10px 36px rgba(0,0,0,.32);
   opacity:0;transform:translateY(14px);
@@ -135,7 +154,7 @@
 .info-page.show .info-card:nth-child(4){animation-delay:.17s}
 .info-page.show .info-card:nth-child(5){animation-delay:.21s}
 .info-page.show .info-card:nth-child(6){animation-delay:.25s}
-.info-card:hover{border-color:rgba(255,255,255,.22);background:rgba(28,28,30,.6)}
+.info-card:hover{border-color:rgba(255,255,255,.22);background:rgba(26,26,28,.78)}
 
 .info-card-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .info-card-dot{
