@@ -65,15 +65,11 @@ function closePage(){
   window.MB?.updateBodyLock?.();
 }
 
-// Die globale Pill liegt auch über dieser Seite – der Buch-Button togglet.
-$('guestbookBtn')?.addEventListener('click', e => {
-  e.stopPropagation();
-  if(page.classList.contains('show')) closePage(); else openPage();
-});
 $('gbClose')?.addEventListener('click', closePage);
 
-// Fürs gegenseitige Schließen aus app.js (openInfoPage).
-window.MB = Object.assign(window.MB || {}, { closeGuestbook: closePage });
+// Öffnen/Schließen fürs gegenseitige Ausschließen der Glas-Popups (app.js) und
+// für die Navigations-Vorschau (js/nav.js), die das Gästebuch von dort öffnet.
+window.MB = Object.assign(window.MB || {}, { closeGuestbook: closePage, openGuestbook: openPage });
 
 // ── Einträge laden & rendern ───────────────────────────────────────────────
 async function isOwner(){

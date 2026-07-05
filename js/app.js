@@ -986,6 +986,10 @@ function updateBodyLock(){
   // aktiver harter Sperre nicht nötig – die deckt overflow:hidden schon ab.
   const softLock = !lock && !!document.querySelector('.info-page.show, .gb-page.show');
   document.documentElement.classList.toggle('no-scroll-soft', softLock);
+  // Dynamische Pill: auf Info-/Gästebuch-Seiten Shuffle + Kachelgröße einziehen
+  // (dort ohne Funktion) – nur Spotify, Chat und Navigation bleiben stehen.
+  const onSubpage = !!document.querySelector('.info-page.show, .gb-page.show');
+  document.getElementById('bottombar')?.classList.toggle('subpage', onSubpage);
   const isLocked = document.documentElement.classList.contains('no-scroll');
   if(lock && !isLocked){
     _lockedScrollY = window.scrollY || window.pageYOffset || 0;
@@ -2516,6 +2520,10 @@ function clearChatResults(){
   renderGrid();
 }
 function showChatResults(ids){
+  // Liegt eine Glas-Seite (Info/Gästebuch) über dem Grid, würde die Suche nur
+  // unsichtbar dahinter laufen. Beide Seiten daher schließen, damit die Treffer
+  // im Grid sofort sichtbar sind.
+  closeSubpages();
   // Erst auf eine Grid-Ansicht wechseln (goArchive räumt evtl. Chat-State ab),
   // DANN die Treffer setzen und rendern – sonst würde goArchive sie löschen.
   if(currentView === 'moods') goArchive();
@@ -2528,11 +2536,20 @@ function showChatResults(ids){
 }
 // Vom Mood-Chat aus zur Ansicht „Zuletzt hinzugefügt" wechseln (Chip unter den Emojis).
 function showRecentView(){
+  // Wie showChatResults: eine offene Glas-Seite zuerst schließen, damit die
+  // Ansicht „Zuletzt hinzugefügt" nicht unsichtbar dahinter landet.
+  closeSubpages();
   // Instant nach oben VOR dem Rendern (goRecent → renderGrid), damit die oben
   // sichtbaren Kacheln sofort laden statt zu spinnern (s. renderFromTop).
   window.scrollTo(0, 0);
   clearChatResults();
   goRecent();
+}
+// Info- und Gästebuch-Seite (falls offen) gemeinsam schließen. Wird u. a. von
+// der Chat-Suche genutzt, damit Treffer nicht hinter einer Glas-Seite landen.
+function closeSubpages(){
+  if(isInfoPageOpen()) closeInfoPage();
+  window.MB?.closeGuestbook?.();
 }
 // Object.assign statt Zuweisung: bewahrt Helfer, die zuvor gesetzt wurden
 // (z. B. window.MB.closeSpotify aus dem Inline-Script in index.html).
@@ -2545,6 +2562,16 @@ window.MB = Object.assign(window.MB || {}, {
   toast,
   updateBodyLock,
   closeInfoPage,
+  openInfoPage,
+  // Für die Navigations-Vorschau (js/nav.js): zur Startseite (alle Glas-Seiten
+  // schließen) und ein paar echte Thumbnails fürs Mini-Grid der Startseite.
+  goHome(){ closeSubpages(); },
+  getPreviewThumbs(n = 9){
+    return (S().items || [])
+      .map(it => it.thumb_url || it.media_url)
+      .filter(Boolean)
+      .slice(0, n);
+  },
   kickAutoplay(){ applyAutoplayState(); },
   // Lightbox der Haupt-App wiederverwenden (Swipe/Ambient inklusive).
   openItems(items, idx){
@@ -2562,6 +2589,7 @@ window.MB.closeOtherPopups = function(except){
   if(except !== 'filter')  window.MB.closeFilter?.();
   if(except !== 'chat')    window.MB.closeChat?.();
   if(except !== 'hub')     window.MB.closeHubMenu?.();
+  if(except !== 'nav')     window.MB.closeNav?.();
 };
 
 // ── Zugriffe-Verwaltung (nur Owner) ───────────────────────
