@@ -761,19 +761,6 @@ function bindQuickAdd(suffix){
 }
 bindQuickAdd(''); bindQuickAdd('Sheet');
 
-// ── View tab actions (delegate to existing controls) ─────
-function bindView(suffix){
-  const g = k => $(k + (suffix||''));
-  const f = g('ddFilterBtn'); const s = g('ddShuffleBtn');
-  if(f) f.onclick = () => {
-    closeMenu();
-    if(!filterPopup.classList.contains('show')) window.MB.closeOtherPopups?.('filter');
-    filterPopup.classList.toggle('show');
-  };
-  if(s) s.onclick = () => { closeMenu(); doShuffle(); };
-}
-bindView(''); bindView('Sheet');
-
 // ── Shared Logic (same as before) ─────────────────────────
 function toast(t){
   toastEl.textContent=t;
