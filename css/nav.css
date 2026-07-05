@@ -29,17 +29,18 @@
 /* ── Navigations-Pop-up (wie das Chat-Panel) ─────────────────────────────── */
 .nav-panel{
   position:fixed;left:50%;bottom:80px;
-  transform:translateX(-50%) translateY(12px);
+  transform:translateX(-50%) translateY(14px) scale(.95);
   /* Über der Pill (72) und den Glas-Popups (70), unter der Lightbox (80). */
   z-index:73;width:min(520px,calc(100vw - 24px));
   background:var(--panel);border:1px solid var(--border);border-radius:20px;
   padding:14px;box-shadow:0 20px 50px rgba(0,0,0,.6);
   -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
   display:flex;flex-direction:column;gap:12px;
+  transform-origin:50% 100%;
   opacity:0;pointer-events:none;
-  transition:opacity .2s ease,transform .22s cubic-bezier(.2,.8,.2,1);
+  transition:opacity .3s ease,transform .42s cubic-bezier(.22,1,.36,1);
 }
-.nav-panel.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.nav-panel.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
 
 .nav-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px}
 .nav-title{font-size:14px;font-weight:600;color:#fff;letter-spacing:.01em}

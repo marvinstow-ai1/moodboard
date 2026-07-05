@@ -492,18 +492,20 @@ function initMoodChat() {
   // ── Tastatur-Handling (iOS) ──
   // Statt die Seite beim Fokus reinzuzoomen (verhindert über font-size:16px am
   // Input) lassen wir das Panel sanft über die eingeblendete Apple-Tastatur
-  // gleiten. Die Tastaturhöhe ergibt sich aus dem VisualViewport: Differenz
-  // zwischen Layout-Viewport und sichtbarem Bereich. Wird als CSS-Variable
-  // `--mc-kb` ans Panel gegeben; die Position animiert per CSS-Transition.
+  // gleiten. Die reine Tastaturhöhe ist die Differenz zwischen Layout-Viewport
+  // und sichtbarem Bereich (window.innerHeight - vv.height) – bewusst OHNE
+  // vv.offsetTop und OHNE scroll-Listener: Beim Wischen/Scrollen der Seite
+  // ändert sich nur der Offset, nicht die Tastaturhöhe. Würden wir darauf
+  // reagieren, verschöbe sich das Panel bei jedem Swipe. So bleibt es – wie die
+  // anderen Pill-Popups (Spotify/Navigation) – statisch an der Pill verankert.
   const vv = window.visualViewport;
   function syncKeyboard() {
     if (!vv || !panel.classList.contains('show')) return;
-    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    const kb = Math.max(0, window.innerHeight - vv.height);
     panel.style.setProperty('--mc-kb', kb + 'px');
   }
   if (vv) {
     vv.addEventListener('resize', syncKeyboard);
-    vv.addEventListener('scroll', syncKeyboard);
   }
 
   // ── Panel öffnen / schließen ──
