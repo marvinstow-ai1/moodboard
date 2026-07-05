@@ -441,18 +441,34 @@ function initMoodChat() {
   // (Buchstabe für Buchstabe), löscht sie wieder und loopt über die Liste.
   // Sobald der Nutzer selbst etwas tippt, ruht die Animation und der
   // Placeholder bleibt leer.
-  const PLACEHOLDER_PHRASES = ['Bock auf Urlaub', 'Gute Laune', 'Fußball', 'Blau', 'Nostalgie'];
+  // Die Reihenfolge wird bei jedem Öffnen des Chats neu zufällig gemischt,
+  // damit nicht immer derselbe Vorschlag zuerst erscheint.
+  const PLACEHOLDER_PHRASES = [
+    'Bock auf Urlaub', 'Gute Laune', 'Fußball', 'Blau', 'Nostalgie',
+    'Sommer am Meer', 'Animes', 'Was Beruhigendes', 'Motivierendes',
+  ];
+  // Fisher-Yates: liefert eine frisch gemischte Kopie, ohne das Original
+  // anzufassen.
+  function shuffled(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
   let _phTimer = null;
   function stopPlaceholder() {
     if (_phTimer) { clearTimeout(_phTimer); _phTimer = null; }
   }
   function startPlaceholder() {
     stopPlaceholder();
+    const phrases = shuffled(PLACEHOLDER_PHRASES); // pro Öffnen neu mischen
     let phrase = 0, char = 0, deleting = false;
     const tick = () => {
       // Pausieren, solange der Nutzer eigenen Text im Feld hat.
       if (input.value) { input.placeholder = ''; _phTimer = setTimeout(tick, 400); return; }
-      const full = PLACEHOLDER_PHRASES[phrase];
+      const full = phrases[phrase];
       if (!deleting) {
         char++;
         input.placeholder = full.slice(0, char);
@@ -463,7 +479,7 @@ function initMoodChat() {
         input.placeholder = full.slice(0, char);
         if (char <= 0) {
           deleting = false;
-          phrase = (phrase + 1) % PLACEHOLDER_PHRASES.length;
+          phrase = (phrase + 1) % phrases.length;
           _phTimer = setTimeout(tick, 350);
           return;
         }
