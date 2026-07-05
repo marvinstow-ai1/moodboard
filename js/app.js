@@ -1571,11 +1571,13 @@ document.addEventListener('keydown', e => {
 });
 
 // ── SHUFFLE-OVERLAY ──────────────────────────────────────
-// Beim Neu-Mischen legt sich ~1 s ein Overlay über das Grid (Topbar und
-// Bottombar-Pill bleiben sichtbar, s. css/shuffle.css): Mini-Kacheln im
-// 9:16-Format wirbeln in mehreren Runden durcheinander. Sobald das Overlay
-// deckt, wird darunter unbemerkt gemischt, gerendert und nach oben
-// gescrollt – beim Ausblenden steht das Grid oben mit neuer Reihenfolge.
+// Beim Neu-Mischen legt sich ~1 s ein Overlay über die ganze Ansicht (auch
+// über Topbar und Bottombar-Pill, s. css/shuffle.css): Mini-Kacheln im
+// 9:16-Format wirbeln in mehreren Runden durcheinander. Klar sichtbar über
+// dem Glas bleiben nur der Titel „Marvin's Place" (als Kopie) und die
+// Animation. Sobald das Overlay deckt, wird darunter unbemerkt gemischt,
+// gerendert und nach oben gescrollt – beim Ausblenden steht das Grid oben
+// mit neuer Reihenfolge.
 let _shuffleBusy = false;
 function playShuffleOverlay(applyFn){
   const COLS = 3, ROWS = 2, W = 36, H = 64, GAP = 7;
@@ -1598,7 +1600,12 @@ function playShuffleOverlay(applyFn){
   const label = document.createElement('div');
   label.className = 'shuffle-label';
   label.innerHTML = 'MISCHEN<span class="ls-dots"><span class="ls-dot">.</span><span class="ls-dot">.</span><span class="ls-dot">.</span></span>';
-  overlay.append(stage, label);
+  // Titel-Kopie über dem Glas an der Header-Position: das echte Titel-Element
+  // in der Topbar liegt unter dem Overlay und wird verglast.
+  const title = document.createElement('div');
+  title.className = 'shuffle-title';
+  title.textContent = document.getElementById('boardTitle')?.textContent || "Marvin's Place";
+  overlay.append(stage, label, title);
   document.body.appendChild(overlay);
 
   // Jede Runde: Slot-Zuordnung per Fisher-Yates permutieren, die Kacheln

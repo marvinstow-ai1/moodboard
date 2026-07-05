@@ -1,11 +1,13 @@
 /* ── Shuffle-Overlay ──────────────────────────────────────────────────
-   Liegt beim Neu-Mischen ~1 s über dem Grid. z-index 29 hält es unter
-   Topbar und Bottombar-Pill (beide 30) – Header und Pill bleiben also
-   sichtbar, nur das Grid wird abgedeckt. Währenddessen wirbeln kleine
-   9:16-Rechtecke (Mini-Kacheln) durcheinander; darunter wird unbemerkt
-   neu gemischt, gerendert und nach oben gescrollt (js/app.js, doShuffle). */
+   Liegt beim Neu-Mischen ~1 s über der ganzen Ansicht. z-index 100 hebt es
+   über Topbar (30) und Bottombar-Pill (72) – Header und Pill verschwinden
+   also mit hinter dem Glas. Klar sichtbar bleiben nur der Titel „Marvin's
+   Place" (als Kopie über dem Glas, s. .shuffle-title) und die Shuffle-
+   Animation. Währenddessen wirbeln kleine 9:16-Rechtecke (Mini-Kacheln)
+   durcheinander; darunter wird unbemerkt neu gemischt, gerendert und nach
+   oben gescrollt (js/app.js, doShuffle). */
 .shuffle-overlay{
-  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:29;
+  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:100;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
   background:rgba(5,5,5,.72);
   backdrop-filter:blur(22px);
@@ -57,6 +59,23 @@
 .shuffle-overlay.show .shuffle-label{transform:translateY(0);opacity:1}
 .shuffle-overlay.hide .shuffle-label{opacity:0;transition:opacity .15s ease}
 
+/* Titel bleibt beim Mischen klar sichtbar: eine Kopie von „Marvin's Place"
+   liegt über dem Glas, exakt an der Header-Position. Das echte Titel-Element
+   in der Topbar wird – wie der Rest von Header und Pill – vom Overlay
+   verschluckt. Styling spiegelt .board-title (css/header.css). */
+.shuffle-title{
+  position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 35px);
+  transform:translate(-50%,-50%);
+  color:#fff;font-family:'Press Start 2P',monospace;
+  font-size:clamp(10px,3.4vw,13px);font-weight:400;letter-spacing:.06em;
+  line-height:1;text-transform:uppercase;
+  text-shadow:2px 2px 0 rgba(255,255,255,.18);
+  white-space:nowrap;
+  opacity:0;transition:opacity .2s ease;
+}
+.shuffle-overlay.show .shuffle-title{opacity:.95}
+.shuffle-overlay.hide .shuffle-title{opacity:0;transition:opacity .15s ease}
+
 @media (prefers-reduced-motion:reduce){
-  .shuffle-overlay,.shuffle-stage,.shuffle-tile,.shuffle-label{transition:none}
+  .shuffle-overlay,.shuffle-stage,.shuffle-tile,.shuffle-label,.shuffle-title{transition:none}
 }
