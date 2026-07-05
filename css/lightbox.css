@@ -1,11 +1,14 @@
 /* ── LIGHTBOX ────────────────────────────────────────── */
 .lightbox {
-  /* Volle Bildschirmhöhe wie Info-Seite & Gästebuch: 100lvh = größtmöglicher
-     Viewport (Safari-Toolbar eingefahren). So deckt die Lightbox den Screen in
-     JEDEM Toolbar-Zustand komplett ab – unten bleibt kein schwarzer Streifen
-     mehr stehen. Fallback 100vh ohne lvh-Support. */
+  /* Exakt sichtbare Höhe. Auf iOS ist position:fixed+inset:0 unzuverlässig –
+     mal so groß wie der große Viewport (Toolbar eingefahren), mal nicht –,
+     wodurch unten ein schwarzer Streifen stehen blieb. --app-vh trägt die per
+     JS live gemessene visualViewport-Höhe (siehe index.html) und deckt sich
+     damit in JEDEM Toolbar-/Safe-Area-Zustand genau mit dem sichtbaren Bereich.
+     Da die Lightbox nicht scrollt, ist die gemessene Höhe hier immer korrekt.
+     Fallbacks: 100lvh, dann 100vh. */
   position: fixed; top: 0; left: 0; right: 0;
-  height: 100vh; height: 100lvh; z-index: 80;
+  height: 100vh; height: 100lvh; height: var(--app-vh, 100lvh); z-index: 80;
   background: rgba(0,0,0,.92);
   display: none; flex-direction: column;
   align-items: stretch;
