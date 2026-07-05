@@ -1023,6 +1023,7 @@ function closeAllOverlays(){
   if(typeof closePageNav === 'function') closePageNav();
   window.MB?.closeChat?.();
   window.MB?.closeHubMenu?.();
+  window.MB?.closeNav?.();
 }
 function isAnyOverlayOpen(){
   return dropdown.classList.contains('show') ||
@@ -1031,6 +1032,7 @@ function isAnyOverlayOpen(){
          editorWrap.classList.contains('show') ||
          !!document.getElementById('spotifyPopup')?.classList.contains('show') ||
          !!document.getElementById('moodChatPanel')?.classList.contains('show') ||
+         !!document.getElementById('navPanel')?.classList.contains('show') ||
          !!document.querySelector('.hub-menu.show');
 }
 $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };

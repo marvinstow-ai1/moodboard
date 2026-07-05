@@ -2,7 +2,7 @@
 
 Personal visual moodboard app. Upload images, GIFs and videos, organize them by mood.
 
-**Live:** [moodboard-nine-bay.vercel.app](https://moodboard-nine-bay.vercel.app)
+**Live:** [marvinsplace.io](https://marvinsplace.io)
 
 ---
 

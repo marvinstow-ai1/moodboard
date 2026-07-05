@@ -109,7 +109,7 @@ begin
     'https://openrouter.ai/api/v1/chat/completions',
     array[
       extensions.http_header('Authorization', 'Bearer ' || v_key),
-      extensions.http_header('HTTP-Referer', 'https://moodboard-nine-bay.vercel.app'),
+      extensions.http_header('HTTP-Referer', 'https://marvinsplace.io'),
       extensions.http_header('X-Title', 'Marvins Place Moodboard')
     ],
     'application/json',
@@ -241,7 +241,7 @@ begin
     'https://openrouter.ai/api/v1/chat/completions',
     array[
       extensions.http_header('Authorization', 'Bearer ' || v_key),
-      extensions.http_header('HTTP-Referer', 'https://moodboard-nine-bay.vercel.app'),
+      extensions.http_header('HTTP-Referer', 'https://marvinsplace.io'),
       extensions.http_header('X-Title', 'Marvins Place Moodboard')
     ],
     'application/json',
