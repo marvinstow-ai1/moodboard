@@ -1,4 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { analyzeColorProfile, analyzeUrlColors } from './color-profile.js';
 
 const SUPABASE_URL = 'https://uvfuxnwinuakbqanaxtp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2ZnV4bndpbnVha2JxYW5heHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNzg3MDIsImV4cCI6MjA5NTc1NDcwMn0.quSvaycB3Yk2JXCnQz7AQmHpyATtx6u0U8aGQXD73fo';
@@ -834,6 +835,21 @@ function makeThumb(file, maxPx=THUMB_PX, q=0.7){
       const c=document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
       c.toBlob(b=>res(b ? new File([b],'thumb.webp',{type:'image/webp'}) : null),'image/webp',q);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(null); };
+    img.src=url;
+  });
+}
+// Farbprofil (12 Promille-Buckets) aus einer Bild-/GIF-Datei berechnen. Wird
+// beim Upload aufgerufen, damit die Farbsuche im Chat später ohne Bild-Downloads
+// auskommt (s. js/color-profile.js). GIFs liefern den ersten Frame – reicht für
+// die Farbdominanz. Fehler (z. B. exotische Formate) werden verschluckt → null.
+function fileColors(file){
+  return new Promise(res=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      try{ res(analyzeColorProfile(img)); }catch(_){ res(null); }
     };
     img.onerror=()=>{ URL.revokeObjectURL(url); res(null); };
     img.src=url;
@@ -1742,7 +1758,11 @@ async function upload(files){
       if(!te) thumbUrl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
     }
     const suggestedMoods = mediaType === 'image' ? await autoSuggestMoods(pub.publicUrl) : [];
-    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:suggestedMoods, tags:[], media_url:pub.publicUrl, media_type:mediaType, thumb_url:thumbUrl};
+    // Farbprofil direkt aus der bereits dekodierten Datei berechnen (kostenlos,
+    // kein zusätzlicher Download) und mitspeichern, damit die Chat-Farbsuche
+    // später sofort filtern kann. Videos haben kein sinnvolles Standbild → null.
+    const colors = (mediaType === 'image' || mediaType === 'gif') ? await fileColors(cf) : null;
+    const item = { title:f.name.replace(/\.[^.]+$/,''), moods:suggestedMoods, tags:[], media_url:pub.publicUrl, media_type:mediaType, thumb_url:thumbUrl, colors};
     const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
     if(e2){ toast('DB-Fehler: '+e2.message); return null; }
     done++;
@@ -1807,11 +1827,17 @@ async function backfillThumbs(){
   const gifTodo = S().items.filter(it =>
     it.media_type === 'gif' && !it.thumb_url && /\.gif(\?|#|$)/i.test(it.media_url || '')
     && (it.media_url || '').includes(marker));
-  const total = todo.length + gifTodo.length;
+  // Farbprofil-Backfill: alle Bilder/GIFs, die noch kein `colors` haben. Einmalig
+  // für den Bestand; neue Uploads bringen ihr Profil schon selbst mit. Danach
+  // läuft die Chat-Farbsuche ohne jeden Bild-Download.
+  const colorTodo = S().items.filter(it =>
+    (it.media_type === 'image' || it.media_type === 'gif')
+    && !(Array.isArray(it.colors) && it.colors.length));
+  const total = todo.length + gifTodo.length + colorTodo.length;
   if(total === 0){ toast('Alles schon optimiert ✓'); return; }
-  if(!window.confirm(`${todo.length} Bilder → WebP + Thumbnail, ${gifTodo.length} GIFs → komprimieren + Thumbnail.\nJetzt starten? Das kann etwas dauern.`)) return;
+  if(!window.confirm(`${todo.length} Bilder → WebP + Thumbnail, ${gifTodo.length} GIFs → komprimieren + Thumbnail, ${colorTodo.length} × Farbprofil.\nJetzt starten? Das kann etwas dauern.`)) return;
   closeMenu();
-  let done = 0, failed = 0, converted = 0, gifShrunk = 0;
+  let done = 0, failed = 0, converted = 0, gifShrunk = 0, colored = 0;
   toast(`Verarbeite… 0/${total}`);
   for(const it of todo){
     try{
@@ -1911,8 +1937,25 @@ async function backfillThumbs(){
     prog(Math.round(done / total * 100));
     if(done % 5 === 0 || done === total) toast(`Verarbeite… ${done}/${total}`);
   }
+  // Farbprofil-Pass: pro Bild/GIF einmal das kleine Thumbnail laden, in 12 Farb-
+  // Buckets einteilen und speichern. Nutzt bevorzugt das (kleine) Thumbnail, das
+  // die vorigen Pässe evtl. gerade erst erzeugt haben. Fehler (CORS bei extern
+  // verlinkten Medien, exotische Formate) überspringen das Bild einfach.
+  for(const it of colorTodo){
+    try{
+      const src = it.thumb_url || it.media_url;
+      const colors = await analyzeUrlColors(src);
+      const {error:ce} = await sb.from(S().table).update({ colors }).eq('id', it.id);
+      if(ce) throw ce;
+      it.colors = colors;
+      colored++;
+    }catch(e){ failed++; }
+    done++;
+    prog(Math.round(done / total * 100));
+    if(done % 5 === 0 || done === total) toast(`Verarbeite… ${done}/${total}`);
+  }
   renderGrid();
-  toast(`Fertig ✓ (${total - failed} ok, ${converted}× WebP, ${gifShrunk}× GIF verkleinert${failed ? `, ${failed} Fehler` : ''})`);
+  toast(`Fertig ✓ (${total - failed} ok, ${converted}× WebP, ${gifShrunk}× GIF verkleinert, ${colored}× Farbprofil${failed ? `, ${failed} Fehler` : ''})`);
 }
 $('thumbBackfillBtn')?.addEventListener('click', backfillThumbs);
 $('thumbBackfillBtnSheet')?.addEventListener('click', backfillThumbs);
@@ -2084,7 +2127,7 @@ function revealWhenReady(){
 
 async function loadItems(){
   const {data,error} = await sb.from(S().table)
-    .select('id,title,moods,tags,media_url,media_type,thumb_url')
+    .select('id,title,moods,tags,media_url,media_type,thumb_url,colors')
     .order('created_at',{ascending:false});
   if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; _bootPending = false; $('bootMsg')?.remove(); return; }
   S().items=data||[];
@@ -2140,7 +2183,7 @@ function isUiBusy(){
 async function refetchItems(){
   if(isUiBusy()){ scheduleSync(1500); return; }
   const {data,error} = await sb.from(S().table)
-    .select('id,title,moods,tags,media_url,media_type,thumb_url')
+    .select('id,title,moods,tags,media_url,media_type,thumb_url,colors')
     .order('created_at',{ascending:false});
   if(error) return;
   S().items = data || [];

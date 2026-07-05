@@ -51,15 +51,6 @@
 .mc-chip span{font-size:20px;line-height:1}
 .mc-chip:active{transform:scale(.92)}
 
-/* Farb-Filter — kleine Swatches der gängigsten Farben; klickbar = Farbsuche */
-.mc-colors{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
-.mc-color{flex:1 1 auto;min-width:32px;height:36px;padding:0;display:grid;place-items:center;
-  border:1px solid var(--border);background:rgba(255,255,255,.05);
-  border-radius:999px;cursor:pointer;transition:transform .12s ease,background .15s,border-color .15s}
-.mc-color:active{transform:scale(.9)}
-.mc-color:hover{border-color:rgba(255,255,255,.28)}
-.mc-color-dot{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.28)}
-
 /* Quick-Chip unter den Emojis: wechselt zur Ansicht „Zuletzt hinzugefügt" */
 .mc-quick{display:flex}
 .mc-quick-chip{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;
@@ -84,6 +75,4 @@
   /* Mind. 16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus. */
   .mc-pill{font-size:16px}
   .mc-chip,.mc-chip span{font-size:19px}
-  .mc-color{height:34px;min-width:30px}
-  .mc-color-dot{width:18px;height:18px}
 }
