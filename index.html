@@ -64,6 +64,40 @@
   if(window.visualViewport) window.visualViewport.addEventListener('resize', setAppVh);
 })();
 </script>
+<script>
+/* TEMPORÄRES Viewport-Diagnose-Overlay. Nur aktiv mit ?dbg=1 in der URL –
+   für normale Besucher unsichtbar. Zeigt die tatsächlichen Höhen des Geräts,
+   um den schwarzen Streifen unten in der Lightbox eindeutig einzugrenzen
+   (PWA vs. Safari, Safe-Area, lvh/svh/dvh). Nach der Diagnose wieder entfernen. */
+(function(){
+  try{
+    if(!/[?&]dbg=1\b/.test(location.search)) return;
+    function probe(unit){ var e=document.createElement('div'); e.style.cssText='position:fixed;top:0;left:-9999px;width:1px;height:100'+unit+';'; document.documentElement.appendChild(e); var h=e.getBoundingClientRect().height; e.remove(); return Math.round(h); }
+    var safe=document.createElement('div'); safe.style.cssText='position:fixed;left:-9999px;padding-bottom:env(safe-area-inset-bottom);'; document.documentElement.appendChild(safe);
+    var box=document.createElement('pre');
+    box.style.cssText='position:fixed;top:env(safe-area-inset-top);left:6px;z-index:2147483647;margin:0;padding:8px 10px;background:rgba(220,20,20,.88);color:#fff;font:11px/1.35 ui-monospace,Menlo,monospace;border-radius:8px;pointer-events:none;white-space:pre;max-width:calc(100vw - 12px)';
+    document.documentElement.appendChild(box);
+    function upd(){
+      var vv=window.visualViewport;
+      var lb=document.getElementById('lightbox');
+      var lbShown=lb&&lb.classList.contains('show');
+      var r=lb?lb.getBoundingClientRect():null;
+      var sab=parseFloat(getComputedStyle(safe).paddingBottom)||0;
+      box.textContent=
+        'standalone: '+(('standalone'in navigator)?navigator.standalone:matchMedia('(display-mode: standalone)').matches)+'\n'+
+        'innerH: '+window.innerHeight+'  screenH: '+screen.height+'\n'+
+        'visualVP.h: '+(vv?Math.round(vv.height):'-')+'  offsetTop: '+(vv?Math.round(vv.offsetTop):'-')+'\n'+
+        '100lvh: '+probe('lvh')+'  100svh: '+probe('svh')+'  100dvh: '+probe('dvh')+'\n'+
+        'safe-inset-bottom: '+Math.round(sab)+'\n'+
+        'lightbox shown: '+!!lbShown+(r?('  h:'+Math.round(r.height)+'  bottom:'+Math.round(r.bottom)):'')+'\n'+
+        'gap unten (innerH - lb.bottom): '+(r?Math.round(window.innerHeight-r.bottom):'-');
+    }
+    upd(); setInterval(upd,400);
+    window.addEventListener('resize',upd);
+    if(window.visualViewport) window.visualViewport.addEventListener('resize',upd);
+  }catch(e){}
+})();
+</script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
 <body>
