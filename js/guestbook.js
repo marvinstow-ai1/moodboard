@@ -49,6 +49,7 @@ function markAnimating(){
 function openPage(){
   window.MB?.closeOtherPopups?.();
   window.MB?.closeInfoPage?.();   // nie zwei Glas-Popups übereinander
+  window.MB?.closeModels?.();
   markAnimating();
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');

@@ -2551,6 +2551,7 @@ function openInfoPage(){
   if(!page) return;
   closeAllOverlays();
   window.MB?.closeGuestbook?.();   // nie zwei Glas-Popups übereinander
+  window.MB?.closeModels?.();
   const sc = page.querySelector('.info-scroll');
   if(sc) sc.scrollTop = 0;
   markInfoAnimating(page);
@@ -2623,6 +2624,7 @@ function showRecentView(){
 function closeSubpages(){
   if(isInfoPageOpen()) closeInfoPage();
   window.MB?.closeGuestbook?.();
+  window.MB?.closeModels?.();
 }
 // Object.assign statt Zuweisung: bewahrt Helfer, die zuvor gesetzt wurden
 // (z. B. window.MB.closeSpotify aus dem Inline-Script in index.html).

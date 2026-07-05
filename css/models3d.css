@@ -1,0 +1,314 @@
+/* ── 3D-Modell-Inventar ───────────────────────────────────────────────────
+   Vollflächiges Glas-Popup im selben Look wie Info-/Gästebuch-Seite
+   (css/info.css liefert Ambient, Top-Leiste und Hero-Badge). Darin ein
+   3er-Grid aus interaktiven 3D-Modellen (Google <model-viewer>), von denen
+   jedes auf einem kleinen Podest ("Plattform") steht. Ein Tipp öffnet das
+   Modell groß im Viewer-Overlay. Upload läuft über ein Sheet mit einem
+   Dropdown für die Podest-Art (nur Owner). Logik in js/models3d.js.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Seite – gleiche Show/Hide-Mechanik wie .gb-page / .info-page. */
+.m3d-page{
+  position:fixed;top:0;left:0;right:0;z-index:70;
+  height:100vh;height:100lvh;
+  display:flex;flex-direction:column;
+  background:var(--bg);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateY(14px) scale(.98);
+  transition:opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
+  overflow:hidden;
+}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .m3d-page{
+    background:rgba(8,8,10,.5);
+    -webkit-backdrop-filter:blur(18px) saturate(1.15);
+    backdrop-filter:blur(18px) saturate(1.15);
+  }
+}
+.m3d-page.show{
+  opacity:1;visibility:visible;pointer-events:auto;transform:none;
+  transition:opacity .26s cubic-bezier(.22,1,.36,1),
+             transform .28s cubic-bezier(.22,1,.36,1), visibility 0s;
+}
+.m3d-page.is-animating{will-change:opacity,transform}
+
+/* Scroll-Bereich (identisches Toolbar-sichere Padding wie das Gästebuch). */
+.m3d-scroll{
+  position:relative;z-index:1;flex:1;min-height:0;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:8px 16px calc(190px + env(safe-area-inset-bottom));
+  padding-bottom:calc(100lvh - var(--app-vh,100lvh) + 190px + env(safe-area-inset-bottom));
+}
+.m3d-inner{width:min(760px,100%);margin:0 auto}
+
+.m3d-hero{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  gap:14px;padding:18px 8px 26px;opacity:0;transform:translateY(16px);
+}
+.m3d-page.show .m3d-hero{animation:infoRise .36s cubic-bezier(.22,1,.36,1) .04s forwards}
+.m3d-hero-sub{font-size:14px;line-height:1.5;max-width:44ch;opacity:.5;font-weight:500}
+.m3d-hero .info-hero-badge{animation:m3dBadgeFloat 5.5s ease-in-out infinite}
+@keyframes m3dBadgeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* ── Inventar-Grid: immer 3 pro Reihe ─────────────────────────────────────
+   Bewusst starr 3 Spalten (Inventar-Look). Auf sehr schmalen Phones bleibt
+   es bei 3 – die Kacheln werden einfach mit. */
+.m3d-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
+.m3d-status{grid-column:1/-1;text-align:center;font-size:13px;opacity:.45;
+  padding:40px 0;letter-spacing:.03em;line-height:1.6}
+
+.m3d-tile{
+  display:flex;flex-direction:column;
+  border:1px solid var(--border);border-radius:18px;overflow:hidden;
+  background:rgba(18,18,20,.72);
+  box-shadow:0 10px 32px rgba(0,0,0,.32);
+  opacity:0;transform:translateY(14px);
+  animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
+  transition:border-color .25s,background-color .25s,box-shadow .25s,transform .25s;
+}
+.m3d-tile:nth-child(1){animation-delay:.04s}
+.m3d-tile:nth-child(2){animation-delay:.08s}
+.m3d-tile:nth-child(3){animation-delay:.12s}
+.m3d-tile:nth-child(4){animation-delay:.16s}
+.m3d-tile:nth-child(5){animation-delay:.20s}
+.m3d-tile:nth-child(6){animation-delay:.24s}
+.m3d-tile:hover{
+  border-color:rgba(255,255,255,.22);background:rgba(26,26,28,.78);
+  box-shadow:0 16px 46px rgba(0,0,0,.44);
+}
+
+/* Bühne: quadratisch, das Modell schwebt zentriert, das Podest sitzt unten. */
+.m3d-stage{
+  position:relative;aspect-ratio:1/1;width:100%;
+  cursor:pointer;overflow:hidden;
+  background:
+    radial-gradient(120% 90% at 50% 12%, rgba(255,255,255,.05), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.14));
+}
+/* Sanfter Farb-Halo hinter dem Modell – gibt der Vitrine Tiefe. */
+.m3d-stage::before{
+  content:"";position:absolute;left:50%;top:42%;translate:-50% -50%;
+  width:78%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle, rgba(120,140,255,.16), transparent 68%);
+  filter:blur(8px);z-index:0;pointer-events:none;
+}
+.m3d-mv{
+  position:absolute;inset:0;width:100%;height:100%;z-index:2;
+  --poster-color:transparent;background-color:transparent;
+  --progress-bar-color:rgba(255,255,255,.5);
+  --progress-mask:transparent;
+}
+.m3d-mv::part(default-progress-bar){display:none}
+
+/* Lade-/Fehler-Hinweis in der Bühne. */
+.m3d-stage-note{
+  position:absolute;inset:0;z-index:3;display:flex;align-items:center;
+  justify-content:center;text-align:center;padding:10px;
+  font-size:11px;line-height:1.4;opacity:.55;letter-spacing:.02em;pointer-events:none;
+}
+
+/* ── Podeste / Plattformen ────────────────────────────────────────────────
+   Jede Kachel bekommt per data-pedestal eine andere "Plattform", auf der das
+   Modell steht: eine elliptische Deckfläche (.pod-top) über einer etwas
+   tieferen, dunkleren Seitenfläche (.pod-side) für den Zylinder-Look, plus
+   ein weicher Kontaktschatten. */
+.m3d-podium{
+  position:absolute;left:50%;bottom:11%;translate:-50% 0;
+  width:66%;height:20%;z-index:1;pointer-events:none;
+}
+.m3d-podium .pod-side{
+  position:absolute;left:0;right:0;top:34%;bottom:0;border-radius:50%/40%;
+  background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.5));
+  filter:brightness(.7);
+}
+.m3d-podium .pod-top{
+  position:absolute;left:0;right:0;top:0;height:74%;border-radius:50%;
+  box-shadow:0 6px 16px rgba(0,0,0,.45), inset 0 1px 2px rgba(255,255,255,.25);
+}
+/* weicher Bodenschatten unter dem Podest */
+.m3d-podium::after{
+  content:"";position:absolute;left:50%;bottom:-8%;translate:-50% 0;
+  width:86%;height:34%;border-radius:50%;
+  background:radial-gradient(closest-side, rgba(0,0,0,.5), transparent 78%);
+  filter:blur(3px);
+}
+
+/* Obsidian – dunkler polierter Stein (Default). */
+.m3d-stage[data-pedestal="obsidian"] .pod-top{
+  background:radial-gradient(120% 120% at 35% 25%, #4a4a55, #1c1c22 60%, #0c0c10);
+}
+.m3d-stage[data-pedestal="obsidian"] .pod-side{
+  background:linear-gradient(180deg,#26262e,#08080b);
+}
+/* Marmor – heller, kühler Naturstein. */
+.m3d-stage[data-pedestal="marble"] .pod-top{
+  background:radial-gradient(120% 120% at 35% 25%, #ffffff, #dcdae2 55%, #b7b4c4);
+}
+.m3d-stage[data-pedestal="marble"] .pod-side{
+  background:linear-gradient(180deg,#c9c6d2,#8d8a99);
+}
+/* Neon – Holodeck-Ring, leuchtet cyan. */
+.m3d-stage[data-pedestal="neon"] .pod-top{
+  background:radial-gradient(120% 120% at 50% 40%, #0a2a30, #05161a 70%);
+  box-shadow:0 0 0 2px rgba(60,240,255,.75), 0 0 22px rgba(60,240,255,.55),
+             inset 0 0 16px rgba(60,240,255,.35);
+}
+.m3d-stage[data-pedestal="neon"] .pod-side{
+  background:linear-gradient(180deg,rgba(60,240,255,.4),rgba(4,16,20,.9));
+  filter:brightness(.9);
+}
+.m3d-stage[data-pedestal="neon"]::before{
+  background:radial-gradient(circle, rgba(60,240,255,.22), transparent 66%);
+}
+/* Gold – gebürstetes Warmmetall. */
+.m3d-stage[data-pedestal="gold"] .pod-top{
+  background:radial-gradient(120% 120% at 32% 22%, #fff3c4, #e8b950 45%, #a9761d);
+  box-shadow:0 6px 16px rgba(80,50,0,.5), inset 0 1px 2px rgba(255,255,255,.6);
+}
+.m3d-stage[data-pedestal="gold"] .pod-side{
+  background:linear-gradient(180deg,#c8912f,#6d4a12);
+}
+.m3d-stage[data-pedestal="gold"]::before{
+  background:radial-gradient(circle, rgba(255,200,90,.2), transparent 66%);
+}
+/* Glas – klare, kühle Glasscheibe. */
+.m3d-stage[data-pedestal="glass"] .pod-top{
+  background:radial-gradient(120% 120% at 40% 25%, rgba(255,255,255,.75),
+            rgba(180,210,235,.35) 55%, rgba(120,160,200,.25));
+  box-shadow:0 6px 18px rgba(0,0,0,.35), inset 0 1px 3px rgba(255,255,255,.8),
+             0 0 0 1px rgba(255,255,255,.25);
+}
+.m3d-stage[data-pedestal="glass"] .pod-side{
+  background:linear-gradient(180deg,rgba(200,225,245,.5),rgba(60,90,120,.35));
+  filter:brightness(1);
+}
+/* Holz – warmes, gemasertes Podest. */
+.m3d-stage[data-pedestal="wood"] .pod-top{
+  background:radial-gradient(120% 120% at 35% 25%, #c98f57, #9a5f31 55%, #6f3f1e);
+}
+.m3d-stage[data-pedestal="wood"] .pod-side{
+  background:linear-gradient(180deg,#7d4c26,#3f2412);
+}
+
+/* Kachel-Caption: Titel + (für den Owner) Löschen. */
+.m3d-cap{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 10px 10px;min-width:0;
+}
+.m3d-cap-title{
+  flex:1;min-width:0;font-size:12.5px;font-weight:650;letter-spacing:.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.m3d-del{
+  flex:none;display:grid;place-items:center;width:24px;height:24px;
+  border:none;border-radius:8px;background:rgba(255,255,255,.06);
+  color:#fff;opacity:.55;cursor:pointer;transition:opacity .18s,background .18s,color .18s;
+}
+.m3d-del:hover{opacity:1;background:rgba(255,80,80,.16);color:#ff7b7b}
+
+/* Floating-Upload-Button (nur Owner), Position wie gb-add. */
+.m3d-add{
+  position:fixed;left:50%;translate:-50% 0;
+  bottom:calc(96px + env(safe-area-inset-bottom));
+  bottom:calc(100lvh - var(--app-vh,100lvh) + 96px + env(safe-area-inset-bottom));
+  z-index:72;display:inline-flex;align-items:center;gap:8px;
+  padding:11px 18px;border:none;border-radius:999px;
+  font:inherit;font-size:14px;font-weight:700;letter-spacing:.01em;color:#0b0b0d;
+  background:linear-gradient(180deg,#ffffff,#e9e9ef);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);cursor:pointer;
+  opacity:0;visibility:hidden;transform:translate(-50%,10px);
+  transition:opacity .22s ease,transform .22s ease,visibility 0s linear .22s;
+}
+.m3d-page.show .m3d-add{opacity:1;visibility:visible;transform:translate(-50%,0);transition:opacity .28s ease .1s,transform .28s ease .1s,visibility 0s}
+.m3d-add:hover{transform:translate(-50%,-2px)}
+.m3d-add:active{transform:translate(-50%,0) scale(.97)}
+
+/* ── Upload-Sheet ─────────────────────────────────────────────────────────
+   Modal wie das Gästebuch-Eintrags-Modal: Titelfeld, Datei-Dropzone und ein
+   Dropdown für die Podest-Art. */
+.m3d-modal{
+  position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(0,0,0,.5);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+.m3d-modal.show{display:flex}
+.m3dm-content{
+  width:min(420px,100%);border:1px solid var(--border);border-radius:22px;
+  background:rgba(20,20,24,.96);box-shadow:0 24px 70px rgba(0,0,0,.5);
+  padding:20px;display:flex;flex-direction:column;gap:12px;
+  animation:infoRise .26s cubic-bezier(.22,1,.36,1);
+}
+.m3dm-title{font-size:16px;font-weight:750;letter-spacing:.01em}
+.m3dm-label{font-size:12px;font-weight:600;opacity:.6;margin-bottom:-4px}
+.m3dm-input,.m3dm-select{
+  width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:12px;
+  background:rgba(255,255,255,.05);color:#fff;font:inherit;font-size:14px;outline:none;
+  transition:border-color .18s,background .18s;
+}
+.m3dm-input:focus,.m3dm-select:focus{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08)}
+.m3dm-select{appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;opacity:.95}
+.m3dm-select option{background:#1a1a1e;color:#fff}
+
+/* Datei-Dropzone. */
+.m3dm-drop{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;min-height:104px;padding:16px;text-align:center;
+  border:1.5px dashed rgba(255,255,255,.22);border-radius:14px;
+  background:rgba(255,255,255,.03);cursor:pointer;
+  transition:border-color .18s,background .18s;
+}
+.m3dm-drop:hover,.m3dm-drop.dragover{border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.06)}
+.m3dm-drop.has-file{border-style:solid;border-color:rgba(120,255,180,.4)}
+.m3dm-drop-ic{opacity:.6}
+.m3dm-drop-main{font-size:13px;font-weight:650}
+.m3dm-drop-sub{font-size:11px;opacity:.5;line-height:1.4}
+.m3dm-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+.m3dm-error{font-size:12px;color:#ff7b7b;min-height:16px;opacity:0;transition:opacity .18s}
+.m3dm-error.show{opacity:1}
+.m3dm-actions{display:flex;gap:10px;margin-top:2px}
+.m3dm-btn{
+  flex:1;padding:11px;border:none;border-radius:12px;font:inherit;font-size:14px;
+  font-weight:700;cursor:pointer;transition:opacity .18s,transform .1s,background .18s;
+}
+.m3dm-btn.cancel{background:rgba(255,255,255,.08);color:#fff}
+.m3dm-btn.confirm{background:linear-gradient(180deg,#ffffff,#e6e6ec);color:#0b0b0d}
+.m3dm-btn:disabled{opacity:.55;cursor:default}
+.m3dm-btn:not(:disabled):active{transform:scale(.98)}
+
+/* ── Viewer-Overlay (Modell groß, volle Steuerung) ────────────────────────*/
+.m3d-viewer{
+  position:fixed;inset:0;z-index:130;display:none;flex-direction:column;
+  background:rgba(6,6,9,.82);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+.m3d-viewer.show{display:flex;animation:m3dFade .24s ease}
+@keyframes m3dFade{from{opacity:0}to{opacity:1}}
+.m3d-viewer-head{
+  display:flex;align-items:center;gap:12px;
+  padding:calc(14px + env(safe-area-inset-top)) 18px 12px;
+}
+.m3d-viewer-title{flex:1;min-width:0;font-size:15px;font-weight:700;letter-spacing:.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m3d-viewer-close{
+  flex:none;display:grid;place-items:center;width:38px;height:38px;border:none;
+  border-radius:50%;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;
+  transition:background .18s}
+.m3d-viewer-close:hover{background:rgba(255,255,255,.2)}
+.m3d-viewer-stage{flex:1;min-height:0;position:relative}
+.m3d-viewer-mv{
+  width:100%;height:100%;background-color:transparent;--poster-color:transparent;
+  --progress-bar-color:rgba(255,255,255,.6);
+}
+.m3d-viewer-hint{
+  text-align:center;font-size:12px;opacity:.4;letter-spacing:.03em;
+  padding:8px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+@media (max-width:380px){
+  .m3d-scroll{padding-left:12px;padding-right:12px}
+  .m3d-grid{gap:8px}
+  .m3d-cap{padding:6px 8px 8px}
+}

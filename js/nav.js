@@ -70,10 +70,25 @@
     return wrap;
   }
 
+  // 3D Modelle: Held-Badge + 3er-Raster als Skelett (spiegelt das Inventar-Grid).
+  function buildModels() {
+    const wrap = document.createElement('div');
+    wrap.className = 'nav-mini-page';
+    let cells = '';
+    for (let i = 0; i < 6; i++) cells += '<div class="nav-cell"></div>';
+    wrap.innerHTML =
+      '<div class="nav-mini-badge">🧊</div>' +
+      '<div class="nav-mini-heroline"></div>' +
+      '<div class="nav-mini-subline"></div>' +
+      '<div class="nav-mini-grid three">' + cells + '</div>';
+    return wrap;
+  }
+
   const PAGES = [
     { key: 'home',      label: 'Startseite', build: buildHome,      go: () => window.MB?.goHome?.() },
     { key: 'info',      label: 'Info',       build: buildInfo,      go: () => window.MB?.openInfoPage?.() },
     { key: 'guestbook', label: 'Gästebuch',  build: buildGuestbook, go: () => window.MB?.openGuestbook?.() },
+    { key: 'models',    label: '3D Modelle', build: buildModels,    go: () => window.MB?.openModels?.() },
   ];
 
   function init() {
@@ -135,6 +150,7 @@
     });
 
     function currentKey() {
+      if ($('m3dPage')?.classList.contains('show')) return 'models';
       if ($('gbPage')?.classList.contains('show')) return 'guestbook';
       if ($('infoPage')?.classList.contains('show')) return 'info';
       return 'home';

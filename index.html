@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="css/gate.css">
 <link rel="stylesheet" href="css/guestbook.css">
 <link rel="stylesheet" href="css/nav.css">
+<link rel="stylesheet" href="css/models3d.css">
 <script>
 /* Gate-Weiche, synchron VOR dem ersten Paint: Liegt keine Supabase-Session
    im localStorage, zeigt html.gate-open die Startpage statt des Loading
@@ -99,6 +100,8 @@
 })();
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<!-- 3D-Modell-Anzeige (Google model-viewer) für die "3D Modelle"-Seite -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
 
@@ -485,6 +488,7 @@
 <script defer src="js/header-menu.js"></script>
 <script type="module" src="js/mood-chat.js"></script>
 <script type="module" src="js/guestbook.js"></script>
+<script type="module" src="js/models3d.js"></script>
 <script defer src="js/nav.js"></script>
 <script type="module" src="js/walkthrough.js"></script>
 
@@ -887,6 +891,116 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <button class="gbm-btn confirm" id="gbdDone" type="button">Fertig</button>
     </div>
   </div>
+</div>
+
+<!-- ============================================================
+     3D-Modell-Inventar
+     Vollflächige Seite im Stil der Info-/Gästebuch-Seite: 3er-Grid
+     aus interaktiven 3D-Modellen auf Podesten. Owner lädt über das
+     Sheet (mit Podest-Dropdown) hoch. Logik in js/models3d.js,
+     Styles in css/models3d.css. -->
+<div class="m3d-page" id="m3dPage" role="dialog" aria-modal="true" aria-label="3D Modelle" aria-hidden="true">
+
+  <!-- Kopfzeile: 1:1-Spiegelung des Haupt-Headers (.topbar). -->
+  <div class="topbar in-page">
+    <span class="board-title page-home" role="button" tabindex="0" aria-label="Zur Startseite">Marvin's Place</span>
+
+    <div class="topbar-right">
+      <button class="menubtn hubbtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
+      <div class="hub-menu" role="menu">
+        <button class="hub-item" data-hub="login" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span> <span class="hub-login-label">Login</span></button>
+        <button class="hub-item admin-only" data-hub="menu" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </span> Verwalten</button>
+        <button class="hub-item admin-only hub-access-item" data-hub="access" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M17 11l2 2 4-4"/>
+            </svg>
+          </span> Zugriffe<span class="acc-dot"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="m3d-scroll" id="m3dScroll">
+    <div class="m3d-inner">
+      <div class="m3d-hero">
+        <div class="info-hero-badge">🧊</div>
+        <h1 class="info-hero-title">3D Modelle</h1>
+        <p class="m3d-hero-sub">Mein Inventar aus 3D-Modellen. Tippe ein Modell an, um es groß zu drehen und zu zoomen.</p>
+      </div>
+      <div class="m3d-grid" id="m3dGrid">
+        <div class="m3d-status" id="m3dStatus">Lade…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload-Button: nur der Owner sieht ihn (.admin-only, app.js schaltet ihn). -->
+  <button class="m3d-add admin-only" id="m3dAddBtn" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    Modell hochladen
+  </button>
+</div>
+
+<!-- Upload-Sheet: Titel + Datei-Dropzone + Podest-Dropdown -->
+<div class="m3d-modal" id="m3dModal" role="dialog" aria-modal="true" aria-label="3D-Modell hochladen">
+  <div class="m3dm-content">
+    <div class="m3dm-title">3D-Modell hochladen</div>
+
+    <input class="m3dm-input" id="m3dmTitle" placeholder="Titel (z. B. „Sneaker“)" maxlength="80" autocomplete="off">
+
+    <label class="m3dm-drop" id="m3dmDrop" for="m3dmFile">
+      <span class="m3dm-drop-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px;display:block">
+          <path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"/><polyline points="7 9 12 4 17 9"/><line x1="12" y1="4" x2="12" y2="16"/>
+        </svg>
+      </span>
+      <span class="m3dm-drop-main" id="m3dmDropMain">Datei wählen oder hierher ziehen</span>
+      <span class="m3dm-drop-sub">.glb oder .gltf · am besten .glb (eine Datei) · max. 60 MB</span>
+      <input type="file" id="m3dmFile" accept=".glb,.gltf,model/gltf-binary,model/gltf+json">
+    </label>
+
+    <span class="m3dm-label">Plattform / Podest</span>
+    <select class="m3dm-select" id="m3dmPedestal" aria-label="Podest-Art"></select>
+
+    <div class="m3dm-error" id="m3dmError"></div>
+    <div class="m3dm-actions">
+      <button class="m3dm-btn cancel" id="m3dmCancel" type="button">Abbrechen</button>
+      <button class="m3dm-btn confirm" id="m3dmSave" type="button">Hochladen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Viewer-Overlay: Modell groß mit voller Steuerung (drehen/zoomen) -->
+<div class="m3d-viewer" id="m3dViewer" role="dialog" aria-modal="true" aria-label="3D-Modell ansehen" aria-hidden="true">
+  <div class="m3d-viewer-head">
+    <span class="m3d-viewer-title" id="m3dViewerTitle">Modell</span>
+    <button class="m3d-viewer-close" id="m3dViewerClose" type="button" aria-label="Schließen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="m3d-viewer-stage" id="m3dViewerStage"></div>
+  <div class="m3d-viewer-hint">Ziehen zum Drehen · Pinch/Scroll zum Zoomen</div>
 </div>
 </body>
 </html>

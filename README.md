@@ -38,6 +38,7 @@ moodboard/
 - Shuffle or sort by date
 - **Autoplay-Killswitch** — toggle in the tile-size popup to freeze GIFs/videos in the grid (per-browser, saved in `localStorage`, doesn't affect other visitors)
 - **Mood-Chat search** — type a mood/wish, get matching images (see below)
+- **3D-Modell-Inventar** — a separate "3D Modelle" page (opened from the navigation pop-up) that shows uploaded 3D models as an inventory, 3 per row, each rotating on its own pedestal (see below)
 
 ## Database
 
@@ -151,6 +152,44 @@ only if it truly dominates the image (dominance + coverage thresholds in
 the column is documented in [`db/color_profiles.sql`](db/color_profiles.sql).
 Images still lacking a profile fall back to an instant `ai_tags` colour-word
 match (no download) until the backfill runs.
+
+### 3D-Modell-Inventar
+
+A dedicated **"3D Modelle"** page — reachable as a fourth card in the navigation
+pop-up (the compass button) — shows all uploaded 3D models as an **inventory in a
+fixed 3-per-row grid**. Each model rotates live on its own **pedestal
+("Plattform")** and can be tapped to open large in a fullscreen viewer with full
+drag-to-rotate / pinch-to-zoom controls.
+
+- **Rendering:** Google [`<model-viewer>`](https://modelviewer.dev/) (loaded from
+  CDN in `index.html`). Because model-viewer **auto-frames** every model, all
+  models appear at the **same size in the grid regardless of the source model's
+  scale** — i.e. they're "size-adjusted on upload" automatically. Files are
+  `.glb` (preferred, single self-contained file) or `.gltf`.
+- **Pedestals:** each model stands on a stylized podium. Six styles are available
+  from a dropdown in the upload sheet — `obsidian`, `marble`, `neon`, `gold`,
+  `glass`, `wood` — rendered purely in CSS (`css/models3d.css`).
+- **Upload (owner only):** a floating *"Modell hochladen"* button opens a sheet
+  with a title field, a `.glb`/`.gltf` drop-zone and the pedestal dropdown. The
+  file is uploaded to the `moodboard` storage bucket under `models/`; the record
+  (title, URL, pedestal) lands in `public.models_3d`.
+- Logic lives in [`js/models3d.js`](js/models3d.js); the table and RLS are
+  documented in [`db/models_3d.sql`](db/models_3d.sql).
+
+**Table:** `models_3d`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| title | text | Model name |
+| model_url | text | Supabase Storage URL (`.glb`/`.gltf`) |
+| pedestal | text | Podium style: `obsidian` / `marble` / `neon` / `gold` / `glass` / `wood` |
+| created_at | timestamptz | Upload timestamp |
+
+RLS mirrors the guestbook: **members read** (owner + approved friends), **owner
+only** inserts and deletes. Storage stays owner-only writable
+(`db/access_control.sql`), so no extra storage policy is needed — uploads go to
+`models/`.
 
 ## Environment
 
