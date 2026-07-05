@@ -1809,35 +1809,27 @@ function startDeleteMode(){
 $('pickDeleteBtn').onclick = startDeleteMode;
 $('pickDeleteBtnSheet').onclick = startDeleteMode;
 
-// ── THUMBNAIL-/WEBP-/GIF-BACKFILL (Owner) ────────────────
-// Für bestehende statische Bilder: (1) Volldatei nach WebP konvertieren, falls
-// sie noch kein WebP ist (verkleinert auf MAX_PX), media_url umstellen und die
-// alte Datei aufräumen; (2) ein kleines Grid-Thumbnail erzeugen. Videos werden
-// übersprungen. GIFs werden per Gifsicle (WASM) verlustarm re-komprimiert und
-// bekommen ein verkleinertes animiertes Grid-Thumbnail – die Animation bleibt.
-async function backfillThumbs(){
+// ── MEDIEN-BACKFILL (Owner) — entkoppelt, je eigener Button ───────────────
+// Drei unabhängige Owner-Aktionen statt einer langen Sammelaktion, damit man
+// gezielt nur das Nötige (und damit deutlich schneller) laufen lassen kann:
+//   1) Bilder → WebP + Thumbnail          (backfillImages)
+//   2) GIFs   → komprimieren + Thumbnail   (backfillGifs)
+//   3) Farbprofile für die Chat-Farbsuche  (backfillColors)
+
+// 1) Statische Bilder: Volldatei nach WebP konvertieren, falls sie noch kein
+// WebP ist (verkleinert auf MAX_PX, media_url umstellen, alte Datei aufräumen),
+// plus ein kleines Grid-Thumbnail. Videos werden übersprungen.
+async function backfillImages(){
   if(!owner){ toast('Nur als Owner möglich'); return; }
   const marker = `/public/${BUCKET}/`;
   // Bilder erfassen, denen entweder das Thumbnail ODER das WebP-Format fehlt.
   const todo = S().items.filter(it =>
     it.media_type === 'image' && (!it.thumb_url || !/\.webp(\?|$)/i.test(it.media_url || '')));
-  // GIFs ohne thumb_url gelten als unoptimiert (thumb_url dient als Marker,
-  // dass Gifsicle schon drüber lief). Nur Bucket-Dateien – extern verlinkte
-  // GIFs (Quick-Add per URL) lassen sich nicht ersetzen.
-  const gifTodo = S().items.filter(it =>
-    it.media_type === 'gif' && !it.thumb_url && /\.gif(\?|#|$)/i.test(it.media_url || '')
-    && (it.media_url || '').includes(marker));
-  // Farbprofil-Backfill: alle Bilder/GIFs, die noch kein `colors` haben. Einmalig
-  // für den Bestand; neue Uploads bringen ihr Profil schon selbst mit. Danach
-  // läuft die Chat-Farbsuche ohne jeden Bild-Download.
-  const colorTodo = S().items.filter(it =>
-    (it.media_type === 'image' || it.media_type === 'gif')
-    && !(Array.isArray(it.colors) && it.colors.length));
-  const total = todo.length + gifTodo.length + colorTodo.length;
-  if(total === 0){ toast('Alles schon optimiert ✓'); return; }
-  if(!window.confirm(`${todo.length} Bilder → WebP + Thumbnail, ${gifTodo.length} GIFs → komprimieren + Thumbnail, ${colorTodo.length} × Farbprofil.\nJetzt starten? Das kann etwas dauern.`)) return;
+  const total = todo.length;
+  if(total === 0){ toast('Bilder schon optimiert ✓'); return; }
+  if(!window.confirm(`${total} Bilder → WebP + Thumbnail.\nJetzt starten?`)) return;
   closeMenu();
-  let done = 0, failed = 0, converted = 0, gifShrunk = 0, colored = 0;
+  let done = 0, failed = 0, converted = 0;
   toast(`Verarbeite… 0/${total}`);
   for(const it of todo){
     try{
@@ -1887,6 +1879,25 @@ async function backfillThumbs(){
     prog(Math.round(done / total * 100));
     if(done % 5 === 0 || done === total) toast(`Verarbeite… ${done}/${total}`);
   }
+  renderGrid();
+  toast(`Fertig ✓ (${total - failed} ok, ${converted}× WebP${failed ? `, ${failed} Fehler` : ''})`);
+}
+
+// 2) GIFs: verlustarm re-komprimieren (Gifsicle/WASM) + animiertes Grid-Thumbnail.
+// thumb_url dient als Marker, dass Gifsicle schon lief. Nur Bucket-GIFs – extern
+// verlinkte (Quick-Add per URL) lassen sich nicht ersetzen.
+async function backfillGifs(){
+  if(!owner){ toast('Nur als Owner möglich'); return; }
+  const marker = `/public/${BUCKET}/`;
+  const gifTodo = S().items.filter(it =>
+    it.media_type === 'gif' && !it.thumb_url && /\.gif(\?|#|$)/i.test(it.media_url || '')
+    && (it.media_url || '').includes(marker));
+  const total = gifTodo.length;
+  if(total === 0){ toast('GIFs schon optimiert ✓'); return; }
+  if(!window.confirm(`${total} GIFs → komprimieren + Thumbnail.\nJetzt starten?`)) return;
+  closeMenu();
+  let done = 0, failed = 0, gifShrunk = 0;
+  toast(`Verarbeite… 0/${total}`);
   for(const it of gifTodo){
     try{
       const i = it.media_url.indexOf(marker);
@@ -1937,10 +1948,25 @@ async function backfillThumbs(){
     prog(Math.round(done / total * 100));
     if(done % 5 === 0 || done === total) toast(`Verarbeite… ${done}/${total}`);
   }
-  // Farbprofil-Pass: pro Bild/GIF einmal das kleine Thumbnail laden, in 12 Farb-
-  // Buckets einteilen und speichern. Nutzt bevorzugt das (kleine) Thumbnail, das
-  // die vorigen Pässe evtl. gerade erst erzeugt haben. Fehler (CORS bei extern
-  // verlinkten Medien, exotische Formate) überspringen das Bild einfach.
+  renderGrid();
+  toast(`Fertig ✓ (${total - failed} ok, ${gifShrunk}× GIF verkleinert${failed ? `, ${failed} Fehler` : ''})`);
+}
+
+// 3) Farbprofile für die Chat-Farbsuche: pro Bild/GIF das kleine Thumbnail laden,
+// in 12 Farb-Buckets einteilen und in der Spalte `colors` speichern. Einmalig für
+// den Bestand; neue Uploads bringen ihr Profil schon selbst mit. Fehler (CORS bei
+// extern verlinkten Medien, exotische Formate) überspringen das Bild einfach.
+async function backfillColors(){
+  if(!owner){ toast('Nur als Owner möglich'); return; }
+  const colorTodo = S().items.filter(it =>
+    (it.media_type === 'image' || it.media_type === 'gif')
+    && !(Array.isArray(it.colors) && it.colors.length));
+  const total = colorTodo.length;
+  if(total === 0){ toast('Farbprofile schon fertig ✓'); return; }
+  if(!window.confirm(`${total} × Farbprofil berechnen.\nJetzt starten?`)) return;
+  closeMenu();
+  let done = 0, failed = 0, colored = 0;
+  toast(`Verarbeite… 0/${total}`);
   for(const it of colorTodo){
     try{
       const src = it.thumb_url || it.media_url;
@@ -1955,10 +1981,14 @@ async function backfillThumbs(){
     if(done % 5 === 0 || done === total) toast(`Verarbeite… ${done}/${total}`);
   }
   renderGrid();
-  toast(`Fertig ✓ (${total - failed} ok, ${converted}× WebP, ${gifShrunk}× GIF verkleinert, ${colored}× Farbprofil${failed ? `, ${failed} Fehler` : ''})`);
+  toast(`Fertig ✓ (${colored}× Farbprofil${failed ? `, ${failed} Fehler` : ''})`);
 }
-$('thumbBackfillBtn')?.addEventListener('click', backfillThumbs);
-$('thumbBackfillBtnSheet')?.addEventListener('click', backfillThumbs);
+$('imgBackfillBtn')?.addEventListener('click', backfillImages);
+$('imgBackfillBtnSheet')?.addEventListener('click', backfillImages);
+$('gifBackfillBtn')?.addEventListener('click', backfillGifs);
+$('gifBackfillBtnSheet')?.addEventListener('click', backfillGifs);
+$('colorBackfillBtn')?.addEventListener('click', backfillColors);
+$('colorBackfillBtnSheet')?.addEventListener('click', backfillColors);
 
 // ── GIF → MP4 KONVERTIERUNG (Owner) ──────────────────────
 // Wandelt bereits hochgeladene GIFs auf Knopfdruck in MP4 um (Uploads bleiben

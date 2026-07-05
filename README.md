@@ -141,7 +141,10 @@ every image's dominant-colour profile (12 per-mille buckets: red, orange,
 yellow, green, teal, blue, purple, pink, brown, black, grey, white) is
 **precomputed once and stored in the `colors` column**. New uploads compute it
 for free from the canvas they're already decoded on; existing media is filled in
-by a one-time owner backfill (the *"Medien optimieren"* menu action). The search
+by a one-time owner backfill (*"Farbprofile berechnen"*). The owner media tools
+are **split into independent buttons** — *Bilder optimieren*, *GIFs optimieren*,
+*Farbprofile berechnen* — so each runs on its own instead of one long action.
+The search
 is then a pure in-memory filter over the already-loaded list. A colour "counts"
 only if it truly dominates the image (dominance + coverage thresholds in
 `colorMetrics`). Shared logic lives in [`js/color-profile.js`](js/color-profile.js);
