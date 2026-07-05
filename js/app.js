@@ -969,17 +969,23 @@ async function gifToMp4(file){
 }
 let _lockedScrollY = 0;
 function updateBodyLock(){
-  // Info-Seite & Gästebuch bewusst NICHT hier: sie sind Vollbild-Glas-Popups
-  // mit eigenem Scrollbereich (overscroll-behavior:contain). Ein Body-Lock
-  // (position:fixed) würde auf iOS die Adressleiste ausfahren und die global
-  // fixierte Bottom-Pill nach oben springen lassen – sie soll auf beiden
-  // Seiten exakt auf Grid-Höhe bleiben. Das Overlay deckt den Screen ohnehin
-  // komplett ab, ein Lock ist daher nicht nötig.
+  // Harte Sperre für Modals/Lightbox/Sheets: friert die Scrollposition per
+  // body{position:fixed} + top:-scrollY ein und stellt sie beim Schließen wieder
+  // her. Für Vollbild-Overlays mit eigenem Scrollbereich.
   const lock = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'))
     || (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
     || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'));
+  // Weiche Sperre für die Glas-Popups (Info-Seite & Gästebuch): sie liegen als
+  // Vollbild-Overlay über dem Grid, der Hintergrund soll dabei still stehen. Ein
+  // harter Body-Lock (position:fixed) scheidet aus – er würde auf iOS die Toolbar
+  // ausfahren und die global fixierte Bottom-Pill springen lassen. Stattdessen
+  // nur html{overflow:hidden}: stoppt das Durchscrollen auf den Grid, lässt den
+  // Hintergrund aber an seiner Position sichtbar (Videos laufen weiter). Bei
+  // aktiver harter Sperre nicht nötig – die deckt overflow:hidden schon ab.
+  const softLock = !lock && !!document.querySelector('.info-page.show, .gb-page.show');
+  document.documentElement.classList.toggle('no-scroll-soft', softLock);
   const isLocked = document.documentElement.classList.contains('no-scroll');
   if(lock && !isLocked){
     _lockedScrollY = window.scrollY || window.pageYOffset || 0;

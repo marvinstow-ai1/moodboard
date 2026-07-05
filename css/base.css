@@ -10,4 +10,12 @@ html.no-scroll{overflow:hidden;height:100%}
    allein; der Body bleibt in voller Höhe gemalt und per top:-scrollY (JS)
    exakt an der alten Position eingefroren. */
 body.no-scroll{position:fixed;left:0;right:0;width:100%}
+/* Weiche Scroll-Sperre für die Vollbild-Glas-Popups (Info-Seite & Gästebuch):
+   unterbindet NUR das Durchscrollen des Hintergrunds über html{overflow:hidden}.
+   Bewusst OHNE height:100% (das würde den Hintergrund auf den ersten Viewport
+   clippen und die geclippten Grid-Videos pausieren) und OHNE body{position:fixed}
+   (das würde auf iOS die Toolbar ausfahren und die global fixierte Bottom-Pill
+   springen lassen). Der Body bleibt an Ort und Stelle, der Hintergrund an seiner
+   Scrollposition sichtbar – nur das Rad/Touch scrollt den Grid nicht mehr weg. */
+html.no-scroll-soft{overflow:hidden}
 button,input{font:inherit}
