@@ -16,21 +16,11 @@
      tatsächlich SICHTBAREN Unterkante ausgerichtet. Fallback 100vh. */
   height:100vh;height:100lvh;
   display:flex;flex-direction:column;
-  /* Grünes Ambient-Licht direkt auf der Vollbild-Seite verankert (fixed=
-     exakter Screen), damit es garantiert bis zum untersten Bildschirmrand
-     inkl. Safe-Area füllt. Das .info-ambient-Kind (inset:-30%) verzerrte
-     die Prozent-Anker so, dass der Verlauf stets über den unteren Rand
-     hinausrutschte – daher der schwarze Streifen unten.
-     Fallback ohne backdrop-filter: solide Fläche; mit Support wird die
-     Basisschicht transluzent (siehe @supports unten) und die zuletzt
-     offene Ansicht schimmert glassmorph durch – GIFs/Videos laufen dort
-     weiter, die Seite ist nur noch ein Popup darüber. */
-  background:
-    radial-gradient(135% 60% at 50% 100%,
-      rgba(120,255,210,.22) 0%,
-      rgba(90,220,180,.10) 40%,
-      transparent 78%),
-    var(--bg);
+  /* Fallback ohne backdrop-filter: solide Fläche; mit Support wird die
+     Seite zum reinen Glas-Popup (siehe @supports unten) – die zuletzt
+     offene Ansicht schimmert durch, GIFs/Videos laufen dort weiter.
+     Bewusst KEINE Farbverläufe mehr, damit die Medien erkennbar bleiben. */
+  background:var(--bg);
   opacity:0;visibility:hidden;pointer-events:none;
   transform:translateY(14px) scale(.98);
   transition:opacity .2s ease,
@@ -40,14 +30,9 @@
 }
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .gb-page{
-    background:
-      radial-gradient(135% 60% at 50% 100%,
-        rgba(120,255,210,.20) 0%,
-        rgba(90,220,180,.09) 40%,
-        transparent 78%),
-      rgba(8,8,10,.52);
-    -webkit-backdrop-filter:blur(26px) saturate(1.2);
-    backdrop-filter:blur(26px) saturate(1.2);
+    background:rgba(8,8,10,.45);
+    -webkit-backdrop-filter:blur(18px) saturate(1.15);
+    backdrop-filter:blur(18px) saturate(1.15);
   }
 }
 .gb-page.show{
@@ -58,16 +43,16 @@
              visibility 0s;
 }
 .gb-page.is-animating{will-change:opacity,transform}
-.gb-page.show .info-ambient{opacity:1;animation:infoAmbientDrift 26s ease-in-out infinite}
 
 /* Scroll-Bereich. */
 .gb-scroll{
   position:relative;z-index:1;flex:1;min-height:0;
   overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  padding:8px 20px calc(120px + env(safe-area-inset-bottom));
+  padding:8px 20px calc(190px + env(safe-area-inset-bottom));
   /* Seite ist 100lvh hoch (ggf. höher als sichtbar) – das Extra-Padding
-     (100lvh - sichtbare Höhe) hebt das Listenende über die Toolbar. */
-  padding-bottom:calc(100lvh - var(--app-vh,100lvh) + 120px + env(safe-area-inset-bottom));
+     (100lvh - sichtbare Höhe) hebt das Listenende über die Toolbar.
+     190px = Platz für den gestapelten Eintragen-Button + globale Pill. */
+  padding-bottom:calc(100lvh - var(--app-vh,100lvh) + 190px + env(safe-area-inset-bottom));
 }
 .gb-inner{width:min(640px,100%);margin:0 auto}
 
@@ -148,16 +133,14 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 .gb-entry-del:hover{opacity:1;background:rgba(0,0,0,.65)}
 
-/* Schwebender "Eintragen"-Button über der Liste – exakt auf Höhe der
-   .bottombar-Pill im Grid (42px Button + 6px Padding + 1px Border je
-   Seite = 56px Gesamthöhe), gleicher bottom-Abstand (16px), damit beide
-   Pills bündig auf derselben Bildschirmhöhe sitzen. */
+/* Schwebender "Eintragen"-Button über der Liste. Die .bottombar-Pill ist
+   global (liegt auch über dieser Seite, unten bei 16px) – der Button sitzt
+   deshalb gestapelt DARÜBER: 16px Abstand + 56px Pill-Höhe + 12px Luft. */
 .gb-add{
-  position:absolute;left:50%;bottom:16px;
+  position:absolute;left:50%;bottom:84px;
   /* Die Seite reicht bis 100lvh (ggf. unter die Toolbar) – der Offset
-     hebt den Button auf 16px über die SICHTBARE Unterkante und damit
-     exakt auf die Höhe der Grid-Pill. */
-  bottom:calc(100lvh - var(--app-vh,100lvh) + 16px);
+     rechnet auf die SICHTBARE Unterkante um. */
+  bottom:calc(100lvh - var(--app-vh,100lvh) + 84px);
   transform:translateX(-50%);z-index:3;
   display:flex;align-items:center;gap:8px;
   height:56px;border:1px solid rgba(255,255,255,.16);border-radius:999px;
@@ -169,12 +152,6 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 .gb-add:hover{background:rgba(255,255,255,.18)}
 .gb-add:active{transform:translateX(-50%) scale(.95)}
-/* Sanfter Mint-Glow im Rhythmus des Ambient-Lichts. */
-.gb-page.show .gb-add{animation:gbAddGlow 3.8s ease-in-out infinite}
-@keyframes gbAddGlow{
-  0%,100%{box-shadow:0 8px 32px rgba(0,0,0,.5)}
-  50%{box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 26px rgba(120,255,210,.28)}
-}
 
 /* ── Eintrags-Modal (Optik wie .mood-create-modal) ─────────── */
 .gb-modal,.gb-draw{
@@ -312,5 +289,5 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 @media(prefers-reduced-motion:reduce){
   .gb-page,.gb-page.show{transition:opacity .2s ease,visibility 0s}
   .gb-page.show .gb-hero,.gb-entry{animation:none;opacity:1;transform:none}
-  .gb-hero .info-hero-badge,.gb-page.show .gb-add{animation:none}
+  .gb-hero .info-hero-badge{animation:none}
 }

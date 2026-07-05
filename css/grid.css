@@ -32,7 +32,9 @@
 .tchip.active{background:#fff;color:#111;border-color:#fff}
 .editor-wrap{display:none}
 .editor-wrap.show{display:block}
-.bottombar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:2px;background:rgba(10,10,10,.75);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,.5)}
+/* Die Pill ist global: z-index 72 hält sie auch über den Glas-Popups
+   (Info/Gästebuch, z-70); Lightbox & Modals (z-80+) decken sie weiter ab. */
+.bottombar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:72;display:flex;align-items:center;gap:2px;background:rgba(10,10,10,.75);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,.5)}
 .bottombar-btn{width:42px;height:42px;border-radius:999px;border:none;background:transparent;color:#fff;cursor:pointer;font-size:19px;display:grid;place-items:center;transition:.15s;padding:0;flex-shrink:0}
 .bottombar-btn:focus{outline:none}
 .bottombar-btn.active{background:rgba(255,255,255,.14)}

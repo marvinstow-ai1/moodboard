@@ -48,10 +48,14 @@ function markAnimating(){
 
 function openPage(){
   window.MB?.closeOtherPopups?.();
+  window.MB?.closeInfoPage?.();   // nie zwei Glas-Popups übereinander
   markAnimating();
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');
   window.MB?.updateBodyLock?.();
+  // Grid-Videos hinter dem Glas anstoßen, falls der Browser sie beim
+  // Öffnen des Overlays pausiert hat – sie sollen sichtbar weiterloopen.
+  window.MB?.kickAutoplay?.();
   loadEntries();
 }
 function closePage(){
@@ -61,8 +65,15 @@ function closePage(){
   window.MB?.updateBodyLock?.();
 }
 
-$('guestbookBtn')?.addEventListener('click', e => { e.stopPropagation(); openPage(); });
+// Die globale Pill liegt auch über dieser Seite – der Buch-Button togglet.
+$('guestbookBtn')?.addEventListener('click', e => {
+  e.stopPropagation();
+  if(page.classList.contains('show')) closePage(); else openPage();
+});
 $('gbClose')?.addEventListener('click', closePage);
+
+// Fürs gegenseitige Schließen aus app.js (openInfoPage).
+window.MB = Object.assign(window.MB || {}, { closeGuestbook: closePage });
 
 // ── Einträge laden & rendern ───────────────────────────────────────────────
 async function isOwner(){

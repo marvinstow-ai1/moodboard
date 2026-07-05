@@ -2463,12 +2463,16 @@ function openInfoPage(){
   const page = $('infoPage');
   if(!page) return;
   closeAllOverlays();
+  window.MB?.closeGuestbook?.();   // nie zwei Glas-Popups übereinander
   const sc = page.querySelector('.info-scroll');
   if(sc) sc.scrollTop = 0;
   markInfoAnimating(page);
   page.classList.add('show');
   page.setAttribute('aria-hidden','false');
   updateBodyLock();
+  // Grid-Videos hinter dem Glas anstoßen, falls der Browser sie beim
+  // Öffnen des Overlays pausiert hat – sie sollen sichtbar weiterloopen.
+  applyAutoplayState();
 }
 function closeInfoPage(){
   const page = $('infoPage');
@@ -2526,9 +2530,12 @@ window.MB = Object.assign(window.MB || {}, {
   showChatResults,
   clearChatResults,
   showRecentView,
-  // Fürs Gästebuch (js/guestbook.js): Toasts und Scroll-Lock der Haupt-App.
+  // Fürs Gästebuch (js/guestbook.js): Toasts, Scroll-Lock der Haupt-App,
+  // gegenseitiges Schließen der Glas-Popups und Anstoßen der Grid-Videos.
   toast,
   updateBodyLock,
+  closeInfoPage,
+  kickAutoplay(){ applyAutoplayState(); },
   // Lightbox der Haupt-App wiederverwenden (Swipe/Ambient inklusive).
   openItems(items, idx){
     state.moodboard.currentItems = items;

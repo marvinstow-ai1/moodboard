@@ -3,5 +3,11 @@
 html{background:var(--bg);overflow-x:hidden;width:100%}
 body{min-height:100vh;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overscroll-behavior-y:none;-webkit-text-size-adjust:100%;padding-bottom:96px;overflow-x:hidden;width:100%}
 html.no-scroll{overflow:hidden;height:100%}
-body.no-scroll{position:fixed;left:0;right:0;width:100%;overflow:hidden;height:100%}
+/* Bewusst OHNE overflow:hidden/height:100%: das würde den fixierten Body auf
+   den ersten Viewport clippen – hinter den Glas-Popups (Info/Gästebuch) wäre
+   nach dem Scrollen nichts mehr zu sehen und der IntersectionObserver würde
+   die geclippten Grid-Videos pausieren. html.no-scroll sperrt das Scrollen
+   allein; der Body bleibt in voller Höhe gemalt und per top:-scrollY (JS)
+   exakt an der alten Position eingefroren. */
+body.no-scroll{position:fixed;left:0;right:0;width:100%}
 button,input{font:inherit}

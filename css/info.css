@@ -40,13 +40,15 @@
              visibility 0s linear .2s;
   overflow:hidden;
 }
-/* Glassmorpher Popup-Hintergrund: transluzent + Blur statt deckendem --bg.
-   visibility:hidden im zugeklappten Zustand hält die Blur-Kosten bei 0. */
+/* Glassmorpher Popup-Hintergrund: transluzent + Blur statt deckendem --bg –
+   bewusst OHNE zusätzliche Farbflächen, damit die Medien dahinter erkennbar
+   bleiben. visibility:hidden im zugeklappten Zustand hält die Blur-Kosten
+   bei 0. */
 @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .info-page{
-    background:rgba(8,8,10,.52);
-    -webkit-backdrop-filter:blur(26px) saturate(1.2);
-    backdrop-filter:blur(26px) saturate(1.2);
+    background:rgba(8,8,10,.45);
+    -webkit-backdrop-filter:blur(18px) saturate(1.15);
+    backdrop-filter:blur(18px) saturate(1.15);
   }
 }
 .info-page.show{
@@ -61,28 +63,8 @@
    Compositor nicht unnötig Layer vorhält. */
 .info-page.is-animating{will-change:opacity,transform}
 
-/* Dynamischer Ambient-Hintergrund: zwei weich gestreute Lichtflächen, die
-   langsam driften. Gibt der ansonsten leeren Seite Leben. */
-.info-ambient{
-  position:absolute;inset:-30%;z-index:0;pointer-events:none;
-  /* Weiche Radial-Gradients – kein blur()-Filter nötig, das spart pro Frame
-     eine teure Neu-Rasterung der riesigen Fläche. */
-  background:
-    radial-gradient(38% 32% at 22% 28%, rgba(120,150,255,.16), transparent 70%),
-    radial-gradient(34% 30% at 80% 18%, rgba(255,140,200,.12), transparent 70%),
-    radial-gradient(60% 55% at 50% 84%, rgba(120,255,210,.28) 0%, rgba(90,220,180,.14) 45%, transparent 85%);
-  opacity:0;
-  transition:opacity .6s ease .05s;
-}
-/* Drift-Animation erst NACH dem Öffnen starten, damit sie nicht mit der
-   Einblend-Transition um GPU-Zeit konkurriert. */
-.info-page.show .info-ambient{opacity:1;animation:infoAmbientDrift 26s ease-in-out infinite}
-@keyframes infoAmbientDrift{
-  0%  {transform:translate3d(0,0,0)        rotate(0deg)   scale(1)}
-  33% {transform:translate3d(3%,-2%,0)     rotate(4deg)   scale(1.06)}
-  66% {transform:translate3d(-2%,3%,0)     rotate(-3deg)  scale(1.03)}
-  100%{transform:translate3d(0,0,0)        rotate(0deg)   scale(1)}
-}
+/* (Der frühere farbige Ambient-Hintergrund ist bewusst entfernt: die Popups
+   sind reines Glas, durch das die Medien der Ansicht dahinter scheinen.) */
 
 /* Sticky-Kopfzeile mit Zurück-Button + Titel. */
 .info-top{
@@ -205,6 +187,5 @@
   .info-page,.info-page.show{transition:opacity .2s ease,visibility 0s}
   .info-page.show .info-hero,
   .info-page.show .info-card{animation:none;opacity:1;transform:none}
-  .info-ambient{animation:none}
   .info-skel{animation:none}
 }

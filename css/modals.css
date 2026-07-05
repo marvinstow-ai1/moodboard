@@ -102,14 +102,14 @@
 
 /* ── Filter & Spotify Popups ────────────────────────────── */
 
-.spotify-popup{position:fixed;bottom:80px;left:50%;z-index:35;width:min(420px,calc(100vw - 120px));border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);overflow:hidden;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
+.spotify-popup{position:fixed;bottom:80px;left:50%;z-index:73;width:min(420px,calc(100vw - 120px));border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);overflow:hidden;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
 .spotify-popup.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
 .spotify-popup iframe{width:100%;height:352px;border:0;display:block;border-radius:12px}
 
 
 
 /* ── Filter Popup (Grid Columns) ───────────────────────── */
-.filter-popup{position:fixed;bottom:80px;left:50%;z-index:35;width:280px;display:flex;flex-direction:column;gap:14px;padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
+.filter-popup{position:fixed;bottom:80px;left:50%;z-index:73;width:280px;display:flex;flex-direction:column;gap:14px;padding:16px;border:1px solid var(--border);border-radius:18px;background:var(--panel);backdrop-filter:blur(24px);box-shadow:0 20px 50px rgba(0,0,0,.6);opacity:0;pointer-events:none;transform:translateX(-50%) translateY(12px) scale(.96);transform-origin:50% 100%;transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1)}
 .filter-popup.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
 .fp-header{font-size:10px;text-transform:uppercase;letter-spacing:.1em;opacity:.4;text-align:center}
 
