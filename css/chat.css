@@ -52,8 +52,8 @@
 .mc-chip span{font-size:20px;line-height:1}
 .mc-chip:active{transform:scale(.92)}
 
-/* Quick-Chip unter den Emojis: wechselt zur Ansicht „Zuletzt hinzugefügt" */
-.mc-quick{display:flex}
+/* Quick-Chips unter den Emojis: „Recently" (Recent-Ansicht) & „Archive" (Gallery-Shuffle) */
+.mc-quick{display:flex;gap:8px;flex-wrap:wrap}
 .mc-quick-chip{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 16px;
   border:1px solid var(--border);background:rgba(255,255,255,.05);
   border-radius:999px;font-size:13.5px;font-weight:500;line-height:1;color:rgba(255,255,255,.85);

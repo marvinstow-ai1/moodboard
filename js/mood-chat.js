@@ -425,13 +425,25 @@ function initMoodChat() {
   // den Chat („blau", „rot grün"). runSearch erkennt reine Farbwörter per
   // detectColorQuery und schaltet dann auf die Farbsuche (runColorSearch) um.
 
-  // Quick-Chip „Zuletzt hinzugefügt": wechselt direkt zur Recent-Ansicht
+  // Quick-Chip „Recently": wechselt direkt zur Recent-Ansicht
   // (ersetzt den früheren Eintrag aus dem Header-Dropdown) und schließt das Panel.
   const recentChip = $('mcRecentChip');
   if (recentChip) {
     recentChip.onclick = () => {
       clearStatus();
       window.MB?.showRecentView?.();
+      closePanel();
+    };
+  }
+
+  // Quick-Chip „Archive": macht dasselbe wie ein Klick auf „Marvin's Place" im
+  // Header – die komplette Gallery wird neu gemischt (doShuffle) und eine aktive
+  // Mood-Chat-Suche aufgehoben. Danach das Panel schließen.
+  const archiveChip = $('mcArchiveChip');
+  if (archiveChip) {
+    archiveChip.onclick = () => {
+      clearStatus();
+      window.MB?.doShuffle?.();
       closePanel();
     };
   }

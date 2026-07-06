@@ -2635,6 +2635,9 @@ window.MB = Object.assign(window.MB || {}, {
   showChatResults,
   clearChatResults,
   showRecentView,
+  // Für den „Archive"-Quick-Chip im Mood-Chat (js/mood-chat.js): identisch zum
+  // Klick auf „Marvin's Place" im Header – komplette Gallery neu mischen.
+  doShuffle,
   // Fürs Gästebuch (js/guestbook.js): Toasts, Scroll-Lock der Haupt-App,
   // gegenseitiges Schließen der Glas-Popups und Anstoßen der Grid-Videos.
   toast,
