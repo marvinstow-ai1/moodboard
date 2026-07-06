@@ -153,9 +153,34 @@ function stageNote(stage, text){
   if(note){ note.hidden = false; note.textContent = text; }
 }
 
+// ── Einheitliche Einrahmung ────────────────────────────────────────────────
+// model-viewers Auto-Radius rahmt jedes Modell an seiner Bounding-SPHÄRE ein,
+// also an der Diagonale der Bounding-Box. Dadurch füllt ein runder Ball (Dia-
+// gonale ≈ sichtbarer Durchmesser) die Bühne komplett, während eine schlanke,
+// hohe Figur (Diagonale ≫ Silhouette) winzig wirkt – die Größen sehen uneinheit-
+// lich aus. Wir rahmen stattdessen an der GRÖSSTEN EINZELACHSE ein: bei festem
+// Sichtfeld setzen wir den Kamera-Radius so, dass die längste Kante jedes
+// Modells denselben Anteil der Bühne einnimmt. So erscheinen alle Modelle
+// gleich groß, egal ob Kugel, Würfel oder schlanke Figur.
+const M3D_FOV = 28;   // vertikales Sichtfeld in Grad (fest → deterministische Rahmung)
+function frameUniform(mv, fillFraction, polarDeg){
+  let dims;
+  try{ dims = mv.getDimensions?.(); }catch(e){ return; }
+  if(!dims) return;
+  const maxDim = Math.max(dims.x || 0, dims.y || 0, dims.z || 0);
+  if(!(maxDim > 0)) return;
+  // Radius so wählen, dass die halbe längste Kante fillFraction der halben
+  // sichtbaren Höhe entspricht (quadratische Bühne ⇒ horizontal identisch).
+  const fov = M3D_FOV * Math.PI / 180;
+  const radius = (maxDim / 2) / (fillFraction * Math.tan(fov / 2));
+  mv.cameraOrbit = `0deg ${polarDeg}deg ${radius.toFixed(4)}m`;
+  mv.jumpCameraToGoal?.();   // sofort setzen, ohne Kamerafahrt
+}
+
 // ── Modell-Bühne bauen ─────────────────────────────────────────────────────
-// Das eigentliche <model-viewer>-Element. Die Auto-Einrahmung (camera-orbit
-// auto) sorgt für einheitliche Größe aller Modelle in der Vitrine.
+// Das eigentliche <model-viewer>-Element. Ein festes Sichtfeld plus die
+// achsenbasierte Einrahmung (frameUniform) sorgt für einheitliche Größe aller
+// Modelle in der Vitrine.
 function makeMV(m, big){
   const mv = document.createElement('model-viewer');
   mv.className = big ? 'm3d-viewer-mv' : 'm3d-mv';
@@ -166,16 +191,20 @@ function makeMV(m, big){
   mv.setAttribute('exposure', '1');
   mv.setAttribute('environment-image', 'neutral');
   mv.setAttribute('loading', 'lazy');
+  mv.setAttribute('field-of-view', `${M3D_FOV}deg`);
 
   if(big){
-    mv.setAttribute('camera-orbit', '0deg 75deg auto');
+    // Viewer-Overlay: dezenter gerahmt (mehr Luft), volle Steuerung. Der
+    // Nutzer kann anschließend frei zoomen/drehen.
+    mv.setAttribute('camera-orbit', `0deg 75deg auto`);
     mv.setAttribute('camera-controls', '');
     mv.setAttribute('auto-rotate', '');
     mv.setAttribute('touch-action', 'pan-y');
+    mv.addEventListener('load', () => frameUniform(mv, 0.72, 75), { once: true });
   }else{
-    // Grid-Bühne: nur drehen, keine Steuerung/Zoom. Ohne Podest bleibt das
-    // Modell einfach mittig eingerahmt (Auto-Framing zentriert es in der Bühne).
-    mv.setAttribute('camera-orbit', '0deg 80deg auto');  // auto-Radius = einheitliche Einrahmung
+    // Grid-Bühne: nur drehen, keine Steuerung/Zoom. Einheitliche Rahmung an
+    // der größten Einzelachse (siehe frameUniform) statt an der Bounding-Sphäre.
+    mv.setAttribute('camera-orbit', `0deg 80deg auto`);
     mv.setAttribute('auto-rotate', '');
     mv.setAttribute('rotation-per-second', '22deg');
     mv.setAttribute('auto-rotate-delay', '0');
@@ -183,6 +212,7 @@ function makeMV(m, big){
     mv.setAttribute('disable-zoom', '');
     mv.setAttribute('disable-pan', '');
     mv.setAttribute('disable-tap', '');
+    mv.addEventListener('load', () => frameUniform(mv, 0.82, 80), { once: true });
   }
   return mv;
 }

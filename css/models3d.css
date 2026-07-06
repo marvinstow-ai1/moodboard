@@ -111,9 +111,12 @@
   animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
 }
 .m3d-item-title{
-  padding:4px 4px 0;font-size:12px;font-weight:650;letter-spacing:.01em;
+  padding:5px 2px 0;font-size:12px;font-weight:650;letter-spacing:.01em;line-height:1.28;
   text-align:center;opacity:.75;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  /* Ganze Namen zeigen: mehrzeilig umbrechen statt mit „…" abschneiden.
+     overflow-wrap/word-break fängt auch überlange Einzelwörter ab, damit
+     nichts über die Kachel hinausläuft. */
+  overflow-wrap:anywhere;word-break:break-word;hyphens:auto;
 }
 
 /* Bühne: quadratisch und transparent – nur Halo und Modell. */
