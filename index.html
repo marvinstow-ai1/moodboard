@@ -328,6 +328,13 @@
           <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/>
         </svg>
       </span> GIFs → Video (MP4) konvertieren</button>
+    <div class="dd-section">3D-Inventar</div>
+    <button class="dd-btn" id="m3dManageBtn">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </span> 3D-Modelle verwalten</button>
   </div>
 
   <div class="editor-wrap" id="editorWrap">
@@ -394,6 +401,13 @@
           <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/>
         </svg>
       </span> GIFs → Video (MP4) konvertieren</button>
+    <div class="dd-section">3D-Inventar</div>
+    <button class="dd-btn" id="m3dManageBtnSheet">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+        </svg>
+      </span> 3D-Modelle verwalten</button>
   </div>
 
 </div>
@@ -899,9 +913,10 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 
 <!-- ============================================================
      3D-Modell-Inventar
-     Vollflächige Seite im Stil der Info-/Gästebuch-Seite: 3er-Grid
-     aus interaktiven 3D-Modellen auf Podesten. Owner lädt über das
-     Sheet (mit Podest-Dropdown) hoch. Logik in js/models3d.js,
+     Vollflächige, deckend schwarze Seite im Stil der Info-/Gästebuch-
+     Seite: cleanes 3er-Grid aus interaktiven 3D-Modellen, die frei auf
+     Podesten stehen. Upload/Bearbeiten/Löschen laufen über das
+     "Verwalten"-Menü (Popup #m3dManage). Logik in js/models3d.js,
      Styles in css/models3d.css. -->
 <div class="m3d-page" id="m3dPage" role="dialog" aria-modal="true" aria-label="3D Modelle" aria-hidden="true">
 
@@ -947,21 +962,27 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <div class="m3d-hero">
         <div class="info-hero-badge">🧊</div>
         <h1 class="info-hero-title">3D Modelle</h1>
-        <p class="m3d-hero-sub">Mein Inventar aus 3D-Modellen. Tippe ein Modell an, um es groß zu drehen und zu zoomen.</p>
       </div>
 
-      <!-- Inventar-Toolbar: Suche, Sortierung, Zähler (js/models3d.js) -->
+      <!-- Inventar-Toolbar: Zähler + kleine Buttons für Suche & Sortierung (js/models3d.js) -->
       <div class="m3d-toolbar" id="m3dToolbar" hidden>
-        <div class="m3d-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
-          <input id="m3dSearch" type="search" placeholder="Inventar durchsuchen…" autocomplete="off">
-        </div>
-        <select class="m3d-sort" id="m3dSort" aria-label="Sortierung">
-          <option value="new">Neueste zuerst</option>
-          <option value="old">Älteste zuerst</option>
-          <option value="az">A–Z</option>
-        </select>
         <span class="m3d-count" id="m3dCount"></span>
+        <div class="m3d-search" id="m3dSearchWrap">
+          <input id="m3dSearch" type="search" placeholder="Inventar durchsuchen…" autocomplete="off" aria-label="Inventar durchsuchen">
+          <button class="m3d-iconbtn" id="m3dSearchBtn" type="button" aria-label="Inventar durchsuchen" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          </button>
+        </div>
+        <div class="m3d-sortwrap">
+          <button class="m3d-iconbtn" id="m3dSortBtn" type="button" aria-label="Sortierung" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v13"/><polyline points="4 14 7 17 10 14"/><path d="M17 20V7"/><polyline points="14 10 17 7 20 10"/></svg>
+          </button>
+          <div class="m3d-sortmenu" id="m3dSortMenu" role="menu">
+            <button type="button" data-sort="new" class="active" role="menuitemradio" aria-checked="true">Neueste zuerst</button>
+            <button type="button" data-sort="old" role="menuitemradio" aria-checked="false">Älteste zuerst</button>
+            <button type="button" data-sort="az" role="menuitemradio" aria-checked="false">A–Z</button>
+          </div>
+        </div>
       </div>
 
       <div class="m3d-grid" id="m3dGrid">
@@ -969,20 +990,30 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       </div>
     </div>
   </div>
-
-  <!-- Upload-Button: nur der Owner sieht ihn (.admin-only, app.js schaltet ihn). -->
-  <button class="m3d-add admin-only" id="m3dAddBtn" type="button">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-    Modell hochladen
-  </button>
 </div>
 
-<!-- Upload-Sheet: Titel + Datei-Dropzone + Podest-Dropdown -->
+<!-- "3D-Modelle verwalten"-Popup (nur Owner): Upload, Bearbeiten und Löschen
+     gebündelt – erreichbar über den Verwalten-Tab des Header-Menüs.
+     Logik in js/models3d.js. -->
+<div class="m3d-manage" id="m3dManage" role="dialog" aria-modal="true" aria-label="3D-Modelle verwalten">
+  <div class="m3dg-content">
+    <div class="m3dg-title">3D-Modelle verwalten</div>
+    <div class="m3dg-list" id="m3dgList"><div class="m3dg-empty">Lade…</div></div>
+    <button class="m3dg-upload" id="m3dgUploadBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Modell hochladen
+    </button>
+    <button class="m3dg-close" id="m3dgClose" type="button">Schließen</button>
+  </div>
+</div>
+
+<!-- Upload-/Bearbeiten-Sheet: Titel + Datei-Dropzone + Podest-Dropdown.
+     js/models3d.js schaltet Überschrift/Buttons je nach Modus um. -->
 <div class="m3d-modal" id="m3dModal" role="dialog" aria-modal="true" aria-label="3D-Modell hochladen">
   <div class="m3dm-content">
-    <div class="m3dm-title">3D-Modell hochladen</div>
+    <div class="m3dm-title" id="m3dmHeading">3D-Modell hochladen</div>
 
     <input class="m3dm-input" id="m3dmTitle" placeholder="Titel (z. B. „Sneaker“)" maxlength="80" autocomplete="off">
 
