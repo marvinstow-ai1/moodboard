@@ -4,9 +4,9 @@
 // Öffnet sich als vollflächige, deckend schwarze Seite (wie Info-/Gästebuch-
 // Seite) über den "3D Modelle"-Eintrag in der Navigations-Vorschau (js/nav.js).
 // Zeigt alle hochgeladenen 3D-Modelle als cleanes Inventar in einem festen
-// 3er-Grid: jedes Modell dreht sich live und steht frei auf einem kleinen
-// Podest ("Plattform") – ohne Kachel/Karte drumherum. Ein Tipp öffnet das
-// Modell groß im Viewer-Overlay mit voller Steuerung (drehen/zoomen).
+// 3er-Grid: jedes Modell dreht sich live und schwebt frei im Bühnen-Halo –
+// ohne Podest, Kachel oder Karte drumherum. Ein Tipp öffnet das Modell groß
+// im Viewer-Overlay mit voller Steuerung (drehen/zoomen).
 //
 // Inventar-Funktionen: kleiner Such-Button (Feld fährt aus), kleiner
 // Sortier-Button (Menü: neu/alt/A–Z) und Zähler.
@@ -14,8 +14,8 @@
 // Verwaltung (nur Owner): Upload, Bearbeiten und Löschen laufen NICHT auf der
 // Seite selbst, sondern gebündelt im "3D-Modelle verwalten"-Popup (#m3dManage),
 // das über den Verwalten-Tab des Header-Menüs (#m3dManageBtn/-Sheet) geöffnet
-// wird. Das Upload-Sheet (#m3dModal) dient dabei auch als Editor: Titel und
-// Podest sind änderbar, eine neue Datei ersetzt das Modell optional.
+// wird. Das Upload-Sheet (#m3dModal) dient dabei auch als Editor: der Titel
+// ist änderbar, eine neue Datei ersetzt das Modell optional.
 //
 // Performance:
 //  · Die <model-viewer>-Bibliothek wird NICHT beim App-Start geladen, sondern
@@ -46,23 +46,6 @@ const grid   = $('m3dGrid');
 const modal  = $('m3dModal');
 const viewer = $('m3dViewer');
 const manage = $('m3dManage');
-
-// Podest-Arten fürs Dropdown (Key muss zum CHECK in db/models_3d.sql passen).
-const PEDESTALS = [
-  ['obsidian', 'Obsidian – dunkler Stein'],
-  ['marble',   'Marmor – hell & edel'],
-  ['neon',     'Neon – leuchtender Ring'],
-  ['gold',     'Gold – warmes Metall'],
-  ['glass',    'Glas – klare Scheibe'],
-  ['wood',     'Holz – warm gemasert'],
-];
-const PEDESTAL_KEYS  = new Set(PEDESTALS.map(p => p[0]));
-const PEDESTAL_LABEL = Object.fromEntries(PEDESTALS.map(([k, l]) => [k, l.split(' – ')[0]]));
-
-// Oberfläche des Podests, gemessen als Anteil der Bühnenhöhe von oben: das
-// Podest sitzt bei bottom:11% mit 20% Höhe, seine elliptische Deckfläche hat
-// ihr Zentrum damit bei ~76% (siehe .m3d-podium in css/models3d.css).
-const PODIUM_TOP = 0.76;
 
 function toast(t){ window.MB?.toast ? window.MB.toast(t) : console.log(t); }
 
@@ -126,7 +109,7 @@ $('m3dClose')?.addEventListener('click', closePage);
 window.MB = Object.assign(window.MB || {}, { openModels: openPage, closeModels: closePage });
 
 // ── Lazy-Mounting der 3D-Bühnen ────────────────────────────────────────────
-// Jede Bühne startet als leichter Platzhalter (Podest + Spinner). Erst wenn
+// Jede Bühne startet als leichter Platzhalter (Spinner). Erst wenn
 // sie in die Nähe des sichtbaren Bereichs scrollt, wird der <model-viewer>
 // eingehängt – und beim Herausscrollen wieder entfernt (WebGL freigeben).
 let _io = null;
@@ -190,8 +173,9 @@ function makeMV(m, big){
     mv.setAttribute('auto-rotate', '');
     mv.setAttribute('touch-action', 'pan-y');
   }else{
-    // Grid-Bühne: fast auf Augenhöhe, nur drehen, keine Steuerung/Zoom.
-    mv.setAttribute('camera-orbit', '0deg 85deg auto');  // auto-Radius = einheitliche Einrahmung
+    // Grid-Bühne: nur drehen, keine Steuerung/Zoom. Ohne Podest bleibt das
+    // Modell einfach mittig eingerahmt (Auto-Framing zentriert es in der Bühne).
+    mv.setAttribute('camera-orbit', '0deg 80deg auto');  // auto-Radius = einheitliche Einrahmung
     mv.setAttribute('auto-rotate', '');
     mv.setAttribute('rotation-per-second', '22deg');
     mv.setAttribute('auto-rotate-delay', '0');
@@ -199,38 +183,15 @@ function makeMV(m, big){
     mv.setAttribute('disable-zoom', '');
     mv.setAttribute('disable-pan', '');
     mv.setAttribute('disable-tap', '');
-    // Aufs Podest stellen: das Auto-Framing zentriert jedes Modell mittig in
-    // der Bühne – flache Modelle schweben dadurch überm Podest, hohe versinken
-    // darin. Nach dem Laden wird aus Kameraabstand, Blickwinkel und Modellmaß
-    // berechnet, wie groß das Modell auf der Bühne erscheint, und der Viewer
-    // so verschoben, dass die Modell-Unterkante auf der Podest-Oberfläche
-    // (PODIUM_TOP) aufsetzt.
-    mv.addEventListener('load', () => {
-      try{
-        const { radius } = mv.getCameraOrbit();
-        const fov = mv.getFieldOfView() * Math.PI / 180;
-        const viewH = 2 * radius * Math.tan(fov / 2);          // sichtbare Welthöhe
-        const half = (mv.getDimensions().y / 2) / viewH;       // halbe Modellhöhe als Bühnenanteil
-        let shift = PODIUM_TOP - (0.5 + half);                 // Unterkante → Podest-Oberfläche
-        shift = Math.max(shift, 0.03 - (0.5 - half));          // Oberkante bleibt in der Bühne
-        mv.style.transform = `translateY(${(shift * 100).toFixed(2)}%)`;
-      }catch(e){ /* Framing-Fallback: zentriert lassen */ }
-    });
   }
   return mv;
 }
 
-// Bühne (Platzhalter + Podest); der <model-viewer> kommt später per Observer.
+// Bühne (nur Platzhalter/Halo); der <model-viewer> kommt später per Observer.
 function makeStage(m){
   const stage = document.createElement('div');
   stage.className = 'm3d-stage';
-  stage.dataset.pedestal = PEDESTAL_KEYS.has(m.pedestal) ? m.pedestal : 'obsidian';
   stage._model = m;
-
-  const podium = document.createElement('div');
-  podium.className = 'm3d-podium';
-  podium.innerHTML = '<span class="pod-side"></span><span class="pod-top"></span>';
-  stage.appendChild(podium);
 
   const ph = document.createElement('div');
   ph.className = 'm3d-ph';
@@ -362,7 +323,7 @@ async function loadModels(){
 
   const [{ data, error }, owner] = await Promise.all([
     sb.from('models_3d')
-      .select('id,title,model_url,pedestal,created_at')
+      .select('id,title,model_url,created_at')
       .order('created_at', { ascending: false }),
     isOwner(),
   ]);
@@ -435,11 +396,6 @@ function renderManage(){
     name.textContent = m.title;
     row.appendChild(name);
 
-    const ped = document.createElement('span');
-    ped.className = 'm3dg-ped';
-    ped.textContent = PEDESTAL_LABEL[m.pedestal] || 'Obsidian';
-    row.appendChild(ped);
-
     const edit = document.createElement('button');
     edit.type = 'button';
     edit.setAttribute('aria-label', `„${m.title}“ bearbeiten`);
@@ -486,11 +442,10 @@ async function openViewer(m){
   if(!stageHost) return;
   titleEl.textContent = m.title || '3D-Modell';
   if(metaEl){
-    const ped = PEDESTAL_LABEL[m.pedestal] || 'Obsidian';
     const date = m.created_at
       ? new Date(m.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })
       : '';
-    metaEl.textContent = `Podest: ${ped}${date ? ' · Im Inventar seit ' + date : ''}`;
+    metaEl.textContent = date ? 'Im Inventar seit ' + date : '';
   }
   viewer.classList.add('show');
   viewer.setAttribute('aria-hidden', 'false');
@@ -511,16 +466,6 @@ viewer?.addEventListener('click', e => { if(e.target === viewer) closeViewer(); 
 // ── Upload-/Bearbeiten-Sheet ───────────────────────────────────────────────
 let pickedFile = null;
 let editModel  = null;   // null = neues Modell, sonst der zu bearbeitende Datensatz
-
-function fillPedestalSelect(){
-  const sel = $('m3dmPedestal');
-  if(!sel || sel.options.length) return;
-  for(const [val, label] of PEDESTALS){
-    const opt = document.createElement('option');
-    opt.value = val; opt.textContent = label;
-    sel.appendChild(opt);
-  }
-}
 
 function showError(msg){
   const el = $('m3dmError');
@@ -558,14 +503,12 @@ function setFile(file){
 
 // Öffnet das Sheet: ohne Argument als Upload, mit Modell als Editor.
 function openModal(m = null){
-  fillPedestalSelect();
   editModel = m;
   pickedFile = null;
   $('m3dmHeading').textContent = m ? 'Modell bearbeiten' : '3D-Modell hochladen';
   $('m3dmSave').textContent = m ? 'Speichern' : 'Hochladen';
   $('m3dmTitle').value = m ? (m.title || '') : '';
   $('m3dmFile').value = '';
-  $('m3dmPedestal').value = m && PEDESTAL_KEYS.has(m.pedestal) ? m.pedestal : PEDESTALS[0][0];
   $('m3dmDrop').classList.remove('has-file');
   $('m3dmDropMain').textContent = dropIdleText();
   clearError();
@@ -602,7 +545,6 @@ async function uploadFile(file){
 // Speichern: neues Modell anlegen ODER bestehendes aktualisieren.
 $('m3dmSave')?.addEventListener('click', async () => {
   const title = $('m3dmTitle').value.trim();
-  const pedestal = $('m3dmPedestal').value;
   if(!title){ showError('Bitte einen Titel eintragen'); return; }
   if(!editModel && !pickedFile){ showError('Bitte eine .glb- oder .gltf-Datei wählen'); return; }
   if(pickedFile && pickedFile.size > 60 * 1024 * 1024){ showError('Datei ist zu groß (max. 60 MB)'); return; }
@@ -613,7 +555,7 @@ $('m3dmSave')?.addEventListener('click', async () => {
   btn.textContent = pickedFile ? 'Lade hoch…' : 'Speichere…';
   try{
     if(editModel){
-      const patch = { title: title.slice(0, 80), pedestal };
+      const patch = { title: title.slice(0, 80) };
       if(pickedFile) patch.model_url = await uploadFile(pickedFile);
       const { error } = await sb.from('models_3d').update(patch).eq('id', editModel.id);
       if(error) throw error;
@@ -626,7 +568,7 @@ $('m3dmSave')?.addEventListener('click', async () => {
     }else{
       const url = await uploadFile(pickedFile);
       const { error } = await sb.from('models_3d')
-        .insert({ title: title.slice(0, 80), model_url: url, pedestal });
+        .insert({ title: title.slice(0, 80), model_url: url });
       if(error) throw error;
       toast('Modell hinzugefügt 🧊');
     }

@@ -914,8 +914,8 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 <!-- ============================================================
      3D-Modell-Inventar
      Vollflächige, deckend schwarze Seite im Stil der Info-/Gästebuch-
-     Seite: cleanes 3er-Grid aus interaktiven 3D-Modellen, die frei auf
-     Podesten stehen. Upload/Bearbeiten/Löschen laufen über das
+     Seite: cleanes 3er-Grid aus interaktiven 3D-Modellen, die frei im
+     Bühnen-Halo schweben. Upload/Bearbeiten/Löschen laufen über das
      "Verwalten"-Menü (Popup #m3dManage). Logik in js/models3d.js,
      Styles in css/models3d.css. -->
 <div class="m3d-page" id="m3dPage" role="dialog" aria-modal="true" aria-label="3D Modelle" aria-hidden="true">
@@ -1009,7 +1009,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   </div>
 </div>
 
-<!-- Upload-/Bearbeiten-Sheet: Titel + Datei-Dropzone + Podest-Dropdown.
+<!-- Upload-/Bearbeiten-Sheet: Titel + Datei-Dropzone.
      js/models3d.js schaltet Überschrift/Buttons je nach Modus um. -->
 <div class="m3d-modal" id="m3dModal" role="dialog" aria-modal="true" aria-label="3D-Modell hochladen">
   <div class="m3dm-content">
@@ -1027,9 +1027,6 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <span class="m3dm-drop-sub">.glb oder .gltf · am besten .glb (eine Datei) · max. 60 MB</span>
       <input type="file" id="m3dmFile" accept=".glb,.gltf,model/gltf-binary,model/gltf+json">
     </label>
-
-    <span class="m3dm-label">Plattform / Podest</span>
-    <select class="m3dm-select" id="m3dmPedestal" aria-label="Podest-Art"></select>
 
     <div class="m3dm-error" id="m3dmError"></div>
     <div class="m3dm-actions">
