@@ -24,7 +24,7 @@
   // popups routed from an in-page menu (Login, Verwalten …) render on top of the
   // board instead of behind the still-open full-screen page.
   function closeHostPage(el) {
-    const pg = el.closest('.info-page, .gb-page, .m3d-page');
+    const pg = el.closest('.info-page, .gb-page, .m3d-page, .tama-page');
     if (!pg || !pg.classList.contains('show')) return false;
     pg.classList.add('is-animating');
     setTimeout(() => pg.classList.remove('is-animating'), 320);
@@ -43,7 +43,7 @@
     document.querySelectorAll('.hubbtn').forEach((hubBtn) => {
       const hubMenu = hubBtn.parentElement?.querySelector('.hub-menu');
       if (!hubMenu) return;
-      const inPage = !!hubBtn.closest('.info-page, .gb-page, .m3d-page');
+      const inPage = !!hubBtn.closest('.info-page, .gb-page, .m3d-page, .tama-page');
 
       const open = () => {
         window.MB?.closeOtherPopups?.('hub');

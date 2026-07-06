@@ -157,6 +157,19 @@
   border:1px solid rgba(255,255,255,.07);
 }
 
+/* Tamagotchi: Mini-Screen mit echter Szene (Canvas, pixelig hochskaliert). */
+.nav-mini-tama{
+  width:100%;margin-top:3px;border-radius:7px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.05);
+  aspect-ratio:160/144;
+}
+.nav-mini-tama canvas{
+  display:block;width:100%;height:100%;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+}
+.nav-mini-tama.is-skeleton canvas{visibility:hidden}
+
 /* ── Punkt-Indikator ─────────────────────────────────────────────────────── */
 .nav-dots{display:flex;gap:7px;align-items:center;justify-content:center;height:8px}
 .nav-dots .nav-dot{

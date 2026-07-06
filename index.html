@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="css/guestbook.css">
 <link rel="stylesheet" href="css/nav.css">
 <link rel="stylesheet" href="css/models3d.css">
+<link rel="stylesheet" href="css/tamagotchi.css">
 <script>
 /* Gate-Weiche, synchron VOR dem ersten Paint: Liegt keine Supabase-Session
    im localStorage, zeigt html.gate-open die Startpage statt des Loading
@@ -100,8 +101,9 @@
 })();
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-<!-- 3D-Modell-Anzeige (Google model-viewer) für die "3D Modelle"-Seite -->
-<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<!-- Die 3D-Modell-Anzeige (Google model-viewer) wird bewusst NICHT mehr hier
+     geladen: js/models3d.js importiert die Bibliothek erst beim ersten Öffnen
+     der Inventar-Seite (schnellerer App-Start). -->
 </head>
 <body>
 
@@ -489,6 +491,8 @@
 <script type="module" src="js/mood-chat.js"></script>
 <script type="module" src="js/guestbook.js"></script>
 <script type="module" src="js/models3d.js"></script>
+<!-- Vor js/nav.js laden, damit die Nav-Vorschau MB.drawTamaPreview kennt. -->
+<script defer src="js/tamagotchi.js"></script>
 <script defer src="js/nav.js"></script>
 <script type="module" src="js/walkthrough.js"></script>
 
@@ -945,6 +949,21 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
         <h1 class="info-hero-title">3D Modelle</h1>
         <p class="m3d-hero-sub">Mein Inventar aus 3D-Modellen. Tippe ein Modell an, um es groß zu drehen und zu zoomen.</p>
       </div>
+
+      <!-- Inventar-Toolbar: Suche, Sortierung, Zähler (js/models3d.js) -->
+      <div class="m3d-toolbar" id="m3dToolbar" hidden>
+        <div class="m3d-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+          <input id="m3dSearch" type="search" placeholder="Inventar durchsuchen…" autocomplete="off">
+        </div>
+        <select class="m3d-sort" id="m3dSort" aria-label="Sortierung">
+          <option value="new">Neueste zuerst</option>
+          <option value="old">Älteste zuerst</option>
+          <option value="az">A–Z</option>
+        </select>
+        <span class="m3d-count" id="m3dCount"></span>
+      </div>
+
       <div class="m3d-grid" id="m3dGrid">
         <div class="m3d-status" id="m3dStatus">Lade…</div>
       </div>
@@ -992,7 +1011,10 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 <!-- Viewer-Overlay: Modell groß mit voller Steuerung (drehen/zoomen) -->
 <div class="m3d-viewer" id="m3dViewer" role="dialog" aria-modal="true" aria-label="3D-Modell ansehen" aria-hidden="true">
   <div class="m3d-viewer-head">
-    <span class="m3d-viewer-title" id="m3dViewerTitle">Modell</span>
+    <div class="m3d-viewer-headtx">
+      <span class="m3d-viewer-title" id="m3dViewerTitle">Modell</span>
+      <span class="m3d-viewer-meta" id="m3dViewerMeta"></span>
+    </div>
     <button class="m3d-viewer-close" id="m3dViewerClose" type="button" aria-label="Schließen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1001,6 +1023,91 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   </div>
   <div class="m3d-viewer-stage" id="m3dViewerStage"></div>
   <div class="m3d-viewer-hint">Ziehen zum Drehen · Pinch/Scroll zum Zoomen</div>
+</div>
+
+<!-- ============================================================
+     Tamagotchi
+     Vollflächige Seite im Stil der anderen Glas-Seiten: ein pixeliger
+     Mitbewohner in einem 16-Bit-Zimmer (Canvas), mit Füttern, Spielen,
+     Licht/Schlafen, Putzen und Medizin – Werte fallen auch offline.
+     Logik in js/tamagotchi.js, Styles in css/tamagotchi.css. -->
+<div class="tama-page" id="tamaPage" role="dialog" aria-modal="true" aria-label="Tamagotchi" aria-hidden="true">
+
+  <!-- Kopfzeile: 1:1-Spiegelung des Haupt-Headers (.topbar). -->
+  <div class="topbar in-page">
+    <span class="board-title page-home" role="button" tabindex="0" aria-label="Zur Startseite">Marvin's Place</span>
+
+    <div class="topbar-right">
+      <button class="menubtn hubbtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
+      <div class="hub-menu" role="menu">
+        <button class="hub-item" data-hub="login" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span> <span class="hub-login-label">Login</span></button>
+        <button class="hub-item admin-only" data-hub="menu" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </span> Verwalten</button>
+        <button class="hub-item admin-only hub-access-item" data-hub="access" role="menuitem">
+          <span class="hub-ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M17 11l2 2 4-4"/>
+            </svg>
+          </span> Zugriffe<span class="acc-dot"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tama-scroll" id="tamaScroll">
+    <div class="tama-inner">
+      <div class="tama-hero">
+        <div class="info-hero-badge">🐣</div>
+        <h1 class="info-hero-title">Tamagotchi</h1>
+        <p class="tama-hero-sub">Mein kleiner Pixel-Mitbewohner. Füttere ihn, spiel mit ihm – und mach ab und zu sauber. Er lebt weiter, auch wenn du weg bist.</p>
+      </div>
+
+      <div class="tama-device">
+        <div class="tama-screen-frame">
+          <div class="tama-screen">
+            <canvas id="tamaCanvas" width="160" height="144"></canvas>
+            <div class="tama-msg" id="tamaMsg"></div>
+            <!-- Namens-Dialog beim allerersten Besuch -->
+            <div class="tama-name-dialog" id="tamaNameDlg" hidden>
+              <div class="tama-name-box">
+                <div class="tn-title">Ein Ei ist geschlüpft!<br>Wie soll es heißen?</div>
+                <input id="tamaNameInput" maxlength="10" placeholder="MOCHI" autocomplete="off" spellcheck="false">
+                <button id="tamaNameOk" type="button">OK</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tama-statusline" id="tamaStatusline"></div>
+        <div class="tama-bars" id="tamaBars"></div>
+
+        <div class="tama-actions" id="tamaActions">
+          <button class="tama-btn" data-act="feed" type="button"><span class="tb-ic">🍙</span><span class="tb-txt">Füttern</span></button>
+          <button class="tama-btn" data-act="snack" type="button"><span class="tb-ic">🍬</span><span class="tb-txt">Snack</span></button>
+          <button class="tama-btn" data-act="play" type="button"><span class="tb-ic">🎮</span><span class="tb-txt">Spielen</span></button>
+          <button class="tama-btn" data-act="light" type="button"><span class="tb-ic">💡</span><span class="tb-txt">Licht</span></button>
+          <button class="tama-btn" data-act="clean" type="button"><span class="tb-ic">🧹</span><span class="tb-txt">Putzen</span></button>
+          <button class="tama-btn" data-act="med" type="button"><span class="tb-ic">💊</span><span class="tb-txt">Medizin</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 </body>
 </html>

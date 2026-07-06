@@ -7,15 +7,23 @@
 // dreht sich live auf einem kleinen Podest ("Plattform"). Ein Tipp öffnet das
 // Modell groß im Viewer-Overlay mit voller Steuerung (drehen/zoomen).
 //
+// Inventar-Funktionen: Suche (Titel), Sortierung (neu/alt/A–Z), Zähler und
+// Slot-Nummern; angebrochene Reihen werden mit leeren Slots aufgefüllt.
+//
+// Performance:
+//  · Die <model-viewer>-Bibliothek wird NICHT mehr beim App-Start geladen,
+//    sondern erst beim ersten Öffnen dieser Seite dynamisch importiert.
+//  · Pro Kachel wird der <model-viewer> erst erzeugt, wenn die Kachel in die
+//    Nähe des Viewports scrollt (IntersectionObserver) – und wieder entfernt,
+//    wenn sie weit genug herausscrollt. So existieren nie dutzende
+//    WebGL-Kontexte gleichzeitig, egal wie groß das Inventar wird.
+//  · Die Modell-Liste wird gecacht: erneutes Öffnen rendert sofort aus dem
+//    Cache und gleicht die Daten still im Hintergrund ab.
+//
 // Der Owner lädt Modelle über ein Sheet hoch: Titel, .glb/.gltf-Datei und ein
 // Dropdown für die Podest-Art. Die Datei landet im Storage-Bucket `moodboard`
 // unter models/, der Datensatz in public.models_3d (RLS: lesen Mitglieder,
 // schreiben/löschen nur Owner – siehe db/models_3d.sql).
-//
-// Die 3D-Anzeige nutzt Googles <model-viewer> (per CDN in index.html geladen).
-// Das framt jedes Modell automatisch ein, sodass ALLE Modelle unabhängig von
-// ihrer Ursprungsgröße gleich groß in der Vitrine stehen ("beim Upload an die
-// Größe angepasst").
 // ============================================================================
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -41,10 +49,8 @@ const PEDESTALS = [
   ['glass',    'Glas – klare Scheibe'],
   ['wood',     'Holz – warm gemasert'],
 ];
-const PEDESTAL_KEYS = new Set(PEDESTALS.map(p => p[0]));
-
-const esc = s => String(s ?? '').replace(/[&<>"']/g,
-  c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const PEDESTAL_KEYS  = new Set(PEDESTALS.map(p => p[0]));
+const PEDESTAL_LABEL = Object.fromEntries(PEDESTALS.map(([k, l]) => [k, l.split(' – ')[0]]));
 
 function toast(t){ window.MB?.toast ? window.MB.toast(t) : console.log(t); }
 
@@ -54,6 +60,26 @@ async function isOwner(){
     return session?.user?.app_metadata?.role === 'owner';
   }catch(e){ return false; }
 }
+
+// ── <model-viewer> erst bei Bedarf laden ───────────────────────────────────
+// Spart die komplette Bibliothek (inkl. Three.js) beim App-Start; sie wird
+// beim ersten Öffnen der Seite geholt, während die Daten parallel laden.
+let _libPromise = null;
+function ensureViewerLib(){
+  if(!_libPromise){
+    _libPromise = customElements.get('model-viewer')
+      ? Promise.resolve()
+      : import('https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js')
+          .catch(err => { _libPromise = null; throw err; });
+  }
+  return _libPromise;
+}
+
+// ── Inventar-Zustand ───────────────────────────────────────────────────────
+let _models = null;      // Cache der geladenen Datensätze (neueste zuerst)
+let _owner  = false;
+let _query  = '';
+let _sort   = 'new';     // 'new' | 'old' | 'az'
 
 // ── Seite öffnen / schließen ───────────────────────────────────────────────
 let _animTimer = null;
@@ -66,11 +92,13 @@ function openPage(){
   window.MB?.closeOtherPopups?.();
   window.MB?.closeInfoPage?.();
   window.MB?.closeGuestbook?.();   // nie zwei Glas-Popups übereinander
+  window.MB?.closeTama?.();
   markAnimating();
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');
   window.MB?.updateBodyLock?.();
   window.MB?.kickAutoplay?.();
+  ensureViewerLib().catch(() => {});   // Bibliothek parallel zu den Daten holen
   loadModels();
 }
 function closePage(){
@@ -85,16 +113,55 @@ $('m3dClose')?.addEventListener('click', closePage);
 // Fürs gegenseitige Ausschließen der Glas-Popups (app.js) und die Nav-Vorschau.
 window.MB = Object.assign(window.MB || {}, { openModels: openPage, closeModels: closePage });
 
-// ── Modell-Bühne bauen ─────────────────────────────────────────────────────
-// Ein <model-viewer> für die kleine Vitrine im Grid: dreht automatisch, keine
-// Nutzer-Interaktion (Tippen öffnet stattdessen den großen Viewer). Die
-// Auto-Einrahmung sorgt für einheitliche Größe aller Modelle.
-function makeStage(m, big){
-  const stage = document.createElement('div');
-  stage.className = big ? 'm3d-viewer-stage' : 'm3d-stage';
-  const ped = PEDESTAL_KEYS.has(m.pedestal) ? m.pedestal : 'obsidian';
-  if(!big) stage.dataset.pedestal = ped;
+// ── Lazy-Mounting der 3D-Bühnen ────────────────────────────────────────────
+// Jede Kachel startet als leichter Platzhalter (Podest + Spinner). Erst wenn
+// sie in die Nähe des sichtbaren Bereichs scrollt, wird der <model-viewer>
+// eingehängt – und beim Herausscrollen wieder entfernt (WebGL freigeben).
+let _io = null;
+function getIO(){
+  if(_io) return _io;
+  _io = new IntersectionObserver(entries => {
+    for(const en of entries){
+      if(en.isIntersecting) mountStage(en.target);
+      else unmountStage(en.target);
+    }
+  }, { root: $('m3dScroll'), rootMargin: '400px 0px' });
+  return _io;
+}
 
+async function mountStage(stage){
+  if(stage._mv || !stage._model) return;
+  stage._mv = 'pending';
+  try{ await ensureViewerLib(); }
+  catch(e){
+    if(stage._mv === 'pending') stage._mv = null;
+    stageNote(stage, 'Modell-Anzeige konnte nicht geladen werden');
+    return;
+  }
+  // Während des Wartens wieder aus dem Viewport gescrollt oder neu gerendert?
+  if(stage._mv !== 'pending' || !stage.isConnected){
+    if(stage._mv === 'pending') stage._mv = null;
+    return;
+  }
+  const mv = makeMV(stage._model, false);
+  mv.addEventListener('error', () => stageNote(stage, 'Modell konnte nicht geladen werden'));
+  stage._mv = mv;
+  stage.classList.add('is-live');
+  stage.appendChild(mv);
+}
+function unmountStage(stage){
+  if(stage._mv === 'pending'){ stage._mv = null; return; }
+  if(stage._mv){ stage._mv.remove(); stage._mv = null; stage.classList.remove('is-live'); }
+}
+function stageNote(stage, text){
+  const note = stage.querySelector('.m3d-stage-note');
+  if(note){ note.hidden = false; note.textContent = text; }
+}
+
+// ── Modell-Bühne bauen ─────────────────────────────────────────────────────
+// Das eigentliche <model-viewer>-Element. Die Auto-Einrahmung (camera-orbit
+// auto) sorgt für einheitliche Größe aller Modelle in der Vitrine.
+function makeMV(m, big){
   const mv = document.createElement('model-viewer');
   mv.className = big ? 'm3d-viewer-mv' : 'm3d-mv';
   mv.setAttribute('src', m.model_url);
@@ -120,54 +187,86 @@ function makeStage(m, big){
     mv.setAttribute('disable-pan', '');
     mv.setAttribute('disable-tap', '');
   }
-  stage.appendChild(mv);
+  return mv;
+}
 
-  if(!big){
-    const podium = document.createElement('div');
-    podium.className = 'm3d-podium';
-    podium.innerHTML = '<span class="pod-side"></span><span class="pod-top"></span>';
-    stage.appendChild(podium);
+// Bühne (Platzhalter + Podest); der <model-viewer> kommt später per Observer.
+function makeStage(m){
+  const stage = document.createElement('div');
+  stage.className = 'm3d-stage';
+  stage.dataset.pedestal = PEDESTAL_KEYS.has(m.pedestal) ? m.pedestal : 'obsidian';
+  stage._model = m;
 
-    const note = document.createElement('div');
-    note.className = 'm3d-stage-note';
-    note.hidden = true;
-    stage.appendChild(note);
-    mv.addEventListener('error', () => {
-      note.hidden = false; note.textContent = 'Modell konnte nicht geladen werden';
-    });
-  }
+  const podium = document.createElement('div');
+  podium.className = 'm3d-podium';
+  podium.innerHTML = '<span class="pod-side"></span><span class="pod-top"></span>';
+  stage.appendChild(podium);
+
+  const ph = document.createElement('div');
+  ph.className = 'm3d-ph';
+  ph.innerHTML = '<span></span>';
+  stage.appendChild(ph);
+
+  const note = document.createElement('div');
+  note.className = 'm3d-stage-note';
+  note.hidden = true;
+  stage.appendChild(note);
+
+  getIO().observe(stage);
   return stage;
 }
 
-// ── Modelle laden & rendern ────────────────────────────────────────────────
-async function loadModels(){
-  grid.innerHTML = '<div class="m3d-status">Lade…</div>';
-  const [{ data, error }, owner] = await Promise.all([
-    sb.from('models_3d')
-      .select('id,title,model_url,pedestal,created_at')
-      .order('created_at', { ascending: false }),
-    isOwner(),
-  ]);
+// ── Filtern / Sortieren / Rendern ──────────────────────────────────────────
+function visibleModels(){
+  let list = _models ? [..._models] : [];
+  const q = _query.trim().toLowerCase();
+  if(q) list = list.filter(m => (m.title || '').toLowerCase().includes(q));
+  if(_sort === 'old') list.reverse();
+  else if(_sort === 'az')
+    list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'de', { sensitivity: 'base' }));
+  return list;
+}
 
-  if(error){
-    grid.innerHTML = '<div class="m3d-status">Konnte das Inventar nicht laden. Versuch es gleich nochmal.</div>';
-    return;
-  }
-  if(!data || !data.length){
-    grid.innerHTML = owner
+function render(){
+  // Alte Bühnen sauber abbauen, bevor das Grid neu befüllt wird.
+  grid.querySelectorAll('.m3d-stage').forEach(st => { _io?.unobserve(st); unmountStage(st); });
+
+  const toolbar = $('m3dToolbar');
+  const hasAny = !!(_models && _models.length);
+  if(toolbar) toolbar.hidden = !hasAny;
+
+  if(!hasAny){
+    grid.innerHTML = _owner
       ? '<div class="m3d-status">Noch keine Modelle – lade unten dein erstes 3D-Modell hoch 🧊</div>'
       : '<div class="m3d-status">Noch keine Modelle im Inventar 🧊</div>';
     return;
   }
 
+  const list = visibleModels();
+  const count = $('m3dCount');
+  if(count) count.textContent = _query.trim()
+    ? `${list.length} / ${_models.length}`
+    : `${_models.length} ${_models.length === 1 ? 'Modell' : 'Modelle'}`;
+
   grid.innerHTML = '';
-  for(const m of data){
+  if(!list.length){
+    grid.innerHTML = '<div class="m3d-status">Kein Modell passt zu deiner Suche.</div>';
+    return;
+  }
+
+  list.forEach((m, i) => {
     const tile = document.createElement('div');
     tile.className = 'm3d-tile';
     tile.dataset.id = m.id;
+    tile.style.animationDelay = `${Math.min(i, 8) * 0.04 + 0.04}s`;
 
-    const stage = makeStage(m, false);
+    const stage = makeStage(m);
     stage.addEventListener('click', () => openViewer(m));
+
+    const slot = document.createElement('span');
+    slot.className = 'm3d-slot';
+    slot.textContent = String(i + 1).padStart(2, '0');
+    stage.appendChild(slot);
     tile.appendChild(stage);
 
     const cap = document.createElement('div');
@@ -177,7 +276,7 @@ async function loadModels(){
     title.textContent = m.title;
     cap.appendChild(title);
 
-    if(owner){
+    if(_owner){
       const del = document.createElement('button');
       del.className = 'm3d-del';
       del.type = 'button';
@@ -188,7 +287,51 @@ async function loadModels(){
     }
     tile.appendChild(cap);
     grid.appendChild(tile);
+  });
+
+  // Angebrochene Reihe mit leeren Slots auffüllen (Inventar-Look).
+  const pad = (3 - (list.length % 3)) % 3;
+  for(let i = 0; i < pad; i++){
+    const empty = document.createElement('div');
+    empty.className = 'm3d-tile is-empty';
+    empty.setAttribute('aria-hidden', 'true');
+    empty.innerHTML = '<span class="m3d-slot">' + String(list.length + i + 1).padStart(2, '0') + '</span>';
+    grid.appendChild(empty);
   }
+}
+
+// ── Toolbar (Suche / Sortierung) ───────────────────────────────────────────
+let _searchTimer = 0;
+$('m3dSearch')?.addEventListener('input', e => {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => { _query = e.target.value || ''; render(); }, 140);
+});
+$('m3dSort')?.addEventListener('change', e => { _sort = e.target.value; render(); });
+
+// ── Modelle laden ──────────────────────────────────────────────────────────
+// Mit Cache: liegt schon eine Liste vor, wird sofort daraus gerendert und die
+// Daten werden still im Hintergrund abgeglichen (nur bei Änderung neu malen).
+async function loadModels(){
+  const hadCache = !!_models;
+  if(hadCache) render();
+  else grid.innerHTML = '<div class="m3d-status">Lade…</div>';
+
+  const [{ data, error }, owner] = await Promise.all([
+    sb.from('models_3d')
+      .select('id,title,model_url,pedestal,created_at')
+      .order('created_at', { ascending: false }),
+    isOwner(),
+  ]);
+
+  if(error){
+    if(!hadCache)
+      grid.innerHTML = '<div class="m3d-status">Konnte das Inventar nicht laden. Versuch es gleich nochmal.</div>';
+    return;
+  }
+  const changed = owner !== _owner || JSON.stringify(data) !== JSON.stringify(_models);
+  _owner = owner;
+  _models = data || [];
+  if(!hadCache || changed) render();
 }
 
 // Löschen zweistufig (wie im Gästebuch): erster Klick fragt nach, zweiter löscht.
@@ -205,9 +348,8 @@ async function onDelete(m, btn){
   // Datei aus dem Storage entfernen (best effort – die Anzeige hängt nur am Datensatz).
   const path = storagePathFromUrl(m.model_url);
   if(path) sb.storage.from(BUCKET).remove([path]).catch(() => {});
-  btn.closest('.m3d-tile')?.remove();
-  if(!grid.querySelector('.m3d-tile'))
-    grid.innerHTML = '<div class="m3d-status">Noch keine Modelle – lade unten dein erstes 3D-Modell hoch 🧊</div>';
+  _models = (_models || []).filter(x => x.id !== m.id);
+  render();
 }
 
 function storagePathFromUrl(url){
@@ -217,15 +359,25 @@ function storagePathFromUrl(url){
 }
 
 // ── Viewer-Overlay ─────────────────────────────────────────────────────────
-function openViewer(m){
+async function openViewer(m){
   const stageHost = $('m3dViewerStage');
   const titleEl = $('m3dViewerTitle');
+  const metaEl = $('m3dViewerMeta');
   if(!stageHost) return;
   titleEl.textContent = m.title || '3D-Modell';
-  stageHost.innerHTML = '';
-  stageHost.appendChild(makeStage(m, true).firstChild);   // nur das <model-viewer>
+  if(metaEl){
+    const ped = PEDESTAL_LABEL[m.pedestal] || 'Obsidian';
+    const date = m.created_at
+      ? new Date(m.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '';
+    metaEl.textContent = `Podest: ${ped}${date ? ' · Im Inventar seit ' + date : ''}`;
+  }
   viewer.classList.add('show');
   viewer.setAttribute('aria-hidden', 'false');
+  stageHost.innerHTML = '';
+  try{ await ensureViewerLib(); }catch(e){ toast('Anzeige konnte nicht geladen werden'); return; }
+  if(!viewer.classList.contains('show')) return;   // inzwischen wieder geschlossen
+  stageHost.appendChild(makeMV(m, true));
 }
 function closeViewer(){
   viewer.classList.remove('show');
@@ -332,6 +484,7 @@ $('m3dmSave')?.addEventListener('click', async () => {
     if(ie) throw ie;
     closeModal();
     toast('Modell hinzugefügt 🧊');
+    _models = null;          // Cache verwerfen → frisch laden
     loadModels();
   }catch(e){
     showError('Upload fehlgeschlagen. Versuch es gleich nochmal.');

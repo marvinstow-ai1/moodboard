@@ -988,11 +988,11 @@ function updateBodyLock(){
   // lässt die Toolbar aber eingefahren – die Lightbox bleibt so fullscreen wie
   // das Grid dahinter.
   const lbShown = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'));
-  const softLock = !lock && (lbShown || !!document.querySelector('.info-page.show, .gb-page.show'));
+  const softLock = !lock && (lbShown || !!document.querySelector('.info-page.show, .gb-page.show, .m3d-page.show, .tama-page.show'));
   document.documentElement.classList.toggle('no-scroll-soft', softLock);
   // Dynamische Pill: auf Info-/Gästebuch-Seiten Shuffle + Kachelgröße einziehen
   // (dort ohne Funktion) – nur Spotify, Chat und Navigation bleiben stehen.
-  const onSubpage = !!document.querySelector('.info-page.show, .gb-page.show');
+  const onSubpage = !!document.querySelector('.info-page.show, .gb-page.show, .m3d-page.show, .tama-page.show');
   document.getElementById('bottombar')?.classList.toggle('subpage', onSubpage);
   const isLocked = document.documentElement.classList.contains('no-scroll');
   if(lock && !isLocked){
@@ -2552,6 +2552,7 @@ function openInfoPage(){
   closeAllOverlays();
   window.MB?.closeGuestbook?.();   // nie zwei Glas-Popups übereinander
   window.MB?.closeModels?.();
+  window.MB?.closeTama?.();
   const sc = page.querySelector('.info-scroll');
   if(sc) sc.scrollTop = 0;
   markInfoAnimating(page);
@@ -2625,6 +2626,7 @@ function closeSubpages(){
   if(isInfoPageOpen()) closeInfoPage();
   window.MB?.closeGuestbook?.();
   window.MB?.closeModels?.();
+  window.MB?.closeTama?.();
 }
 // Object.assign statt Zuweisung: bewahrt Helfer, die zuvor gesetzt wurden
 // (z. B. window.MB.closeSpotify aus dem Inline-Script in index.html).

@@ -50,6 +50,7 @@ function openPage(){
   window.MB?.closeOtherPopups?.();
   window.MB?.closeInfoPage?.();   // nie zwei Glas-Popups übereinander
   window.MB?.closeModels?.();
+  window.MB?.closeTama?.();
   markAnimating();
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');

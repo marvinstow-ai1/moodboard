@@ -50,6 +50,42 @@
 .m3d-hero .info-hero-badge{animation:m3dBadgeFloat 5.5s ease-in-out infinite}
 @keyframes m3dBadgeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 
+/* ── Toolbar: Suche, Sortierung, Zähler ───────────────────────────────────*/
+.m3d-toolbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:0 0 14px;
+}
+.m3d-toolbar[hidden]{display:none}
+.m3d-search{
+  flex:1;min-width:160px;position:relative;display:flex;align-items:center;
+}
+.m3d-search svg{
+  position:absolute;left:12px;width:15px;height:15px;opacity:.45;pointer-events:none;
+}
+.m3d-search input{
+  width:100%;padding:10px 12px 10px 34px;
+  border:1px solid var(--border);border-radius:999px;
+  background:rgba(255,255,255,.05);color:#fff;font:inherit;font-size:13.5px;outline:none;
+  transition:border-color .18s,background .18s;
+}
+.m3d-search input::placeholder{color:rgba(255,255,255,.35)}
+.m3d-search input:focus{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.08)}
+.m3d-search input::-webkit-search-cancel-button{-webkit-appearance:none}
+.m3d-sort{
+  flex:none;padding:10px 32px 10px 14px;border:1px solid var(--border);border-radius:999px;
+  background:rgba(255,255,255,.05);color:#fff;font:inherit;font-size:13px;outline:none;
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+  transition:border-color .18s,background-color .18s;
+}
+.m3d-sort:focus{border-color:rgba(255,255,255,.3)}
+.m3d-sort option{background:#1a1a1e;color:#fff}
+.m3d-count{
+  flex:none;font-size:12px;font-weight:650;letter-spacing:.05em;opacity:.45;
+  font-variant-numeric:tabular-nums;padding-right:2px;
+}
+
 /* ── Inventar-Grid: immer 3 pro Reihe ─────────────────────────────────────
    Bewusst starr 3 Spalten (Inventar-Look). Auf sehr schmalen Phones bleibt
    es bei 3 – die Kacheln werden einfach mit. */
@@ -66,15 +102,31 @@
   animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
   transition:border-color .25s,background-color .25s,box-shadow .25s,transform .25s;
 }
-.m3d-tile:nth-child(1){animation-delay:.04s}
-.m3d-tile:nth-child(2){animation-delay:.08s}
-.m3d-tile:nth-child(3){animation-delay:.12s}
-.m3d-tile:nth-child(4){animation-delay:.16s}
-.m3d-tile:nth-child(5){animation-delay:.20s}
-.m3d-tile:nth-child(6){animation-delay:.24s}
 .m3d-tile:hover{
   border-color:rgba(255,255,255,.22);background:rgba(26,26,28,.78);
   box-shadow:0 16px 46px rgba(0,0,0,.44);
+  transform:translateY(-2px);
+}
+
+/* Leerer Slot: füllt angebrochene Reihen auf (Inventar-Look). */
+.m3d-tile.is-empty{
+  position:relative;aspect-ratio:1/1.22;
+  border-style:dashed;border-color:rgba(255,255,255,.09);
+  background:rgba(255,255,255,.015);
+  box-shadow:none;pointer-events:none;
+}
+.m3d-tile.is-empty:hover{transform:none}
+.m3d-tile.is-empty .m3d-slot{position:absolute;top:8px;left:8px;opacity:.35}
+
+/* Slot-Nummer oben links in der Bühne. */
+.m3d-slot{
+  position:absolute;top:8px;left:8px;z-index:3;
+  padding:3px 7px;border-radius:7px;
+  font-size:10px;font-weight:750;letter-spacing:.1em;
+  font-variant-numeric:tabular-nums;
+  color:rgba(255,255,255,.55);background:rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.1);
+  pointer-events:none;
 }
 
 /* Bühne: quadratisch, das Modell schwebt zentriert, das Podest sitzt unten. */
@@ -100,6 +152,27 @@
 }
 .m3d-mv::part(default-progress-bar){display:none}
 
+/* Platzhalter, solange der <model-viewer> noch nicht eingehängt ist:
+   ein kleiner rotierender Diamant über dem Podest. Verschwindet, sobald
+   die Bühne "live" ist (js/models3d.js hängt den Viewer lazy ein). */
+.m3d-ph{
+  position:absolute;left:50%;top:40%;translate:-50% -50%;z-index:1;
+  pointer-events:none;
+}
+.m3d-ph span{
+  display:block;width:16px;height:16px;border-radius:3px;
+  background:linear-gradient(135deg,rgba(255,255,255,.35),rgba(255,255,255,.08));
+  border:1px solid rgba(255,255,255,.3);
+  transform:rotate(45deg);
+  animation:m3dPhSpin 1.6s ease-in-out infinite;
+}
+@keyframes m3dPhSpin{
+  0%{transform:rotate(45deg) scale(1);opacity:.5}
+  50%{transform:rotate(225deg) scale(.8);opacity:.9}
+  100%{transform:rotate(405deg) scale(1);opacity:.5}
+}
+.m3d-stage.is-live .m3d-ph{display:none}
+
 /* Lade-/Fehler-Hinweis in der Bühne. */
 .m3d-stage-note{
   position:absolute;inset:0;z-index:3;display:flex;align-items:center;
@@ -124,6 +197,18 @@
 .m3d-podium .pod-top{
   position:absolute;left:0;right:0;top:0;height:74%;border-radius:50%;
   box-shadow:0 6px 16px rgba(0,0,0,.45), inset 0 1px 2px rgba(255,255,255,.25);
+  overflow:hidden;
+}
+/* Dezenter Glanz, der langsam über die Deckfläche wandert. */
+.m3d-podium .pod-top::after{
+  content:"";position:absolute;top:-40%;bottom:-40%;left:-30%;width:34%;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.22), transparent);
+  transform:skewX(-18deg);
+  animation:m3dSheen 5.5s ease-in-out infinite;
+}
+@keyframes m3dSheen{
+  0%,55%{left:-40%}
+  85%,100%{left:130%}
 }
 /* weicher Bodenschatten unter dem Podest */
 .m3d-podium::after{
@@ -159,6 +244,13 @@
 }
 .m3d-stage[data-pedestal="neon"]::before{
   background:radial-gradient(circle, rgba(60,240,255,.22), transparent 66%);
+}
+.m3d-stage[data-pedestal="neon"] .pod-top{animation:m3dNeonPulse 2.6s ease-in-out infinite}
+@keyframes m3dNeonPulse{
+  0%,100%{box-shadow:0 0 0 2px rgba(60,240,255,.75), 0 0 22px rgba(60,240,255,.55),
+                     inset 0 0 16px rgba(60,240,255,.35)}
+  50%{box-shadow:0 0 0 2px rgba(60,240,255,.95), 0 0 34px rgba(60,240,255,.8),
+                 inset 0 0 22px rgba(60,240,255,.5)}
 }
 /* Gold – gebürstetes Warmmetall. */
 .m3d-stage[data-pedestal="gold"] .pod-top{
@@ -290,7 +382,10 @@
   display:flex;align-items:center;gap:12px;
   padding:calc(14px + env(safe-area-inset-top)) 18px 12px;
 }
-.m3d-viewer-title{flex:1;min-width:0;font-size:15px;font-weight:700;letter-spacing:.01em;
+.m3d-viewer-headtx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.m3d-viewer-title{min-width:0;font-size:15px;font-weight:700;letter-spacing:.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m3d-viewer-meta{min-width:0;font-size:11.5px;opacity:.45;letter-spacing:.02em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .m3d-viewer-close{
   flex:none;display:grid;place-items:center;width:38px;height:38px;border:none;

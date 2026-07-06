@@ -84,11 +84,31 @@
     return wrap;
   }
 
+  // Tamagotchi: Held-Badge + echter Mini-Screen. js/tamagotchi.js zeichnet die
+  // aktuelle Szene (Zimmer + Figur) in den kleinen Canvas – Fallback: Skelett.
+  function buildTama() {
+    const wrap = document.createElement('div');
+    wrap.className = 'nav-mini-page';
+    wrap.innerHTML =
+      '<div class="nav-mini-badge">🐣</div>' +
+      '<div class="nav-mini-heroline"></div>' +
+      '<div class="nav-mini-subline"></div>';
+    const scr = document.createElement('div');
+    scr.className = 'nav-mini-tama';
+    const cv = document.createElement('canvas');
+    cv.width = 160; cv.height = 144;
+    scr.appendChild(cv);
+    if (!window.MB?.drawTamaPreview?.(cv)) scr.classList.add('is-skeleton');
+    wrap.appendChild(scr);
+    return wrap;
+  }
+
   const PAGES = [
     { key: 'home',      label: 'Startseite', build: buildHome,      go: () => window.MB?.goHome?.() },
     { key: 'info',      label: 'Info',       build: buildInfo,      go: () => window.MB?.openInfoPage?.() },
     { key: 'guestbook', label: 'Gästebuch',  build: buildGuestbook, go: () => window.MB?.openGuestbook?.() },
     { key: 'models',    label: '3D Modelle', build: buildModels,    go: () => window.MB?.openModels?.() },
+    { key: 'tama',      label: 'Tamagotchi', build: buildTama,      go: () => window.MB?.openTama?.() },
   ];
 
   function init() {
@@ -150,6 +170,7 @@
     });
 
     function currentKey() {
+      if ($('tamaPage')?.classList.contains('show')) return 'tama';
       if ($('m3dPage')?.classList.contains('show')) return 'models';
       if ($('gbPage')?.classList.contains('show')) return 'guestbook';
       if ($('infoPage')?.classList.contains('show')) return 'info';
@@ -163,10 +184,18 @@
       if (frame) { frame.innerHTML = ''; frame.appendChild(buildHome()); }
     }
 
+    function refreshTama() {
+      // Tamagotchi-Vorschau mit der aktuellen Szene neu zeichnen.
+      const cv = cards.find((c) => c.dataset.key === 'tama')?.querySelector('.nav-mini-tama canvas');
+      if (cv && window.MB?.drawTamaPreview?.(cv))
+        cv.parentElement.classList.remove('is-skeleton');
+    }
+
     function open() {
       // Andere Bottom-Bar-Popups (Spotify, Kachelgröße, Chat) sanft schließen.
       window.MB?.closeOtherPopups?.('nav');
       refreshHome();
+      refreshTama();
       panel.classList.add('show');
       panel.setAttribute('aria-hidden', 'false');
       btn.classList.add('active');
