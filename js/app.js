@@ -978,8 +978,7 @@ function updateBodyLock(){
   const lock = (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
-    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'))
-    || !!document.querySelector('.m3d-manage.show');   // 3D-Modelle verwalten (js/models3d.js)
+    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'));
   // Weiche Sperre für die Vollbild-Overlays (Lightbox, Info-Seite & Gästebuch):
   // sie liegen über dem Grid, der Hintergrund soll dabei still stehen. Ein harter
   // Body-Lock (position:fixed) scheidet aus – er fährt auf iOS Safari die Toolbar
