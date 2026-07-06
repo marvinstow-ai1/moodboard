@@ -113,19 +113,38 @@ window.MB = Object.assign(window.MB || {}, { openModels: openPage, closeModels: 
 // sie in die Nähe des sichtbaren Bereichs scrollt, wird der <model-viewer>
 // eingehängt – und beim Herausscrollen wieder entfernt (WebGL freigeben).
 let _io = null;
+let _gridPaused = false;   // true, solange der Vollbild-Viewer offen ist
 function getIO(){
   if(_io) return _io;
   _io = new IntersectionObserver(entries => {
     for(const en of entries){
-      if(en.isIntersecting) mountStage(en.target);
+      if(en.isIntersecting){ if(!_gridPaused) mountStage(en.target); }
       else unmountStage(en.target);
     }
-  }, { root: $('m3dScroll'), rootMargin: '400px 0px' });
+  }, { root: $('m3dScroll'), rootMargin: '200px 0px' });
   return _io;
 }
 
+// Grid-Bühnen anhalten/fortsetzen. Wird der große Viewer geöffnet, geben wir
+// ALLE laufenden Grid-<model-viewer> frei: sonst liegen deren WebGL-Kontexte
+// plus der große Viewer (mit u. U. großem Modell) gleichzeitig auf der GPU –
+// auf Mobilgeräten sprengt das schnell das Kontext-/Speicherlimit, der Tab
+// stürzt ab und lädt neu. Beim Schließen lassen wir die sichtbaren Bühnen
+// wieder aufleben (erneutes observe → der Observer feuert für den aktuellen
+// Sichtbarkeitsstand neu).
+function pauseGrid(){
+  _gridPaused = true;
+  grid.querySelectorAll('.m3d-stage').forEach(unmountStage);
+}
+function resumeGrid(){
+  if(!_gridPaused) return;
+  _gridPaused = false;
+  const io = getIO();
+  grid.querySelectorAll('.m3d-stage').forEach(st => { io.unobserve(st); io.observe(st); });
+}
+
 async function mountStage(stage){
-  if(stage._mv || !stage._model) return;
+  if(_gridPaused || stage._mv || !stage._model) return;
   stage._mv = 'pending';
   try{ await ensureViewerLib(); }
   catch(e){
@@ -479,16 +498,22 @@ async function openViewer(m){
   }
   viewer.classList.add('show');
   viewer.setAttribute('aria-hidden', 'false');
+  pauseGrid();   // Grid-WebGL-Kontexte freigeben, bevor der große Viewer startet
   stageHost.innerHTML = '';
   try{ await ensureViewerLib(); }catch(e){ toast('Anzeige konnte nicht geladen werden'); return; }
   if(!viewer.classList.contains('show')) return;   // inzwischen wieder geschlossen
-  stageHost.appendChild(makeMV(m, true));
+  const mv = makeMV(m, true);
+  mv.addEventListener('error', () => toast('Modell konnte nicht geladen werden'));
+  stageHost.appendChild(mv);
 }
 function closeViewer(){
   viewer.classList.remove('show');
   viewer.setAttribute('aria-hidden', 'true');
   const stageHost = $('m3dViewerStage');
   if(stageHost) stageHost.innerHTML = '';   // WebGL-Kontext freigeben
+  // Grid nur wieder aufwecken, wenn die Inventar-Seite noch offen ist (beim
+  // Schließen der ganzen Seite entfernt closePage vorher die 'show'-Klasse).
+  if(page.classList.contains('show')) resumeGrid();
 }
 $('m3dViewerClose')?.addEventListener('click', closeViewer);
 viewer?.addEventListener('click', e => { if(e.target === viewer) closeViewer(); });
