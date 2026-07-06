@@ -1,29 +1,35 @@
 // ============================================================================
 // 3D-Modell-Inventar — Marvin's Place
 // ----------------------------------------------------------------------------
-// Öffnet sich als vollflächige Seite (wie Info-/Gästebuch-Seite) über den
-// "3D Modelle"-Eintrag in der Navigations-Vorschau (js/nav.js). Zeigt alle
-// hochgeladenen 3D-Modelle als Inventar in einem festen 3er-Grid: jedes Modell
-// dreht sich live auf einem kleinen Podest ("Plattform"). Ein Tipp öffnet das
+// Öffnet sich als vollflächige, deckend schwarze Seite (wie Info-/Gästebuch-
+// Seite) über den "3D Modelle"-Eintrag in der Navigations-Vorschau (js/nav.js).
+// Zeigt alle hochgeladenen 3D-Modelle als cleanes Inventar in einem festen
+// 3er-Grid: jedes Modell dreht sich live und steht frei auf einem kleinen
+// Podest ("Plattform") – ohne Kachel/Karte drumherum. Ein Tipp öffnet das
 // Modell groß im Viewer-Overlay mit voller Steuerung (drehen/zoomen).
 //
-// Inventar-Funktionen: Suche (Titel), Sortierung (neu/alt/A–Z), Zähler und
-// Slot-Nummern; angebrochene Reihen werden mit leeren Slots aufgefüllt.
+// Inventar-Funktionen: kleiner Such-Button (Feld fährt aus), kleiner
+// Sortier-Button (Menü: neu/alt/A–Z) und Zähler.
+//
+// Verwaltung (nur Owner): Upload, Bearbeiten und Löschen laufen NICHT auf der
+// Seite selbst, sondern gebündelt im "3D-Modelle verwalten"-Popup (#m3dManage),
+// das über den Verwalten-Tab des Header-Menüs (#m3dManageBtn/-Sheet) geöffnet
+// wird. Das Upload-Sheet (#m3dModal) dient dabei auch als Editor: Titel und
+// Podest sind änderbar, eine neue Datei ersetzt das Modell optional.
 //
 // Performance:
-//  · Die <model-viewer>-Bibliothek wird NICHT mehr beim App-Start geladen,
-//    sondern erst beim ersten Öffnen dieser Seite dynamisch importiert.
-//  · Pro Kachel wird der <model-viewer> erst erzeugt, wenn die Kachel in die
-//    Nähe des Viewports scrollt (IntersectionObserver) – und wieder entfernt,
-//    wenn sie weit genug herausscrollt. So existieren nie dutzende
-//    WebGL-Kontexte gleichzeitig, egal wie groß das Inventar wird.
+//  · Die <model-viewer>-Bibliothek wird NICHT beim App-Start geladen, sondern
+//    erst beim ersten Öffnen dieser Seite dynamisch importiert.
+//  · Pro Bühne wird der <model-viewer> erst erzeugt, wenn sie in die Nähe des
+//    Viewports scrollt (IntersectionObserver) – und wieder entfernt, wenn sie
+//    weit genug herausscrollt. So existieren nie dutzende WebGL-Kontexte
+//    gleichzeitig, egal wie groß das Inventar wird.
 //  · Die Modell-Liste wird gecacht: erneutes Öffnen rendert sofort aus dem
 //    Cache und gleicht die Daten still im Hintergrund ab.
 //
-// Der Owner lädt Modelle über ein Sheet hoch: Titel, .glb/.gltf-Datei und ein
-// Dropdown für die Podest-Art. Die Datei landet im Storage-Bucket `moodboard`
-// unter models/, der Datensatz in public.models_3d (RLS: lesen Mitglieder,
-// schreiben/löschen nur Owner – siehe db/models_3d.sql).
+// Die Datei landet im Storage-Bucket `moodboard` unter models/, der Datensatz
+// in public.models_3d (RLS: lesen Mitglieder, schreiben/löschen nur Owner –
+// siehe db/models_3d.sql).
 // ============================================================================
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -39,6 +45,7 @@ const page   = $('m3dPage');
 const grid   = $('m3dGrid');
 const modal  = $('m3dModal');
 const viewer = $('m3dViewer');
+const manage = $('m3dManage');
 
 // Podest-Arten fürs Dropdown (Key muss zum CHECK in db/models_3d.sql passen).
 const PEDESTALS = [
@@ -51,6 +58,11 @@ const PEDESTALS = [
 ];
 const PEDESTAL_KEYS  = new Set(PEDESTALS.map(p => p[0]));
 const PEDESTAL_LABEL = Object.fromEntries(PEDESTALS.map(([k, l]) => [k, l.split(' – ')[0]]));
+
+// Oberfläche des Podests, gemessen als Anteil der Bühnenhöhe von oben: das
+// Podest sitzt bei bottom:11% mit 20% Höhe, seine elliptische Deckfläche hat
+// ihr Zentrum damit bei ~76% (siehe .m3d-podium in css/models3d.css).
+const PODIUM_TOP = 0.76;
 
 function toast(t){ window.MB?.toast ? window.MB.toast(t) : console.log(t); }
 
@@ -91,7 +103,7 @@ function markAnimating(){
 function openPage(){
   window.MB?.closeOtherPopups?.();
   window.MB?.closeInfoPage?.();
-  window.MB?.closeGuestbook?.();   // nie zwei Glas-Popups übereinander
+  window.MB?.closeGuestbook?.();   // nie zwei Vollbild-Seiten übereinander
   window.MB?.closeTama?.();
   markAnimating();
   page.classList.add('show');
@@ -114,7 +126,7 @@ $('m3dClose')?.addEventListener('click', closePage);
 window.MB = Object.assign(window.MB || {}, { openModels: openPage, closeModels: closePage });
 
 // ── Lazy-Mounting der 3D-Bühnen ────────────────────────────────────────────
-// Jede Kachel startet als leichter Platzhalter (Podest + Spinner). Erst wenn
+// Jede Bühne startet als leichter Platzhalter (Podest + Spinner). Erst wenn
 // sie in die Nähe des sichtbaren Bereichs scrollt, wird der <model-viewer>
 // eingehängt – und beim Herausscrollen wieder entfernt (WebGL freigeben).
 let _io = null;
@@ -166,7 +178,6 @@ function makeMV(m, big){
   mv.className = big ? 'm3d-viewer-mv' : 'm3d-mv';
   mv.setAttribute('src', m.model_url);
   mv.setAttribute('alt', m.title || '3D-Modell');
-  mv.setAttribute('camera-orbit', '0deg 75deg auto');   // auto-Radius = einheitliche Einrahmung
   mv.setAttribute('shadow-intensity', '0.9');
   mv.setAttribute('shadow-softness', '1');
   mv.setAttribute('exposure', '1');
@@ -174,11 +185,13 @@ function makeMV(m, big){
   mv.setAttribute('loading', 'lazy');
 
   if(big){
+    mv.setAttribute('camera-orbit', '0deg 75deg auto');
     mv.setAttribute('camera-controls', '');
     mv.setAttribute('auto-rotate', '');
     mv.setAttribute('touch-action', 'pan-y');
   }else{
-    // Grid-Kachel: nur drehen, keine Steuerung/Zoom.
+    // Grid-Bühne: fast auf Augenhöhe, nur drehen, keine Steuerung/Zoom.
+    mv.setAttribute('camera-orbit', '0deg 85deg auto');  // auto-Radius = einheitliche Einrahmung
     mv.setAttribute('auto-rotate', '');
     mv.setAttribute('rotation-per-second', '22deg');
     mv.setAttribute('auto-rotate-delay', '0');
@@ -186,6 +199,23 @@ function makeMV(m, big){
     mv.setAttribute('disable-zoom', '');
     mv.setAttribute('disable-pan', '');
     mv.setAttribute('disable-tap', '');
+    // Aufs Podest stellen: das Auto-Framing zentriert jedes Modell mittig in
+    // der Bühne – flache Modelle schweben dadurch überm Podest, hohe versinken
+    // darin. Nach dem Laden wird aus Kameraabstand, Blickwinkel und Modellmaß
+    // berechnet, wie groß das Modell auf der Bühne erscheint, und der Viewer
+    // so verschoben, dass die Modell-Unterkante auf der Podest-Oberfläche
+    // (PODIUM_TOP) aufsetzt.
+    mv.addEventListener('load', () => {
+      try{
+        const { radius } = mv.getCameraOrbit();
+        const fov = mv.getFieldOfView() * Math.PI / 180;
+        const viewH = 2 * radius * Math.tan(fov / 2);          // sichtbare Welthöhe
+        const half = (mv.getDimensions().y / 2) / viewH;       // halbe Modellhöhe als Bühnenanteil
+        let shift = PODIUM_TOP - (0.5 + half);                 // Unterkante → Podest-Oberfläche
+        shift = Math.max(shift, 0.03 - (0.5 - half));          // Oberkante bleibt in der Bühne
+        mv.style.transform = `translateY(${(shift * 100).toFixed(2)}%)`;
+      }catch(e){ /* Framing-Fallback: zentriert lassen */ }
+    });
   }
   return mv;
 }
@@ -237,13 +267,13 @@ function render(){
 
   if(!hasAny){
     grid.innerHTML = _owner
-      ? '<div class="m3d-status">Noch keine Modelle – lade unten dein erstes 3D-Modell hoch 🧊</div>'
+      ? '<div class="m3d-status">Noch keine Modelle – lade dein erstes über „Verwalten → 3D-Modelle verwalten“ hoch 🧊</div>'
       : '<div class="m3d-status">Noch keine Modelle im Inventar 🧊</div>';
     return;
   }
 
-  const list = visibleModels();
   const count = $('m3dCount');
+  const list = visibleModels();
   if(count) count.textContent = _query.trim()
     ? `${list.length} / ${_models.length}`
     : `${_models.length} ${_models.length === 1 ? 'Modell' : 'Modelle'}`;
@@ -255,58 +285,72 @@ function render(){
   }
 
   list.forEach((m, i) => {
-    const tile = document.createElement('div');
-    tile.className = 'm3d-tile';
-    tile.dataset.id = m.id;
-    tile.style.animationDelay = `${Math.min(i, 8) * 0.04 + 0.04}s`;
+    const item = document.createElement('div');
+    item.className = 'm3d-item';
+    item.dataset.id = m.id;
+    item.style.animationDelay = `${Math.min(i, 8) * 0.04 + 0.04}s`;
 
     const stage = makeStage(m);
     stage.addEventListener('click', () => openViewer(m));
+    item.appendChild(stage);
 
-    const slot = document.createElement('span');
-    slot.className = 'm3d-slot';
-    slot.textContent = String(i + 1).padStart(2, '0');
-    stage.appendChild(slot);
-    tile.appendChild(stage);
-
-    const cap = document.createElement('div');
-    cap.className = 'm3d-cap';
-    const title = document.createElement('span');
-    title.className = 'm3d-cap-title';
+    const title = document.createElement('div');
+    title.className = 'm3d-item-title';
     title.textContent = m.title;
-    cap.appendChild(title);
+    item.appendChild(title);
 
-    if(_owner){
-      const del = document.createElement('button');
-      del.className = 'm3d-del';
-      del.type = 'button';
-      del.setAttribute('aria-label', 'Modell löschen');
-      del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;display:block"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-      del.addEventListener('click', (e) => { e.stopPropagation(); onDelete(m, del); });
-      cap.appendChild(del);
-    }
-    tile.appendChild(cap);
-    grid.appendChild(tile);
+    grid.appendChild(item);
   });
-
-  // Angebrochene Reihe mit leeren Slots auffüllen (Inventar-Look).
-  const pad = (3 - (list.length % 3)) % 3;
-  for(let i = 0; i < pad; i++){
-    const empty = document.createElement('div');
-    empty.className = 'm3d-tile is-empty';
-    empty.setAttribute('aria-hidden', 'true');
-    empty.innerHTML = '<span class="m3d-slot">' + String(list.length + i + 1).padStart(2, '0') + '</span>';
-    grid.appendChild(empty);
-  }
 }
 
-// ── Toolbar (Suche / Sortierung) ───────────────────────────────────────────
+// ── Toolbar: kleiner Such-Button (Feld fährt aus) + Sortier-Menü ──────────
 let _searchTimer = 0;
-$('m3dSearch')?.addEventListener('input', e => {
+const searchWrap  = $('m3dSearchWrap');
+const searchInput = $('m3dSearch');
+
+$('m3dSearchBtn')?.addEventListener('click', () => {
+  const open = !searchWrap.classList.contains('open');
+  searchWrap.classList.toggle('open', open);
+  $('m3dSearchBtn').setAttribute('aria-expanded', String(open));
+  if(open){
+    searchInput.focus();
+  }else if(_query){
+    // Zuklappen verwirft die Suche – zurück zum vollen Inventar.
+    searchInput.value = '';
+    _query = '';
+    render();
+  }
+});
+searchInput?.addEventListener('input', e => {
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(() => { _query = e.target.value || ''; render(); }, 140);
 });
-$('m3dSort')?.addEventListener('change', e => { _sort = e.target.value; render(); });
+
+const sortMenu = $('m3dSortMenu');
+$('m3dSortBtn')?.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = !sortMenu.classList.contains('show');
+  sortMenu.classList.toggle('show', open);
+  $('m3dSortBtn').setAttribute('aria-expanded', String(open));
+});
+sortMenu?.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    _sort = btn.dataset.sort;
+    sortMenu.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b === btn);
+      b.setAttribute('aria-checked', String(b === btn));
+    });
+    closeSortMenu();
+    render();
+  });
+});
+function closeSortMenu(){
+  sortMenu?.classList.remove('show');
+  $('m3dSortBtn')?.setAttribute('aria-expanded', 'false');
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.m3d-sortwrap')) closeSortMenu();
+});
 
 // ── Modelle laden ──────────────────────────────────────────────────────────
 // Mit Cache: liegt schon eine Liste vor, wird sofort daraus gerendert und die
@@ -331,16 +375,96 @@ async function loadModels(){
   const changed = owner !== _owner || JSON.stringify(data) !== JSON.stringify(_models);
   _owner = owner;
   _models = data || [];
-  if(!hadCache || changed) render();
+  if(!hadCache || changed){
+    render();
+    if(manage?.classList.contains('show')) renderManage();
+  }
+}
+
+function storagePathFromUrl(url){
+  const marker = `/object/public/${BUCKET}/`;
+  const i = String(url).indexOf(marker);
+  return i >= 0 ? decodeURIComponent(url.slice(i + marker.length)) : null;
+}
+
+// ── "3D-Modelle verwalten"-Popup (nur Owner) ───────────────────────────────
+// Erreichbar über den Verwalten-Tab des Header-Menüs; bündelt Upload,
+// Bearbeiten und Löschen, damit die Inventar-Seite selbst clean bleibt.
+function closeHeaderMenu(){
+  // Spiegelt app.js' closeMenu(): das Dropdown/Sheet schließen, bevor das
+  // Verwalten-Popup darüber aufgeht.
+  $('dropdown')?.classList.remove('show');
+  $('bottomSheet')?.classList.remove('show');
+  $('sheetOverlay')?.classList.remove('show');
+  window.MB?.updateBodyLock?.();
+}
+
+async function openManage(){
+  closeHeaderMenu();
+  manage.classList.add('show');
+  manage.setAttribute('aria-hidden', 'false');
+  window.MB?.updateBodyLock?.();
+  if(_models) renderManage();
+  await loadModels();          // lädt (oder aktualisiert) und rendert die Liste
+  renderManage();
+}
+function closeManage(){
+  manage.classList.remove('show');
+  manage.setAttribute('aria-hidden', 'true');
+  window.MB?.updateBodyLock?.();
+}
+$('m3dManageBtn')?.addEventListener('click', openManage);
+$('m3dManageBtnSheet')?.addEventListener('click', openManage);
+$('m3dgClose')?.addEventListener('click', closeManage);
+manage?.addEventListener('click', e => { if(e.target === manage) closeManage(); });
+
+function renderManage(){
+  const listEl = $('m3dgList');
+  if(!listEl) return;
+  if(!_models || !_models.length){
+    listEl.innerHTML = '<div class="m3dg-empty">Noch keine Modelle im Inventar.<br>Lade unten dein erstes 3D-Modell hoch 🧊</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  for(const m of _models){
+    const row = document.createElement('div');
+    row.className = 'm3dg-item';
+
+    const name = document.createElement('span');
+    name.className = 'm3dg-name';
+    name.textContent = m.title;
+    row.appendChild(name);
+
+    const ped = document.createElement('span');
+    ped.className = 'm3dg-ped';
+    ped.textContent = PEDESTAL_LABEL[m.pedestal] || 'Obsidian';
+    row.appendChild(ped);
+
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.setAttribute('aria-label', `„${m.title}“ bearbeiten`);
+    edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>';
+    edit.addEventListener('click', () => openModal(m));
+    row.appendChild(edit);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'm3dg-del';
+    del.setAttribute('aria-label', `„${m.title}“ löschen`);
+    del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+    del.addEventListener('click', () => onDelete(m, del));
+    row.appendChild(del);
+
+    listEl.appendChild(row);
+  }
 }
 
 // Löschen zweistufig (wie im Gästebuch): erster Klick fragt nach, zweiter löscht.
 async function onDelete(m, btn){
   if(!btn.dataset.armed){
     btn.dataset.armed = '1';
-    btn.style.opacity = '1';
-    btn.style.color = '#ff7b7b';
-    setTimeout(() => { delete btn.dataset.armed; btn.style.opacity = ''; btn.style.color = ''; }, 2500);
+    btn.classList.add('armed');
+    setTimeout(() => { delete btn.dataset.armed; btn.classList.remove('armed'); }, 2500);
     return;
   }
   const { error } = await sb.from('models_3d').delete().eq('id', m.id);
@@ -350,12 +474,8 @@ async function onDelete(m, btn){
   if(path) sb.storage.from(BUCKET).remove([path]).catch(() => {});
   _models = (_models || []).filter(x => x.id !== m.id);
   render();
-}
-
-function storagePathFromUrl(url){
-  const marker = `/object/public/${BUCKET}/`;
-  const i = String(url).indexOf(marker);
-  return i >= 0 ? decodeURIComponent(url.slice(i + marker.length)) : null;
+  renderManage();
+  toast('Modell gelöscht');
 }
 
 // ── Viewer-Overlay ─────────────────────────────────────────────────────────
@@ -388,8 +508,9 @@ function closeViewer(){
 $('m3dViewerClose')?.addEventListener('click', closeViewer);
 viewer?.addEventListener('click', e => { if(e.target === viewer) closeViewer(); });
 
-// ── Upload-Sheet ───────────────────────────────────────────────────────────
+// ── Upload-/Bearbeiten-Sheet ───────────────────────────────────────────────
 let pickedFile = null;
+let editModel  = null;   // null = neues Modell, sonst der zu bearbeitende Datensatz
 
 function fillPedestalSelect(){
   const sel = $('m3dmPedestal');
@@ -410,6 +531,10 @@ function clearError(){
   el.textContent = ''; el.classList.remove('show');
 }
 
+function dropIdleText(){
+  return editModel ? 'Neue Datei wählen (nur zum Ersetzen)' : 'Datei wählen oder hierher ziehen';
+}
+
 function setFile(file){
   const drop = $('m3dmDrop');
   const main = $('m3dmDropMain');
@@ -417,7 +542,7 @@ function setFile(file){
   if(!file || !okName){
     pickedFile = null;
     drop.classList.remove('has-file');
-    main.textContent = 'Datei wählen oder hierher ziehen';
+    main.textContent = dropIdleText();
     if(file) showError('Bitte eine .glb- oder .gltf-Datei wählen');
     return;
   }
@@ -431,20 +556,24 @@ function setFile(file){
     titleInput.value = file.name.replace(/\.(glb|gltf)$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 80);
 }
 
-function openModal(){
+// Öffnet das Sheet: ohne Argument als Upload, mit Modell als Editor.
+function openModal(m = null){
   fillPedestalSelect();
+  editModel = m;
   pickedFile = null;
-  $('m3dmTitle').value = '';
+  $('m3dmHeading').textContent = m ? 'Modell bearbeiten' : '3D-Modell hochladen';
+  $('m3dmSave').textContent = m ? 'Speichern' : 'Hochladen';
+  $('m3dmTitle').value = m ? (m.title || '') : '';
   $('m3dmFile').value = '';
-  $('m3dmPedestal').selectedIndex = 0;
+  $('m3dmPedestal').value = m && PEDESTAL_KEYS.has(m.pedestal) ? m.pedestal : PEDESTALS[0][0];
   $('m3dmDrop').classList.remove('has-file');
-  $('m3dmDropMain').textContent = 'Datei wählen oder hierher ziehen';
+  $('m3dmDropMain').textContent = dropIdleText();
   clearError();
   modal.classList.add('show');
 }
 function closeModal(){ modal.classList.remove('show'); }
 
-$('m3dAddBtn')?.addEventListener('click', openModal);
+$('m3dgUploadBtn')?.addEventListener('click', () => openModal());
 $('m3dmCancel')?.addEventListener('click', closeModal);
 modal?.addEventListener('click', e => { if(e.target === modal) closeModal(); });
 $('m3dmFile')?.addEventListener('change', e => setFile(e.target.files?.[0]));
@@ -459,45 +588,66 @@ const drop = $('m3dmDrop');
 }));
 drop?.addEventListener('drop', e => { setFile(e.dataTransfer?.files?.[0]); });
 
-// Speichern: Datei in den Storage, Datensatz in models_3d.
+// Datei in den Storage laden und die öffentliche URL zurückgeben.
+async function uploadFile(file){
+  const ext = /\.gltf$/i.test(file.name) ? 'gltf' : 'glb';
+  const path = `models/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const contentType = ext === 'glb' ? 'model/gltf-binary' : 'model/gltf+json';
+  const { error } = await sb.storage.from(BUCKET)
+    .upload(path, file, { upsert: false, contentType, cacheControl: '31536000' });
+  if(error) throw error;
+  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+// Speichern: neues Modell anlegen ODER bestehendes aktualisieren.
 $('m3dmSave')?.addEventListener('click', async () => {
   const title = $('m3dmTitle').value.trim();
   const pedestal = $('m3dmPedestal').value;
   if(!title){ showError('Bitte einen Titel eintragen'); return; }
-  if(!pickedFile){ showError('Bitte eine .glb- oder .gltf-Datei wählen'); return; }
-  if(pickedFile.size > 60 * 1024 * 1024){ showError('Datei ist zu groß (max. 60 MB)'); return; }
+  if(!editModel && !pickedFile){ showError('Bitte eine .glb- oder .gltf-Datei wählen'); return; }
+  if(pickedFile && pickedFile.size > 60 * 1024 * 1024){ showError('Datei ist zu groß (max. 60 MB)'); return; }
 
   const btn = $('m3dmSave');
   btn.disabled = true;
   const oldLabel = btn.textContent;
-  btn.textContent = 'Lade hoch…';
+  btn.textContent = pickedFile ? 'Lade hoch…' : 'Speichere…';
   try{
-    const ext = /\.gltf$/i.test(pickedFile.name) ? 'gltf' : 'glb';
-    const path = `models/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const contentType = ext === 'glb' ? 'model/gltf-binary' : 'model/gltf+json';
-    const { error: ue } = await sb.storage.from(BUCKET)
-      .upload(path, pickedFile, { upsert: false, contentType, cacheControl: '31536000' });
-    if(ue) throw ue;
-    const url = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-    const { error: ie } = await sb.from('models_3d')
-      .insert({ title: title.slice(0, 80), model_url: url, pedestal });
-    if(ie) throw ie;
+    if(editModel){
+      const patch = { title: title.slice(0, 80), pedestal };
+      if(pickedFile) patch.model_url = await uploadFile(pickedFile);
+      const { error } = await sb.from('models_3d').update(patch).eq('id', editModel.id);
+      if(error) throw error;
+      // Alte Datei erst nach erfolgreichem Update entfernen (best effort).
+      if(pickedFile){
+        const oldPath = storagePathFromUrl(editModel.model_url);
+        if(oldPath) sb.storage.from(BUCKET).remove([oldPath]).catch(() => {});
+      }
+      toast('Modell aktualisiert ✓');
+    }else{
+      const url = await uploadFile(pickedFile);
+      const { error } = await sb.from('models_3d')
+        .insert({ title: title.slice(0, 80), model_url: url, pedestal });
+      if(error) throw error;
+      toast('Modell hinzugefügt 🧊');
+    }
     closeModal();
-    toast('Modell hinzugefügt 🧊');
     _models = null;          // Cache verwerfen → frisch laden
-    loadModels();
+    await loadModels();
+    renderManage();
   }catch(e){
-    showError('Upload fehlgeschlagen. Versuch es gleich nochmal.');
+    showError(editModel ? 'Speichern fehlgeschlagen. Versuch es gleich nochmal.'
+                        : 'Upload fehlgeschlagen. Versuch es gleich nochmal.');
   }finally{
     btn.disabled = false;
     btn.textContent = oldLabel;
   }
 });
 
-// Escape schließt von innen nach außen: Viewer → Modal → Seite.
+// Escape schließt von innen nach außen: Viewer → Sheet → Verwalten → Seite.
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if(viewer.classList.contains('show')) closeViewer();
   else if(modal.classList.contains('show')) closeModal();
+  else if(manage.classList.contains('show')) closeManage();
   else if(page.classList.contains('show')) closePage();
 });
