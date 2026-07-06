@@ -414,17 +414,12 @@ function renderStats() {
   if (st) st.textContent =
     (S.name || '???') + ' · ' + STAGE_NAME[stage()] + ' · Tag ' + (ageDays() + 1) + (S.sick ? ' · KRANK' : '');
 }
+function icon(act) { return document.querySelector('.tama-ic[data-act="' + act + '"]'); }
 function updateUI() {
-  const acts = $('tamaActions');
-  if (!acts) return;
-  acts.querySelector('[data-act="med"]')?.classList.toggle('is-needed', S.sick);
-  acts.querySelector('[data-act="clean"]')?.classList.toggle('is-needed', S.poops.length > 0);
-  acts.querySelector('[data-act="feed"]')?.classList.toggle('is-needed', S.hunger < 25);
-  const light = acts.querySelector('[data-act="light"]');
-  if (light) {
-    light.classList.toggle('is-off', S.sleeping);
-    light.querySelector('.tb-txt').textContent = S.sleeping ? 'Wecken' : 'Licht';
-  }
+  icon('med')?.classList.toggle('is-needed', S.sick);
+  icon('clean')?.classList.toggle('is-needed', S.poops.length > 0);
+  icon('feed')?.classList.toggle('is-needed', S.hunger < 25);
+  icon('light')?.classList.toggle('is-off', S.sleeping);   // Glühbirne wirkt „aus"
 }
 
 /* ── Aktionen ────────────────────────────────────────────────────────────── */
@@ -484,9 +479,37 @@ function act(type) {
   }
   renderStats(); updateUI(); save();
 }
-$('tamaActions')?.addEventListener('click', (e) => {
-  const b = e.target.closest('.tama-btn');
-  if (b) act(b.dataset.act);
+/* ── Menü-Cursor + die drei physischen Knöpfe ────────────────────────────── */
+const icons = Array.from(document.querySelectorAll('.tama-ic'));
+let cursor = 0;
+function renderCursor() { icons.forEach((el, i) => el.classList.toggle('sel', i === cursor)); }
+function moveCursor(d) {
+  if (!icons.length) return;
+  cursor = (cursor + d + icons.length) % icons.length;
+  renderCursor();
+}
+renderCursor();
+
+// Symbol direkt antippen: Cursor dorthin setzen und ausführen.
+document.querySelectorAll('.tama-icons').forEach((strip) => {
+  strip.addEventListener('click', (e) => {
+    const b = e.target.closest('.tama-ic');
+    if (!b) return;
+    const i = icons.indexOf(b);
+    if (i >= 0) { cursor = i; renderCursor(); }
+    act(b.dataset.act);
+  });
+});
+
+// Knöpfe: ◀ blättern · ● bestätigen · ▶ blättern.
+$('tamaButtons')?.addEventListener('click', (e) => {
+  const b = e.target.closest('.tama-hw');
+  if (!b) return;
+  const dlg = $('tamaNameDlg');
+  if (dlg && !dlg.hidden) { if (b.dataset.nav === 'ok') submitName(); return; }
+  if (b.dataset.nav === 'prev')      moveCursor(-1);
+  else if (b.dataset.nav === 'next') moveCursor(1);
+  else if (b.dataset.nav === 'ok')   act(icons[cursor]?.dataset.act);
 });
 
 // Streicheln: Tipp auf die Figur im Canvas.
@@ -606,10 +629,16 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', save);
 
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape' || !page.classList.contains('show')) return;
+  if (!page.classList.contains('show')) return;
   const dlg = $('tamaNameDlg');
-  if (dlg && !dlg.hidden) { if (S.name) dlg.hidden = true; return; }
-  closePage();
+  if (e.key === 'Escape') {
+    if (dlg && !dlg.hidden) { if (S.name) dlg.hidden = true; return; }
+    closePage(); return;
+  }
+  if (dlg && !dlg.hidden) return;                     // Dialog fängt Eingaben selbst ab
+  if (e.key === 'ArrowLeft')       { moveCursor(-1); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { moveCursor(1);  e.preventDefault(); }
+  else if (e.key === 'Enter' || e.key === ' ') { act(icons[cursor]?.dataset.act); e.preventDefault(); }
 });
 
 /* ── Mini-Vorschau für die Navigations-Pill (js/nav.js) ──────────────────── */

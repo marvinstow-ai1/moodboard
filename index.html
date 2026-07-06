@@ -1104,41 +1104,51 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
     </div>
   </div>
 
-  <div class="tama-scroll" id="tamaScroll">
-    <div class="tama-inner">
-      <div class="tama-hero">
-        <div class="info-hero-badge" data-pixel-icon="tama"></div>
-        <h1 class="info-hero-title">Tamagotchi</h1>
-        <p class="tama-hero-sub">Mein kleiner Pixel-Mitbewohner. Füttere ihn, spiel mit ihm – und mach ab und zu sauber. Er lebt weiter, auch wenn du weg bist.</p>
-      </div>
+  <div class="tama-stage" id="tamaScroll">
 
-      <div class="tama-device">
-        <div class="tama-screen-frame">
-          <div class="tama-screen">
-            <canvas id="tamaCanvas" width="160" height="144"></canvas>
-            <div class="tama-msg" id="tamaMsg"></div>
-            <!-- Namens-Dialog beim allerersten Besuch -->
-            <div class="tama-name-dialog" id="tamaNameDlg" hidden>
-              <div class="tama-name-box">
-                <div class="tn-title">Ein Ei ist geschlüpft!<br>Wie soll es heißen?</div>
-                <input id="tamaNameInput" maxlength="10" placeholder="MOCHI" autocomplete="off" spellcheck="false">
-                <button id="tamaNameOk" type="button">OK</button>
-              </div>
+    <!-- Werte des Tiers – bewusst vom Tamagotchi abgekoppelt (eigene Karte). -->
+    <div class="tama-stats-card">
+      <div class="tama-statusline" id="tamaStatusline"></div>
+      <div class="tama-bars" id="tamaBars"></div>
+    </div>
+
+    <!-- Das Ei / Handheld im Look des originalen Tamagotchi -->
+    <div class="tama-egg">
+      <div class="tama-brand">Tamagotchi</div>
+
+      <!-- Schwarzer Bezel: oben/unten die Menü-Symbole, in der Mitte das LCD. -->
+      <div class="tama-bezel">
+        <div class="tama-icons" id="tamaIconsTop">
+          <button class="tama-ic" data-act="feed"  type="button" aria-label="Füttern">🍚</button>
+          <button class="tama-ic" data-act="snack" type="button" aria-label="Snack">🍬</button>
+          <button class="tama-ic" data-act="play"  type="button" aria-label="Spielen">🎮</button>
+        </div>
+
+        <div class="tama-screen">
+          <canvas id="tamaCanvas" width="160" height="144"></canvas>
+          <div class="tama-msg" id="tamaMsg"></div>
+          <!-- Namens-Dialog beim allerersten Besuch -->
+          <div class="tama-name-dialog" id="tamaNameDlg" hidden>
+            <div class="tama-name-box">
+              <div class="tn-title">Ein Ei ist geschlüpft!<br>Wie soll es heißen?</div>
+              <input id="tamaNameInput" maxlength="10" placeholder="MOCHI" autocomplete="off" spellcheck="false">
+              <button id="tamaNameOk" type="button">OK</button>
             </div>
           </div>
         </div>
 
-        <div class="tama-statusline" id="tamaStatusline"></div>
-        <div class="tama-bars" id="tamaBars"></div>
-
-        <div class="tama-actions" id="tamaActions">
-          <button class="tama-btn" data-act="feed" type="button"><span class="tb-ic">🍙</span><span class="tb-txt">Füttern</span></button>
-          <button class="tama-btn" data-act="snack" type="button"><span class="tb-ic">🍬</span><span class="tb-txt">Snack</span></button>
-          <button class="tama-btn" data-act="play" type="button"><span class="tb-ic">🎮</span><span class="tb-txt">Spielen</span></button>
-          <button class="tama-btn" data-act="light" type="button"><span class="tb-ic">💡</span><span class="tb-txt">Licht</span></button>
-          <button class="tama-btn" data-act="clean" type="button"><span class="tb-ic">🧹</span><span class="tb-txt">Putzen</span></button>
-          <button class="tama-btn" data-act="med" type="button"><span class="tb-ic">💊</span><span class="tb-txt">Medizin</span></button>
+        <div class="tama-icons" id="tamaIconsBot">
+          <button class="tama-ic" data-act="light" type="button" aria-label="Licht">💡</button>
+          <button class="tama-ic" data-act="clean" type="button" aria-label="Putzen">🧹</button>
+          <button class="tama-ic" data-act="med"   type="button" aria-label="Medizin">💊</button>
         </div>
+      </div>
+
+      <!-- Die drei physischen Knöpfe des Originals: blättern · bestätigen · blättern. -->
+      <div class="tama-buttons" id="tamaButtons">
+        <button class="tama-hw" data-nav="prev" type="button" aria-label="Auswahl zurück">◀</button>
+        <button class="tama-hw" data-nav="ok"   type="button" aria-label="Bestätigen">●</button>
+        <button class="tama-hw" data-nav="next" type="button" aria-label="Auswahl weiter">▶</button>
       </div>
     </div>
   </div>
