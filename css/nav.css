@@ -126,6 +126,11 @@
   font-size:14px;background:rgba(255,255,255,.08);
   border:1px solid rgba(255,255,255,.14);
 }
+/* 16-Bit-Pixel-Icon (js/pixel-icons.js) in der Vorschau-Karte. */
+.nav-mini-badge svg{
+  width:74%;height:74%;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+}
 .nav-mini-heroline{height:8px;width:66%;border-radius:5px;background:rgba(255,255,255,.32)}
 .nav-mini-subline{height:5px;width:48%;border-radius:5px;background:rgba(255,255,255,.14);margin-bottom:3px}
 .nav-mini-cards{width:100%;display:flex;flex-direction:column;gap:6px;margin-top:2px}

@@ -113,6 +113,11 @@
   background:rgba(28,28,30,.7);border:1px solid var(--border);
   box-shadow:0 12px 40px rgba(0,0,0,.5);
 }
+/* 16-Bit-Pixel-Icon (js/pixel-icons.js) im Badge: scharf und mit etwas Luft. */
+.info-hero-badge svg{
+  width:60%;height:60%;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+}
 .info-hero-title{font-size:26px;font-weight:700;letter-spacing:.02em}
 .info-hero-sub{
   font-size:14px;line-height:1.5;max-width:42ch;opacity:.5;font-weight:500;

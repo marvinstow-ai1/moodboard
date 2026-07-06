@@ -507,6 +507,8 @@
 <script type="module" src="js/models3d.js"></script>
 <!-- Vor js/nav.js laden, damit die Nav-Vorschau MB.drawTamaPreview kennt. -->
 <script defer src="js/tamagotchi.js"></script>
+<!-- Vor js/nav.js laden: liefert die Pixel-Icons für Hero-Badges und Vorschau. -->
+<script defer src="js/pixel-icons.js"></script>
 <script defer src="js/nav.js"></script>
 <script type="module" src="js/walkthrough.js"></script>
 
@@ -740,7 +742,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   <div class="info-scroll">
     <div class="info-inner">
       <div class="info-hero">
-        <div class="info-hero-badge">✦</div>
+        <div class="info-hero-badge" data-pixel-icon="info"></div>
         <h1 class="info-hero-title">Marvin's Place</h1>
         <p class="info-hero-sub"></p>
       </div>
@@ -824,7 +826,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   <div class="gb-scroll" id="gbScroll">
     <div class="gb-inner">
       <div class="gb-hero">
-        <div class="info-hero-badge">✍️</div>
+        <div class="info-hero-badge" data-pixel-icon="guestbook"></div>
         <h1 class="info-hero-title">Gästebuch</h1>
         <p class="gb-hero-sub">Verewige dich mit einer Zeichnung oder deiner Unterschrift.</p>
       </div>
@@ -922,7 +924,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
      Bühnen-Halo schweben. Upload/Bearbeiten/Löschen laufen über das
      "Verwalten"-Menü (Popup #m3dManage). Logik in js/models3d.js,
      Styles in css/models3d.css. -->
-<div class="m3d-page" id="m3dPage" role="dialog" aria-modal="true" aria-label="3D Modelle" aria-hidden="true">
+<div class="m3d-page" id="m3dPage" role="dialog" aria-modal="true" aria-label="Inventory" aria-hidden="true">
 
   <!-- Kopfzeile: 1:1-Spiegelung des Haupt-Headers (.topbar). -->
   <div class="topbar in-page">
@@ -964,8 +966,8 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   <div class="m3d-scroll" id="m3dScroll">
     <div class="m3d-inner">
       <div class="m3d-hero">
-        <div class="info-hero-badge">🧊</div>
-        <h1 class="info-hero-title">3D Modelle</h1>
+        <div class="info-hero-badge" data-pixel-icon="inventory"></div>
+        <h1 class="info-hero-title">Inventory</h1>
       </div>
 
       <!-- Inventar-Toolbar: Zähler + kleine Buttons für Suche & Sortierung (js/models3d.js) -->
@@ -1105,7 +1107,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   <div class="tama-scroll" id="tamaScroll">
     <div class="tama-inner">
       <div class="tama-hero">
-        <div class="info-hero-badge">🐣</div>
+        <div class="info-hero-badge" data-pixel-icon="tama"></div>
         <h1 class="info-hero-title">Tamagotchi</h1>
         <p class="tama-hero-sub">Mein kleiner Pixel-Mitbewohner. Füttere ihn, spiel mit ihm – und mach ab und zu sauber. Er lebt weiter, auch wenn du weg bist.</p>
       </div>

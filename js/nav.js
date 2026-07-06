@@ -13,6 +13,9 @@
 (function () {
   const $ = (id) => document.getElementById(id);
 
+  // Pixel-Icons (js/pixel-icons.js) für die Held-Badges der Vorschau-Karten.
+  const icon = (key) => (window.PIXEL_ICONS && window.PIXEL_ICONS[key]) || '';
+
   // ── Mini-Vorschauen der einzelnen Seiten ──────────────────────────────────
   // Startseite: dasselbe Grid-Design wie die echte Ansicht, mit einer festen
   // Auswahl an Bildern. Bewusst nur <img> (Thumbnails) – nie <video>, damit in
@@ -45,7 +48,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'nav-mini-page';
     wrap.innerHTML =
-      '<div class="nav-mini-badge">✦</div>' +
+      '<div class="nav-mini-badge">' + icon('info') + '</div>' +
       '<div class="nav-mini-heroline"></div>' +
       '<div class="nav-mini-subline"></div>' +
       '<div class="nav-mini-cards">' +
@@ -63,21 +66,21 @@
     let feed = '';
     for (let i = 0; i < 4; i++) feed += '<div class="nav-feed-tile"></div>';
     wrap.innerHTML =
-      '<div class="nav-mini-badge">✍️</div>' +
+      '<div class="nav-mini-badge">' + icon('guestbook') + '</div>' +
       '<div class="nav-mini-heroline"></div>' +
       '<div class="nav-mini-subline"></div>' +
       '<div class="nav-mini-feed">' + feed + '</div>';
     return wrap;
   }
 
-  // 3D Modelle: Held-Badge + 3er-Raster als Skelett (spiegelt das Inventar-Grid).
+  // Inventory: Held-Badge + 3er-Raster als Skelett (spiegelt das Inventar-Grid).
   function buildModels() {
     const wrap = document.createElement('div');
     wrap.className = 'nav-mini-page';
     let cells = '';
     for (let i = 0; i < 6; i++) cells += '<div class="nav-cell"></div>';
     wrap.innerHTML =
-      '<div class="nav-mini-badge">🧊</div>' +
+      '<div class="nav-mini-badge">' + icon('inventory') + '</div>' +
       '<div class="nav-mini-heroline"></div>' +
       '<div class="nav-mini-subline"></div>' +
       '<div class="nav-mini-grid three">' + cells + '</div>';
@@ -90,7 +93,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'nav-mini-page';
     wrap.innerHTML =
-      '<div class="nav-mini-badge">🐣</div>' +
+      '<div class="nav-mini-badge">' + icon('tama') + '</div>' +
       '<div class="nav-mini-heroline"></div>' +
       '<div class="nav-mini-subline"></div>';
     const scr = document.createElement('div');
@@ -107,7 +110,7 @@
     { key: 'home',      label: 'Startseite', build: buildHome,      go: () => window.MB?.goHome?.() },
     { key: 'info',      label: 'Info',       build: buildInfo,      go: () => window.MB?.openInfoPage?.() },
     { key: 'guestbook', label: 'Gästebuch',  build: buildGuestbook, go: () => window.MB?.openGuestbook?.() },
-    { key: 'models',    label: '3D Modelle', build: buildModels,    go: () => window.MB?.openModels?.() },
+    { key: 'models',    label: 'Inventory',  build: buildModels,    go: () => window.MB?.openModels?.() },
     { key: 'tama',      label: 'Tamagotchi', build: buildTama,      go: () => window.MB?.openTama?.() },
   ];
 
