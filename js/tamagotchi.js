@@ -373,10 +373,7 @@ function closePage() {
   stop(); save();
 }
 
-// Schließen-Button oben rechts im Pop-up.
-$('tamaClose')?.addEventListener('click', (e) => { e.stopPropagation(); closePage(); });
-
-// Klick außerhalb des Pop-ups schließt es – wie bei den anderen Pill-Popups.
+// Kein Schließen-Button: Klick außerhalb des Geräts schließt das Pop-up.
 document.addEventListener('click', (e) => {
   if (!page.classList.contains('show')) return;
   if (e.target.closest('#tamaPage')) return;

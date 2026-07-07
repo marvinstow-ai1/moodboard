@@ -16,12 +16,11 @@
   transform:translateX(-50%) translateY(14px) scale(.95);
   /* Über der Pill (72) und den Glas-Popups (70), unter der Lightbox (80) –
      identisch zum Navi-Pop-up. */
-  z-index:73;width:min(340px,calc(100vw - 24px));
-  max-height:calc(100vh - 104px);max-height:calc(100lvh - 104px);
-  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-  background:var(--panel);border:1px solid var(--border);border-radius:20px;
-  padding:12px 14px 16px;box-shadow:0 20px 50px rgba(0,0,0,.6);
-  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+  z-index:73;
+  /* Kein Panel, kein Rahmen, kein Schließen-Button: sichtbar ist NUR das
+     Tamagotchi selbst. Geschlossen wird per Klick daneben (js/tamagotchi.js).
+     Die Box umschließt das Gerät exakt, damit „daneben" wirklich daneben ist. */
+  width:max-content;max-width:calc(100vw - 24px);
   transform-origin:50% 100%;
   opacity:0;pointer-events:none;
   transition:opacity .3s ease,transform .42s cubic-bezier(.22,1,.36,1);
@@ -31,16 +30,6 @@
   transform:translateX(-50%) translateY(0) scale(1);
 }
 .tama-pop.is-animating{will-change:opacity,transform}
-
-/* Kopfzeile: Titel + Schließen – wie beim Navi-/Chat-Panel. */
-.tama-pop-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px}
-.tama-pop-title{font-size:14px;font-weight:600;color:#fff;letter-spacing:.01em}
-.tama-pop-close{
-  width:28px;height:28px;border-radius:999px;border:0;
-  background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);
-  cursor:pointer;display:grid;place-items:center;transition:.15s;flex-shrink:0;
-}
-.tama-pop-close:active{background:rgba(255,255,255,.2);transform:scale(.92)}
 
 /* ── Pure-CSS-Tamagotchi (Gist) ───────────────────────────────────────────
    1:1 der Pen von Manz.dev, aber unter .tama-gadget gescopt, damit die sehr
@@ -73,7 +62,7 @@
   & .container{
     display:flex;
     justify-content:center;
-    margin-top:.75em;
+    margin-top:0;
   }
 
   & .tamagotchi{
@@ -81,7 +70,11 @@
     width:var(--width);
     height:var(--height);
     border-radius:300px / 410px 410px 300px 300px;
+    /* Kräftiger Schlagschatten, damit das Gerät sich klar vom Grid abhebt –
+       es schwebt jetzt ohne Panel frei über der Seite. */
     box-shadow:
+      0 18px 44px rgba(0, 0, 0, 0.55),
+      0 8px 18px rgba(0, 0, 0, 0.45),
       0 0 20px rgba(0, 0, 0, 0.75),
       0 0 40px 15px rgba(0, 0, 0, 0.25) inset;
     display:flex;
@@ -450,21 +443,27 @@
 /* Spielfeld im LCD */
 .tama-gadget .middle{position:relative;overflow:hidden}
 
-/* ── Häufchen ("Kacki") auf dem Boden ─────────────────────────────────────*/
+/* ── Häufchen ("Kacki") auf dem Boden ─────────────────────────────────────*
+   Das Sprite (tgMoveShit) wird per box-shadow NACH UNTEN gezeichnet. Früher
+   saß der Anker ganz unten am LCD – dadurch verschwand die untere Hälfte hinter
+   dem Bildschirmrand (wirkte „halbiert") und lag zu tief. Jetzt sitzt das
+   Häufchen auf Fusshöhe des Tiers und wird per translateY komplett nach oben
+   gezogen, sodass es vollständig sichtbar ist. */
 .tama-gadget .tg-floor{position:absolute;inset:0;pointer-events:none}
-.tama-gadget .tg-poop{position:absolute;bottom:3px;width:4px;height:4px}
+.tama-gadget .tg-poop{position:absolute;bottom:44%;width:4px;height:4px}
 .tama-gadget .tg-poop::before{
   content:"";display:block;width:4px;height:4px;
-  transform:scale(0.5);transform-origin:bottom left;
+  transform:translateY(-13px) scale(0.5);transform-origin:top left;
   animation:tgMoveShit 1s infinite steps(2, jump-none);
 }
 .tama-gadget .tg-poop.clearing{animation:tgPoof .45s ease forwards}
 @keyframes tgPoof{0%{opacity:1;transform:translateY(0) scale(1)}
   100%{opacity:0;transform:translateY(-6px) scale(.2)}}
 
-/* Besen-Sweep beim Putzen */
+/* Besen-Sweep beim Putzen – wischt auf Fusshöhe des Tiers (gleiche Bodenlinie
+   wie die Häufchen), damit es aussieht, als würde dort gefegt. */
 .tama-gadget .tg-broom{
-  position:absolute;bottom:2px;left:-14px;width:10px;height:16px;pointer-events:none;
+  position:absolute;bottom:38%;left:-14px;width:10px;height:16px;pointer-events:none;
   background:linear-gradient(#3a2a1c,#3a2a1c) 4px 0/2px 10px no-repeat,   /* Stiel */
             linear-gradient(#111,#111) 0 10px/10px 6px no-repeat;         /* Borsten */
   animation:tgSweep 1.3s ease-in-out forwards;

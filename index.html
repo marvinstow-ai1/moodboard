@@ -1155,16 +1155,10 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
      Licht/Schlafen, Putzen und Medizin – Werte fallen auch offline.
      Logik in js/tamagotchi.js, Styles in css/tamagotchi.css. -->
 <div class="tama-pop" id="tamaPage" role="dialog" aria-label="Tamagotchi" aria-hidden="true">
-  <div class="tama-pop-head">
-    <span class="tama-pop-title">Tamagotchi</span>
-    <button class="tama-pop-close" id="tamaClose" aria-label="Schließen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
-    </button>
-  </div>
-
-  <!-- Pure-CSS-Tamagotchi aus Marvins Gist (Pen von Manz.dev).
-       Alles unter .tama-gadget gescopt; die Farbe wird pro Tag automatisch
-       und zufällig in js/tamagotchi.js gesetzt (kein manueller Wechsel). -->
+  <!-- Sichtbar ist NUR das Tamagotchi selbst – kein Panel, kein Header, kein
+       Schließen-Button. Geschlossen wird per Klick daneben (js/tamagotchi.js).
+       Pure-CSS-Tamagotchi aus Marvins Gist (Pen von Manz.dev); alles unter
+       .tama-gadget gescopt, Farbe pro Tag automatisch in js/tamagotchi.js. -->
   <div class="tama-gadget">
         <div class="container">
           <div class="tamagotchi">
