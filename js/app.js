@@ -1715,7 +1715,8 @@ function doShuffleInView() {
     }
   });
 }
-$('shuffleBtn').onclick = () => { $('shuffleBtn').blur(); doShuffleInView(); };
+// Der frühere Shuffle-Button in der Pill ist ins Suche-Panel (Mood-Chat)
+// gewandert – der „Shuffle"-Quick-Chip dort ruft doShuffleInView über window.MB.
 $('uploadBtn').onclick = () => { fileInput.click(); closeMenu(); };
 $('uploadBtnSheet').onclick = () => { fileInput.click(); closeMenu(); };
 fileInput.onchange = e => upload(e.target.files);
@@ -2682,6 +2683,9 @@ window.MB = Object.assign(window.MB || {}, {
   // zuletzt gesehenen Archiv-Ansicht mit allen Bildern, OHNE neu zu mischen.
   showArchiveView,
   doShuffle,
+  // Für den „Shuffle"-Quick-Chip im Mood-Chat (js/mood-chat.js): mischt die
+  // aktuelle Ansicht neu (früher der Shuffle-Button in der Pill).
+  doShuffleInView,
   // Fürs Gästebuch (js/guestbook.js): Toasts, Scroll-Lock der Haupt-App,
   // gegenseitiges Schließen der Glas-Popups und Anstoßen der Grid-Videos.
   toast,
