@@ -31,7 +31,6 @@ const screenEl = gadget.querySelector('.screen');
 const petEl    = gadget.querySelector('.pet');
 const floor    = gadget.querySelector('.tg-floor');
 const fx       = gadget.querySelector('.tg-fx');
-const menu     = gadget.querySelector('.tg-menu');
 const statusEl = gadget.querySelector('.tg-status');
 const msgEl    = gadget.querySelector('.tg-msg');
 const items    = Array.from(gadget.querySelectorAll('.item'));
@@ -192,25 +191,12 @@ function render() {
 function feed() {
   if (busy || mode !== 'idle') return;
   if (S.sleeping) return showMsg('SCHLAEFT...');
-  openMenu();
-}
-function doMeal() {
-  closeMenu();
   if (S.hunger >= 96) return showMsg('SCHON SATT!');
   S.hunger = clamp(S.hunger + 30, 0, 100);
   S.clean  = clamp(S.clean - 3, 0, 100);
   S.nextPoop = Date.now() + rand(50, 140) * 60000;
   setBusy(2200, 'eat'); spawn('crumb', 5);
   showMsg('MJAM MJAM!'); render(); save();
-}
-function doSnack() {
-  closeMenu();
-  if (S.hunger >= 98) return showMsg('SCHON SATT!');
-  S.hunger = clamp(S.hunger + 8, 0, 100);
-  S.happy  = clamp(S.happy + 10, 0, 100);
-  S.snacks += 1;
-  setBusy(1400, 'eat'); spawn('crumb', 3); spawn('heart', 1);
-  showMsg(S.snacks >= 5 ? 'NICHT ZUVIEL!' : 'LECKER!'); render(); save();
 }
 function play() {
   if (busy || mode !== 'idle') return;
@@ -257,7 +243,7 @@ function clean() {
   save();
 }
 function toggleStatus() {
-  if (statusEl.hidden) { closeMenu(); buildStatus(); statusEl.hidden = false; mode = 'status'; }
+  if (statusEl.hidden) { buildStatus(); statusEl.hidden = false; mode = 'status'; }
   else closeStatus();
 }
 let lastPraise = 0;
@@ -282,13 +268,6 @@ const FN = {
 };
 function runFn(fn) { (FN[fn] || (() => {}))(); }
 
-/* ── Futter-Untermenü ──────────────────────────────────────────────────────*/
-function updateMenuSel() {
-  const opts = menu.querySelectorAll('.tg-menu-opt');
-  opts.forEach((o, i) => o.classList.toggle('sel', i === menuSel));
-}
-function openMenu()  { closeStatus(); menuSel = 0; updateMenuSel(); menu.hidden = false; mode = 'menu'; }
-function closeMenu() { menu.hidden = true; if (mode === 'menu') mode = 'idle'; }
 function closeStatus() { statusEl.hidden = true; if (mode === 'status') mode = 'idle'; }
 
 /* ── Status-/Gewicht-Panel ─────────────────────────────────────────────────*/
@@ -307,30 +286,27 @@ function buildStatus() {
 }
 
 /* ── Auswahl per Hardware-Buttons ──────────────────────────────────────────*/
-let mode = 'idle';         // 'idle' | 'menu' | 'status'
+let mode = 'idle';         // 'idle' | 'status'
 let selIndex = -1;         // ausgewähltes Icon
-let menuSel = 0;           // 0 = Mahlzeit, 1 = Snack
 function updateSel() {
   items.forEach((el, i) => el.classList.toggle('sel', i === selIndex));
 }
 function flash(el) {
   el.classList.add('act');
-  setTimeout(() => el.classList.remove('act'), 300);
+  setTimeout(() => el.classList.remove('act'), 320);
 }
-function btnA() {                                       // Auswahl weiter
-  if (mode === 'menu')  { menuSel ^= 1; updateMenuSel(); return; }
+function btnA() {                                       // Auswahl weiter (durchswipen)
   if (mode === 'status') return;
   selIndex = (selIndex + 1) % items.length;
   updateSel();
 }
 function btnB() {                                       // Bestätigen
-  if (mode === 'menu')   { menuSel === 0 ? doMeal() : doSnack(); return; }
   if (mode === 'status') { closeStatus(); return; }
   if (selIndex < 0) { selIndex = 0; updateSel(); return; }
   const el = items[selIndex]; flash(el); runFn(el.dataset.fn);
 }
 function btnC() {                                       // Abbrechen / zurück
-  if (mode !== 'idle') { closeMenu(); closeStatus(); return; }
+  if (mode !== 'idle') { closeStatus(); return; }
   selIndex = -1; updateSel();
 }
 const BTN = { a: btnA, b: btnB, c: btnC };
@@ -340,15 +316,8 @@ hwBtns.forEach((b) => {
   b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); run(); } });
 });
 
-/* ── Icons direkt anklickbar ───────────────────────────────────────────────*/
-items.forEach((el, i) => {
-  const activate = () => { selIndex = i; updateSel(); flash(el); runFn(el.dataset.fn); };
-  el.addEventListener('click', activate);
-  el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
-});
-menu.querySelectorAll('.tg-menu-opt').forEach((o) => {
-  o.addEventListener('click', () => (o.dataset.opt === 'meal' ? doMeal() : doSnack()));
-});
+// Die Icons selbst sind bewusst NICHT klickbar – gesteuert wird ausschliesslich
+// über die drei Hardware-Buttons unten (A/B/C).
 
 /* ── Lauf-Schleife (nur solange die Seite offen ist) ───────────────────────*/
 let tickTimer = null;
@@ -378,7 +347,7 @@ function openPage() {
   window.MB?.updateBodyLock?.();
   window.MB?.kickAutoplay?.();
   simulate(S.lastTick, Date.now());                    // Offline-Zeit nachziehen
-  closeMenu(); closeStatus(); selIndex = -1; updateSel();
+  closeStatus(); selIndex = -1; updateSel();
   render(); save();
   start();
 }
@@ -404,7 +373,7 @@ window.addEventListener('pagehide', save);
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || !page.classList.contains('show')) return;
-  if (mode !== 'idle') { closeMenu(); closeStatus(); return; }
+  if (mode !== 'idle') { closeStatus(); return; }
   closePage();
 });
 

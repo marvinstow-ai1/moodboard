@@ -69,6 +69,7 @@
   --width:275px;
   --height:325px;
   --title-font-size:34px;
+  --pet-scale:.62;        /* Figur klein genug, dass sie nie über den Screen ragt */
   --break-shape:polygon(0 60%, 9% 38%, 10% 12%, 29% 15%, 47% 9%, 70% 14%, 84% 7%, 97% 20%, 91% 35%, 100% 58%, 92% 72%, 87% 92%, 68% 90%, 50% 100%, 40% 91%, 25% 94%, 9% 85%, 11% 77%);
 
   opacity:0;transform:translateY(16px);
@@ -247,7 +248,7 @@
           & .pet{
             width:42%;
             height:100%;
-            transform:scale(0.8);
+            transform:scale(var(--pet-scale));
 
             &::before{
               --pet-color:#222;
@@ -452,24 +453,21 @@
    Alles unter .tama-gadget gescopt. Logik: js/tamagotchi.js.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Icons klickbar + auswählbar (Cursor per Hardware-Buttons). */
+/* Steuerung ausschliesslich über die drei Hardware-Buttons – die Icons selbst
+   sind reine Anzeige (nicht klickbar). */
 .tama-gadget .item{
-  cursor:pointer;border-radius:5px;
   display:flex;align-items:center;justify-content:center;
-  transition:background-color .15s, box-shadow .15s;
   -webkit-tap-highlight-color:transparent;
 }
-.tama-gadget .item:focus-visible{outline:2px solid #2b2b2b;outline-offset:-1px}
-.tama-gadget .item svg{transition:opacity .15s, transform .1s}
-.tama-gadget .item:hover svg{opacity:.7}
-/* Vom Button-Cursor angewählt */
-.tama-gadget .item.sel{background:rgba(0,0,0,.14);box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
-.tama-gadget .item.sel svg{opacity:1}
-/* Gerade ausgelöst – kurzer Flash */
-.tama-gadget .item.act svg{opacity:1;animation:tgIconPop .3s ease}
-@keyframes tgIconPop{0%{transform:scale(1)}45%{transform:scale(1.35)}100%{transform:scale(1)}}
+.tama-gadget .item svg{transition:opacity .18s ease, transform .18s ease, color .18s ease}
+/* Vom Button-Cursor angewählt: KEIN Kasten – Icon wird kräftiger + etwas
+   grösser (wie eine Antipp-Reaktion). */
+.tama-gadget .item.sel svg{opacity:1 !important;color:#0b0b0b;transform:scale(1.34)}
+/* Gerade ausgelöst – kurzer Pop */
+.tama-gadget .item.act svg{opacity:1 !important;color:#0b0b0b;animation:tgIconPop .32s ease}
+@keyframes tgIconPop{0%{transform:scale(1.34)}40%{transform:scale(1.7)}100%{transform:scale(1.34)}}
 /* „Ruf": Achtung-Icon blinkt, wenn etwas gebraucht wird */
-.tama-gadget .item.attention.calling svg{opacity:1;animation:tgBlink .7s steps(1) infinite}
+.tama-gadget .item.attention.calling svg{opacity:1 !important;animation:tgBlink .7s steps(1) infinite}
 @keyframes tgBlink{0%,50%{opacity:1}50.01%,100%{opacity:.12}}
 
 /* Spielfeld im LCD */
@@ -524,14 +522,24 @@
 @keyframes tgFloatZ{0%{opacity:0;transform:translate(0,0) scale(.6)}
   25%{opacity:.9}100%{opacity:0;transform:translate(10px,-26px) scale(1.1)}}
 
-/* ── Pet-Zustände ─────────────────────────────────────────────────────────*/
-/* Fressen/Spielen: Laufanimation pausiert, dafür hüpfen/kauen. */
-.tama-gadget .screen.busy .pet::before{animation:none;transform:translate(8px,0)}
+/* ── Pet-Zustände ─────────────────────────────────────────────────────────
+   Wichtig: die Basis-Regeln des Pens sind tief verschachtelt (hohe
+   Spezifität). Damit Pausen/Posen zuverlässig gewinnen, wird das Anhalten der
+   Laufanimation mit !important gesetzt. Die Skalierung (var(--pet-scale))
+   steckt in JEDER Pose-Keyframe, sonst würde die Figur beim Essen/Spielen auf
+   volle Grösse springen. */
+.tama-gadget .pet{position:relative}
+.tama-gadget .screen.busy .pet::before{animation:none !important;transform:translate(10px,0)}
 .tama-gadget .pet.eat{animation:tgEat .34s steps(2) 6}
-.tama-gadget .pet.play{animation:tgHop .5s ease-in-out 6}
+.tama-gadget .pet.play{animation:tgHop .5s ease-in-out 5}
 .tama-gadget .pet.cheer{animation:tgHop .45s ease-in-out 2}
-@keyframes tgEat{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
-@keyframes tgHop{0%,100%{transform:translateY(0)}40%{transform:translateY(-9px)}70%{transform:translateY(-2px)}}
+@keyframes tgEat{
+  0%,100%{transform:scale(var(--pet-scale)) translateY(0)}
+  50%    {transform:scale(var(--pet-scale)) translateY(4px)}}
+@keyframes tgHop{
+  0%,100%{transform:scale(var(--pet-scale)) translateY(0)}
+  40%    {transform:scale(var(--pet-scale)) translateY(-11px)}
+  70%    {transform:scale(var(--pet-scale)) translateY(-3px)}}
 
 /* Krank: LCD leicht grünlich, Pet grünlich, kleines Kreuz blinkt. */
 .tama-gadget .screen.sick{background:#a9b8a2}
@@ -541,38 +549,26 @@
   clip-path:polygon(40% 0,60% 0,60% 40%,100% 40%,100% 60%,60% 60%,60% 100%,40% 100%,40% 60%,0 60%,0 40%,40% 40%);
   animation:tgBlink .8s steps(1) infinite;
 }
-.tama-gadget .pet{position:relative}
 
-/* Schlaf: Licht aus – Screen dunkelt ab, Mond + Zzz. Laufanim pausiert. */
+/* Schlaf: Licht aus – leichter Nacht-Ton (LCD bleibt lesbar), Figur steht
+   STILL (Laufanim mit !important gestoppt), dazu ein pixeliger Mond + Zzz. */
 .tama-gadget .tg-sleep{
-  position:absolute;inset:0;pointer-events:none;opacity:0;
-  background:rgba(6,10,26,.62);transition:opacity .4s ease;
+  position:absolute;inset:0;pointer-events:none;opacity:0;z-index:1;
+  background:rgba(34,46,82,.26);transition:opacity .4s ease;
 }
 .tama-gadget .screen.sleeping .tg-sleep{opacity:1}
-.tama-gadget .screen.sleeping .pet::before{animation:none;transform:translate(8px,2px)}
-.tama-gadget .screen.sleeping .tg-sleep::before{        /* Mond */
-  content:"";position:absolute;top:8px;right:12px;width:12px;height:12px;border-radius:50%;
-  background:#e8ecff;box-shadow:3px 0 0 -1px #a9b8a2 inset;
-  clip-path:none;filter:drop-shadow(0 0 3px rgba(232,236,255,.4));
+.tama-gadget .screen.sleeping .pet::before{animation:none !important;transform:translate(10px,2px)}
+/* Pixel-Mond (Kachel-Sichel im selben Stil wie die Figur, harte Kanten). */
+.tama-gadget .screen.sleeping .tg-sleep::before{
+  content:"";position:absolute;top:11px;right:15px;width:3px;height:3px;
+  background:transparent;image-rendering:pixelated;
+  box-shadow:
+    3px  0 0 #f2f4ff, 6px  0 0 #f2f4ff,   /* oben */
+    0    3px 0 #f2f4ff,
+    0    6px 0 #f2f4ff,
+    0    9px 0 #f2f4ff,
+    3px 12px 0 #f2f4ff, 6px 12px 0 #f2f4ff; /* unten */
 }
-
-/* ── Untermenü Futter (Mahlzeit / Snack) ──────────────────────────────────*/
-.tama-gadget .tg-menu{
-  position:absolute;inset:0;z-index:4;display:flex;gap:8px;
-  align-items:center;justify-content:center;
-  background:rgba(184,179,175,.92);
-}
-.tama-gadget .tg-menu[hidden]{display:none}
-.tama-gadget .tg-menu-opt{
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  border:0;background:none;cursor:pointer;padding:6px 4px;border-radius:6px;
-  font-family:'Press Start 2P',monospace;font-size:7px;color:#222;letter-spacing:.02em;
-}
-.tama-gadget .tg-menu-opt.sel{background:rgba(0,0,0,.14);box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
-.tama-gadget .tg-mi{width:18px;height:18px;background:#222}
-.tama-gadget .tg-mi-meal{clip-path:polygon(0 55%,100% 55%,88% 100%,12% 100%);        /* Reisschale */
-  box-shadow:0 -3px 0 -1px #222 inset}
-.tama-gadget .tg-mi-snack{clip-path:polygon(50% 0,63% 30%,97% 32%,70% 55%,80% 92%,50% 72%,20% 92%,30% 55%,3% 32%,37% 30%)} /* Bonbon/Stern */
 
 /* ── Status-/Gewicht-Panel ────────────────────────────────────────────────*/
 .tama-gadget .tg-status{
