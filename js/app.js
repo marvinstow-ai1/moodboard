@@ -30,6 +30,14 @@ let selectedIds=new Set();
 let _observer = null;
 let sortNewest = false;
 let chatResultIds = null;   // Mood-Chat: aktive Treffer-IDs (oder null = aus)
+// Reihenfolge des zuletzt gerenderten Archivs (Bild-IDs). renderGrid mischt das
+// Archiv sonst bei jedem Aufruf neu; hier merken wir uns die zuletzt gesehene
+// Anordnung, damit der „Archive"-Chip im Mood-Chat dorthin zurückkehren kann,
+// ohne neu zu mischen (s. showArchiveView).
+let _lastArchiveOrder = null;
+// Einmal-Flag: beim nächsten renderGrid die gespeicherte Archiv-Reihenfolge
+// beibehalten statt neu zu mischen. renderGrid setzt es sofort wieder zurück.
+let _keepArchiveOrder = false;
 let _isInitialLoad = true;
 // Solange der Loading Screen sichtbar ist: mehr Bilder eager vorladen und
 // den Eingangs-Tween aufschieben (das Grid ist ja noch komplett verdeckt).
@@ -1142,6 +1150,15 @@ function renderGrid(){
     // Sortierung: entweder zufällig (shuffle) oder nach Erstelldatum (neueste zuerst)
     if(sortNewest){
       // Items bleiben in ihrer DB-Reihenfolge (created_at DESC)
+    } else if(_keepArchiveOrder && _lastArchiveOrder){
+      // „Archive"-Chip im Mood-Chat: die zuletzt gesehene Archiv-Anordnung
+      // wiederherstellen statt neu zu mischen (s. showArchiveView). Bekannte
+      // IDs in gespeicherter Reihenfolge, neu hinzugekommene Bilder hinten dran.
+      const byId = new Map(arr.map(i => [i.id, i]));
+      const ordered = _lastArchiveOrder.map(id => byId.get(id)).filter(Boolean);
+      const known = new Set(_lastArchiveOrder);
+      for(const it of arr) if(!known.has(it.id)) ordered.push(it);
+      arr = ordered;
     } else {
       // Fisher-Yates shuffle
       arr = [...arr];
@@ -1150,7 +1167,11 @@ function renderGrid(){
         [arr[i], arr[j]] = [arr[j], arr[i]];
       }
     }
+    // Anordnung des Archivs (ohne aktive Chat-Suche) merken, damit der
+    // „Archive"-Chip im Mood-Chat später ohne Neu-Mischen hierher zurückkann.
+    if(!sortNewest) _lastArchiveOrder = arr.map(i => i.id);
   }
+  _keepArchiveOrder = false;   // Einmal-Flag: nach diesem Render zurücksetzen
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
   // Erste Reihen sofort & priorisiert laden (statt pauschal "lazy"), damit
@@ -2610,6 +2631,26 @@ function showChatResults(ids){
   renderFromTop();
   return S().currentItems.length;   // tatsächlich sichtbare Treffer
 }
+// Vom Mood-Chat-Quick-Chip „Archive": zurück zur zuletzt gesehenen Archiv-
+// Ansicht – bewusst OHNE neu zu mischen und mit ALLEN Bildern (eine aktive
+// Chat-Suche wird beendet). Verhält sich damit wie das Schließen der Info-
+// Seite: das Grid erscheint wieder in genau der Anordnung, die zuletzt zu
+// sehen war (statt wie doShuffle alles neu durchzumischen).
+function showArchiveView(){
+  // Eine offene Glas-Seite zuerst schließen, damit das Archiv nicht unsichtbar
+  // dahinter landet (analog zu showRecentView/showChatResults).
+  closeSubpages();
+  window.scrollTo(0, 0);
+  sortNewest = false;
+  chatResultIds = null;         // aktive Chat-Suche beenden → alle Bilder
+  _keepArchiveOrder = true;     // renderGrid soll die letzte Reihenfolge behalten
+  if(currentView === 'moods'){
+    hideMoodsView('archive');   // animiert zurück, rendert mit gesetztem Flag
+    return;
+  }
+  currentView = 'archive';
+  renderFromTop();
+}
 // Vom Mood-Chat aus zur Ansicht „Zuletzt hinzugefügt" wechseln (Chip unter den Emojis).
 function showRecentView(){
   // Wie showChatResults: eine offene Glas-Seite zuerst schließen, damit die
@@ -2635,8 +2676,9 @@ window.MB = Object.assign(window.MB || {}, {
   showChatResults,
   clearChatResults,
   showRecentView,
-  // Für den „Archive"-Quick-Chip im Mood-Chat (js/mood-chat.js): identisch zum
-  // Klick auf „Marvin's Place" im Header – komplette Gallery neu mischen.
+  // Für den „Archive"-Quick-Chip im Mood-Chat (js/mood-chat.js): zurück zur
+  // zuletzt gesehenen Archiv-Ansicht mit allen Bildern, OHNE neu zu mischen.
+  showArchiveView,
   doShuffle,
   // Fürs Gästebuch (js/guestbook.js): Toasts, Scroll-Lock der Haupt-App,
   // gegenseitiges Schließen der Glas-Popups und Anstoßen der Grid-Videos.
