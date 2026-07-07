@@ -77,6 +77,18 @@ create policy owner_insert on public.models_3d
   for insert to authenticated
   with check (((auth.jwt() -> 'app_metadata') ->> 'role') = 'owner');
 
+-- Bearbeiten: nur der Owner. WICHTIG – ohne diese Policy blockiert RLS jedes
+-- UPDATE stillschweigend (0 Zeilen betroffen, KEIN Fehler). Genau daran ging
+-- der Kategorie-Wechsel im Verwalten-Popup verloren: der Editor ruft
+-- .update({ title, category }) auf, das ohne UPDATE-Policy nie greift, während
+-- die UI trotzdem „aktualisiert ✓" meldet. `with check` verhindert zusätzlich,
+-- dass ein Update den Eigentümer-Bezug aushebelt.
+drop policy if exists owner_update on public.models_3d;
+create policy owner_update on public.models_3d
+  for update to authenticated
+  using (((auth.jwt() -> 'app_metadata') ->> 'role') = 'owner')
+  with check (((auth.jwt() -> 'app_metadata') ->> 'role') = 'owner');
+
 -- Löschen: nur der Owner.
 drop policy if exists owner_delete on public.models_3d;
 create policy owner_delete on public.models_3d
