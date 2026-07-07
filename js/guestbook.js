@@ -1,15 +1,17 @@
 // ============================================================================
-// Gästebuch — Einträge mit Name, Instagram & gemalter Unterschrift
+// Freundebuch — jede/r Freund/in gestaltet die eigene Steckbrief-Seite
 // ----------------------------------------------------------------------------
 // Öffnet sich als vollflächige Seite (wie die Info-Page) über den Buch-Button
-// in der Bottom-Bar. "Eintragen" öffnet ein Modal mit Name + Instagram und
-// einem Unterschrift-Feld; ein Tipp darauf öffnet das fast vollflächige
-// Malfeld (Canvas im 4:5-Format, Stift- & Hintergrundfarbe wählbar).
-// Das Bild wird als PNG (Hintergrundfarbe eingebacken) in den Storage-
-// Bucket (guestbook/) hochgeladen, der Eintrag landet in
-// public.guestbook_entries (RLS: nur Mitglieder, siehe db/guestbook.sql).
-// Die Einträge werden als 2-spaltiges Kachel-Raster im Insta-Feed-Stil
-// gerendert (css/guestbook.css).
+// in der Bottom-Bar. "Eintragen" öffnet den Editor: links/oben eine LIVE-
+// Vorschau der Seite (Name, Wohnort, Instagram, Hobbys, Lieblingsmusik/-sport/
+// -serie, Profilbild, Unterschrift), darunter die Steuerung. Man kann
+// Schriftart, Hintergrundfarbe und ein eigenes Hintergrundbild wählen und eine
+// Unterschrift malen (Canvas im 4:5-Format). Beim "Fertig" wird die Vorschau-
+// Karte 1:1 als JPEG gerendert (html2canvas), in den Storage-Bucket
+// (guestbook/) hochgeladen und als Eintrag in public.guestbook_entries
+// abgelegt (RLS: nur Mitglieder, siehe db/guestbook.sql). Die fertigen Seiten
+// erscheinen als 2-spaltiges Kachel-Raster ("Fotobuch", css/guestbook.css) und
+// lassen sich per Tipp groß in einer Lightbox ansehen.
 // ============================================================================
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -21,16 +23,17 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const $ = id => document.getElementById(id);
 
-const page    = $('gbPage');
-const list    = $('gbList');
-const modal   = $('gbModal');
-const draw    = $('gbDraw');
-const canvas  = $('gbdCanvas');
-const wrap    = $('gbdCanvasWrap');
-const area    = $('gbdCanvasArea');
-const sigBox  = $('gbmSigBox');
-const sigPrev = $('gbmSigPreview');
-const sigHint = $('gbmSigHint');
+const page   = $('gbPage');
+const list   = $('gbList');
+const draw   = $('gbDraw');
+const canvas = $('gbdCanvas');
+const wrap   = $('gbdCanvasWrap');
+const area   = $('gbdCanvasArea');
+
+// Editor + Vorschau
+const editor  = $('fbEditor');
+const fbCard  = $('fbCard');
+const fbCardBg= $('fbCardBg');
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -38,7 +41,6 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g,
 function toast(t){ window.MB?.toast ? window.MB.toast(t) : console.log(t); }
 
 // ── Seite öffnen / schließen ───────────────────────────────────────────────
-// will-change nur während der Animation (gleiches Muster wie die Info-Page).
 let _animTimer = null;
 function markAnimating(){
   page.classList.add('is-animating');
@@ -48,15 +50,13 @@ function markAnimating(){
 
 function openPage(){
   window.MB?.closeOtherPopups?.();
-  window.MB?.closeInfoPage?.();   // nie zwei Glas-Popups übereinander
+  window.MB?.closeInfoPage?.();
   window.MB?.closeModels?.();
   window.MB?.closeTama?.();
   markAnimating();
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');
   window.MB?.updateBodyLock?.();
-  // Grid-Videos hinter dem Glas anstoßen, falls der Browser sie beim
-  // Öffnen des Overlays pausiert hat – sie sollen sichtbar weiterloopen.
   window.MB?.kickAutoplay?.();
   loadEntries();
 }
@@ -68,12 +68,9 @@ function closePage(){
 }
 
 $('gbClose')?.addEventListener('click', closePage);
-
-// Öffnen/Schließen fürs gegenseitige Ausschließen der Glas-Popups (app.js) und
-// für die Navigations-Vorschau (js/nav.js), die das Gästebuch von dort öffnet.
 window.MB = Object.assign(window.MB || {}, { closeGuestbook: closePage, openGuestbook: openPage });
 
-// ── Einträge laden & rendern ───────────────────────────────────────────────
+// ── Einträge laden & rendern (das "Fotobuch") ──────────────────────────────
 async function isOwner(){
   try{
     const { data: { session } } = await sb.auth.getSession();
@@ -96,11 +93,11 @@ async function loadEntries(){
     isOwner(),
   ]);
   if(error){
-    list.innerHTML = '<div class="gb-status">Konnte das Gästebuch nicht laden. Versuch es gleich nochmal.</div>';
+    list.innerHTML = '<div class="gb-status">Konnte das Freundebuch nicht laden. Versuch es gleich nochmal.</div>';
     return;
   }
   if(!data || !data.length){
-    list.innerHTML = '<div class="gb-status">Noch keine Einträge – sei die/der Erste! ✍️</div>';
+    list.innerHTML = '<div class="gb-status">Noch keine Seiten – sei die/der Erste! ✏️</div>';
     return;
   }
   list.innerHTML = data.map(e => {
@@ -109,7 +106,7 @@ async function loadEntries(){
       ? `<a class="gb-entry-insta" href="https://instagram.com/${encodeURIComponent(handle)}" target="_blank" rel="noopener noreferrer">@${esc(handle)}</a>`
       : '';
     const del = owner
-      ? `<button class="gb-entry-del" data-del="${esc(e.id)}" aria-label="Eintrag löschen">
+      ? `<button class="gb-entry-del" data-del="${esc(e.id)}" aria-label="Seite löschen">
            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;display:block">
              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
            </svg>
@@ -117,8 +114,8 @@ async function loadEntries(){
       : '';
     return `
       <div class="gb-entry">
-        <div class="gb-entry-media">
-          <img src="${esc(e.signature_url)}" loading="lazy" decoding="async" alt="Eintrag von ${esc(e.name)}">
+        <div class="gb-entry-media" data-lightbox="${esc(e.signature_url)}" role="button" tabindex="0" aria-label="Seite von ${esc(e.name)} ansehen">
+          <img src="${esc(e.signature_url)}" loading="lazy" decoding="async" alt="Freundebuch-Seite von ${esc(e.name)}">
           ${del}
         </div>
         <div class="gb-entry-meta">
@@ -131,8 +128,19 @@ async function loadEntries(){
       </div>`;
   }).join('');
 
+  // Tipp auf eine Kachel → Lightbox (Klick auf Löschen nicht durchreichen).
+  list.querySelectorAll('[data-lightbox]').forEach(el => {
+    const open = ev => {
+      if(ev.target.closest('[data-del]')) return;
+      openLightbox(el.dataset.lightbox);
+    };
+    el.addEventListener('click', open);
+    el.addEventListener('keydown', ev => { if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); open(ev); } });
+  });
+
   list.querySelectorAll('[data-del]').forEach(btn => {
-    btn.onclick = async () => {
+    btn.onclick = async (ev) => {
+      ev.stopPropagation();
       // Zweistufig: erster Klick fragt nach, zweiter löscht.
       if(!btn.dataset.armed){
         btn.dataset.armed = '1';
@@ -145,55 +153,172 @@ async function loadEntries(){
       if(de){ toast('Löschen fehlgeschlagen'); return; }
       btn.closest('.gb-entry')?.remove();
       if(!list.querySelector('.gb-entry'))
-        list.innerHTML = '<div class="gb-status">Noch keine Einträge – sei die/der Erste! ✍️</div>';
+        list.innerHTML = '<div class="gb-status">Noch keine Seiten – sei die/der Erste! ✏️</div>';
     };
   });
 }
 
-// ── Eintrags-Modal ─────────────────────────────────────────────────────────
-let sigBlob = null;   // fertige Unterschrift als PNG-Blob (null = noch keine)
+// ── Lightbox ───────────────────────────────────────────────────────────────
+const lightbox = $('fbLightbox');
+function openLightbox(url){
+  $('fbLightboxImg').src = url;
+  lightbox.classList.add('show');
+  lightbox.setAttribute('aria-hidden', 'false');
+}
+function closeLightbox(){
+  lightbox.classList.remove('show');
+  lightbox.setAttribute('aria-hidden', 'true');
+  $('fbLightboxImg').removeAttribute('src');
+}
+$('fbLightboxClose')?.addEventListener('click', closeLightbox);
+lightbox?.addEventListener('click', e => { if(e.target === lightbox) closeLightbox(); });
+
+// ── Editor: Live-Vorschau ───────────────────────────────────────────────────
+// Jedes Feld schreibt live in die passende Zeile der Vorschau-Karte.
+let profileURL = null;   // Object-URL des Profilbilds (null = keins)
+let bgImgURL   = null;   // Object-URL des Hintergrundbilds
+let sigBlob    = null;   // gemalte Unterschrift als PNG-Blob
+let bgColor    = '#fff7e6';
+
+const FIELD_MAP = [
+  ['fbName',  'fbvName',  false],
+  ['fbOrt',   'fbvOrt',   false],
+  ['fbInsta', 'fbvInsta', true ],   // true = @ voranstellen
+  ['fbHobby', 'fbvHobby', false],
+  ['fbMusik', 'fbvMusik', false],
+  ['fbSport', 'fbvSport', false],
+  ['fbSerie', 'fbvSerie', false],
+];
+
+function bindField(inputId, spanId, insta){
+  const input = $(inputId), span = $(spanId);
+  input.addEventListener('input', () => {
+    // Führendes @ direkt beim Tippen entfernen – das feste @ steht schon davor.
+    if(insta && input.value.startsWith('@')) input.value = input.value.replace(/^@+/, '');
+    let v = input.value.trim();
+    if(insta){
+      v = v.replace(/^@/, '').replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '').replace(/\/.*$/, '');
+    }
+    span.textContent = insta && v ? '@' + v : v;
+    span.dataset.empty = v ? '0' : '1';
+  });
+}
+FIELD_MAP.forEach(([i, s, insta]) => bindField(i, s, insta));
+
+// ── Schriftart-Auswahl ─────────────────────────────────────────────────────
+const FONTS = [
+  { css: "'Patrick Hand', cursive",      label: 'Handschrift' },
+  { css: "'Caveat', cursive",            label: 'Schwung'     },
+  { css: "'Gochi Hand', cursive",        label: 'Krakel'      },
+  { css: "'Comic Neue', 'DM Sans', sans-serif", label: 'Comic' },
+  { css: "'Schoolbell', cursive",        label: 'Schulheft'   },
+  { css: "'Shadows Into Light', cursive",label: 'Filzstift'   },
+];
+const fontsRow = $('fbFonts');
+FONTS.forEach((f, i) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'fb-font-chip' + (i === 0 ? ' is-active' : '');
+  b.textContent = f.label;
+  b.style.fontFamily = f.css;
+  b.addEventListener('click', () => {
+    fbCard.style.fontFamily = f.css;
+    fontsRow.querySelector('.is-active')?.classList.remove('is-active');
+    b.classList.add('is-active');
+  });
+  fontsRow.appendChild(b);
+});
+fbCard.style.fontFamily = FONTS[0].css;
+
+// ── Hintergrundfarbe ────────────────────────────────────────────────────────
+const BG_COLORS = ['#fff7e6','#ffe1ec','#e3f2ff','#e7ffe6','#fff0b3','#f0e6ff','#ffffff','#ffd9c2'];
+const bgRow = $('fbBgColors');
+BG_COLORS.forEach((c, i) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'fb-swatch' + (i === 0 ? ' is-active' : '');
+  b.style.setProperty('--c', c);
+  b.setAttribute('aria-label', 'Farbe ' + c);
+  b.addEventListener('click', () => {
+    bgColor = c;
+    if(!bgImgURL) fbCard.style.backgroundColor = c;
+    bgRow.querySelector('.is-active')?.classList.remove('is-active');
+    b.classList.add('is-active');
+  });
+  bgRow.appendChild(b);
+});
+fbCard.style.backgroundColor = bgColor;
+
+// ── Bild-Uploads (Profil + Hintergrund) ─────────────────────────────────────
+function pickFile(input){ input.value = ''; input.click(); }
+
+$('fbPhotoBtn').addEventListener('click', () => pickFile($('fbPhotoInput')));
+$('fbPhotoInput').addEventListener('change', async e => {
+  const file = e.target.files?.[0];
+  if(!file) return;
+  if(profileURL) URL.revokeObjectURL(profileURL);
+  profileURL = URL.createObjectURL(file);
+  const img = $('fbPhotoImg');
+  img.src = profileURL;
+  img.hidden = false;
+  $('fbPhotoPh').hidden = true;
+  $('fbPhotoSlot').classList.add('has-photo');
+});
+
+$('fbBgImgBtn').addEventListener('click', () => pickFile($('fbBgImgInput')));
+$('fbBgImgInput').addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if(!file) return;
+  if(bgImgURL) URL.revokeObjectURL(bgImgURL);
+  bgImgURL = URL.createObjectURL(file);
+  fbCardBg.style.backgroundImage = `url("${bgImgURL}")`;
+  fbCard.classList.add('has-bg-img');
+  $('fbBgImgClear').hidden = false;
+});
+$('fbBgImgClear').addEventListener('click', () => {
+  if(bgImgURL) URL.revokeObjectURL(bgImgURL);
+  bgImgURL = null;
+  fbCardBg.style.backgroundImage = '';
+  fbCard.classList.remove('has-bg-img');
+  fbCard.style.backgroundColor = bgColor;
+  $('fbBgImgClear').hidden = true;
+});
+
+// ── Editor öffnen / schließen ───────────────────────────────────────────────
+function openEditor(){
+  // Vorbelegen: gespeicherter Name aus dem Gate.
+  const saved = localStorage.getItem('mb_gate_name') || '';
+  $('fbName').value = saved;
+  $('fbvName').textContent = saved;
+  $('fbvName').dataset.empty = saved ? '0' : '1';
+  clearError();
+  editor.classList.add('show');
+  editor.setAttribute('aria-hidden', 'false');
+}
+function closeEditor(){
+  editor.classList.remove('show');
+  editor.setAttribute('aria-hidden', 'true');
+}
+$('gbAddBtn').addEventListener('click', openEditor);
+$('fbCancel').addEventListener('click', closeEditor);
 
 function showError(msg){
-  const el = $('gbmError');
+  const el = $('fbError');
   el.textContent = msg;
   el.classList.add('show');
 }
 function clearError(){
-  const el = $('gbmError');
+  const el = $('fbError');
   el.innerHTML = '&nbsp;';
   el.classList.remove('show');
 }
 
-function openModal(){
-  sigBlob = null;
-  sigPrev.hidden = true;
-  sigPrev.removeAttribute('src');
-  sigHint.style.display = '';
-  sigBox.classList.remove('has-sig');
-  $('gbmName').value = localStorage.getItem('mb_gate_name') || '';
-  $('gbmInsta').value = '';
-  clearError();
-  modal.classList.add('show');
-}
-function closeModal(){ modal.classList.remove('show'); }
-
-// Führendes @ direkt beim Tippen entfernen – das feste @ steht schon davor.
-$('gbmInsta').addEventListener('input', e => {
-  if(e.target.value.startsWith('@')) e.target.value = e.target.value.replace(/^@+/, '');
-});
-
-$('gbAddBtn').addEventListener('click', openModal);
-$('gbmCancel').addEventListener('click', closeModal);
-modal.addEventListener('click', e => { if(e.target === modal) closeModal(); });
-
-// ── Malfeld (Canvas) ───────────────────────────────────────────────────────
+// ── Malfeld (Canvas) für die Unterschrift ───────────────────────────────────
 const ctx = canvas.getContext('2d');
 let drawing = false, hasInk = false, lastX = 0, lastY = 0;
-let penColor = '#ffffff';   // aktuelle Stiftfarbe
-let bgColor  = '#17171a';   // Hintergrundfarbe – live als Wrap-Farbe, beim Export eingebacken
+let penColor = '#000000';    // dunkle Tinte passt zur hellen Karte
+let sigBgColor = '#ffffff';  // heller Unterschrift-Hintergrund
 
-// Farbauswahl: Klick auf einen Swatch wechselt die Stiftfarbe; bereits
-// Gemaltes bleibt stehen, nur neue Striche bekommen die neue Farbe.
 const colorsRow = $('gbdColors');
 colorsRow?.querySelectorAll('.gbd-color').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -204,28 +329,22 @@ colorsRow?.querySelectorAll('.gbd-color').forEach(btn => {
   });
 });
 
-// Hintergrundfarbe: liegt nur als Wrap-Hintergrund UNTER der (transparenten)
-// Zeichenfläche – Gemaltes bleibt beim Wechsel stehen. Auf hellen Farben
-// kippt der "Hier malen"-Hinweis auf dunkle Schrift.
 function isLightColor(hex){
   const n = parseInt(hex.slice(1), 16);
   return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) > 150;
 }
-const bgRow = $('gbdBgColors');
-bgRow?.querySelectorAll('.gbd-color').forEach(btn => {
+const bgColorsRow = $('gbdBgColors');
+bgColorsRow?.querySelectorAll('.gbd-color').forEach(btn => {
   btn.addEventListener('click', () => {
-    bgColor = btn.dataset.color;
-    wrap.style.backgroundColor = bgColor;
-    wrap.classList.toggle('light-bg', isLightColor(bgColor));
-    bgRow.querySelector('.is-active')?.classList.remove('is-active');
+    sigBgColor = btn.dataset.color;
+    wrap.style.backgroundColor = sigBgColor;
+    wrap.classList.toggle('light-bg', isLightColor(sigBgColor));
+    bgColorsRow.querySelector('.is-active')?.classList.remove('is-active');
     btn.classList.add('is-active');
   });
 });
 
-// Wrap als größtes 4:5-Rechteck in den freien Bereich einpassen (gleiche
-// Ratio wie die Feed-Kacheln) und den Canvas in Gerätepixeln aufziehen,
-// damit die Linie auch auf Retina knackig ist.
-const CANVAS_RATIO = 4 / 5;   // Breite : Höhe
+const CANVAS_RATIO = 4 / 5;
 function setupCanvas(){
   const a = area.getBoundingClientRect();
   let w = a.width, h = w / CANVAS_RATIO;
@@ -240,6 +359,10 @@ function setupCanvas(){
   ctx.lineJoin = 'round';
   ctx.strokeStyle = penColor;
   ctx.lineWidth = 3;
+  // Wrap-Hintergrund an die aktuelle Signatur-Hintergrundfarbe angleichen,
+  // damit die Vorschau dem Export entspricht.
+  wrap.style.backgroundColor = sigBgColor;
+  wrap.classList.toggle('light-bg', isLightColor(sigBgColor));
   hasInk = false;
   wrap.classList.remove('has-ink');
 }
@@ -253,7 +376,6 @@ canvas.addEventListener('pointerdown', e => {
   canvas.setPointerCapture(e.pointerId);
   drawing = true;
   [lastX, lastY] = pos(e);
-  // Punkt setzen, damit auch ein einzelner Tap sichtbar ist.
   ctx.beginPath();
   ctx.arc(lastX, lastY, ctx.lineWidth / 2, 0, Math.PI * 2);
   ctx.fillStyle = penColor;
@@ -276,12 +398,11 @@ canvas.addEventListener('pointercancel', stopDraw);
 
 function openDraw(){
   draw.classList.add('show');
-  // Erst nach dem Einblenden vermessen – vorher hat der Wrap keine Größe.
   requestAnimationFrame(setupCanvas);
 }
 function closeDraw(){ draw.classList.remove('show'); }
 
-sigBox.addEventListener('click', openDraw);
+$('fbSignBtn').addEventListener('click', openDraw);
 $('gbdClear').addEventListener('click', () => {
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -292,16 +413,14 @@ $('gbdClear').addEventListener('click', () => {
 $('gbdCancel').addEventListener('click', closeDraw);
 draw.addEventListener('click', e => { if(e.target === draw) closeDraw(); });
 
-// Ganzes Bild exportieren, genau wie im Malfeld zu sehen: erst die
-// Hintergrundfarbe, darüber die Striche. Große Retina-Canvases werden auf
-// max. 900px Breite verkleinert, damit das PNG klein bleibt.
-function exportDrawing(){
-  const scale = Math.min(1, 900 / canvas.width);
+// Unterschrift exportieren (Hintergrundfarbe eingebacken, auf max. 700px verkleinert).
+function exportSignature(){
+  const scale = Math.min(1, 700 / canvas.width);
   const out = document.createElement('canvas');
   out.width  = Math.round(canvas.width * scale);
   out.height = Math.round(canvas.height * scale);
   const octx = out.getContext('2d');
-  octx.fillStyle = bgColor;
+  octx.fillStyle = sigBgColor;
   octx.fillRect(0, 0, out.width, out.height);
   octx.drawImage(canvas, 0, 0, out.width, out.height);
   return new Promise(res => out.toBlob(res, 'image/png'));
@@ -309,52 +428,115 @@ function exportDrawing(){
 
 $('gbdDone').addEventListener('click', async () => {
   if(!hasInk){ closeDraw(); return; }
-  const blob = await exportDrawing();
+  const blob = await exportSignature();
   if(!blob){ closeDraw(); return; }
   sigBlob = blob;
-  if(sigPrev.src) URL.revokeObjectURL(sigPrev.src);
-  sigPrev.src = URL.createObjectURL(blob);
-  sigPrev.hidden = false;
-  sigHint.style.display = 'none';
-  sigBox.classList.add('has-sig');
-  clearError();
+  const img = $('fbSignImg');
+  if(img.src) URL.revokeObjectURL(img.src);
+  img.src = URL.createObjectURL(blob);
+  img.hidden = false;
+  $('fbSignBtnLbl').textContent = 'Unterschrift ändern';
   closeDraw();
 });
 
-// ── Speichern ──────────────────────────────────────────────────────────────
-$('gbmSave').addEventListener('click', async () => {
-  const name = $('gbmName').value.trim();
-  const insta = $('gbmInsta').value.trim().replace(/^@/, '').replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '').replace(/\/.*$/, '');
-  if(!name){ showError('Bitte deinen Namen eintragen'); return; }
-  if(!sigBlob){ showError('Bitte noch malen oder unterschreiben ✍️'); return; }
+// ── Rendern: Vorschau-Karte → JPEG ──────────────────────────────────────────
+let _h2cPromise = null;
+function loadHtml2Canvas(){
+  if(window.html2canvas) return Promise.resolve(window.html2canvas);
+  if(_h2cPromise) return _h2cPromise;
+  _h2cPromise = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    s.onload = () => resolve(window.html2canvas);
+    s.onerror = () => reject(new Error('html2canvas konnte nicht geladen werden'));
+    document.head.appendChild(s);
+  });
+  return _h2cPromise;
+}
 
-  const btn = $('gbmSave');
+async function waitImages(){
+  const imgs = [$('fbPhotoImg'), $('fbSignImg')].filter(i => i && !i.hidden && i.src);
+  await Promise.all(imgs.map(i => (i.decode ? i.decode().catch(() => {}) : Promise.resolve())));
+}
+
+async function renderCardToBlob(){
+  const h2c = await loadHtml2Canvas();
+  try{ await (document.fonts?.ready ?? Promise.resolve()); }catch(e){}
+  await waitImages();
+  const w = fbCard.offsetWidth || 360;
+  const scale = Math.max(1.5, Math.min(3, 1080 / w));
+  const rendered = await h2c(fbCard, {
+    backgroundColor: bgImgURL ? null : bgColor,
+    scale,
+    useCORS: true,
+    allowTaint: true,
+    logging: false,
+  });
+  return new Promise(res => rendered.toBlob(res, 'image/jpeg', 0.92));
+}
+
+// ── Speichern ────────────────────────────────────────────────────────────────
+$('fbSave').addEventListener('click', async () => {
+  const name = $('fbName').value.trim();
+  if(!name){ showError('Bitte trag deinen Namen ein ✏️'); return; }
+
+  const btn = $('fbSave');
   btn.disabled = true;
+  const orig = btn.textContent;
   btn.textContent = 'Speichere…';
   try{
-    const path = `guestbook/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+    const insta = $('fbInsta').value.trim()
+      .replace(/^@/, '')
+      .replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '')
+      .replace(/\/.*$/, '') || null;
+
+    const blob = await renderCardToBlob();
+    if(!blob) throw new Error('render');
+
+    const path = `guestbook/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
     const { error: ue } = await sb.storage.from(BUCKET)
-      .upload(path, sigBlob, { upsert: false, contentType: 'image/png', cacheControl: '31536000' });
+      .upload(path, blob, { upsert: false, contentType: 'image/jpeg', cacheControl: '31536000' });
     if(ue) throw ue;
     const url = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+
     const { error: ie } = await sb.from('guestbook_entries')
-      .insert({ name, instagram: insta || null, signature_url: url });
+      .insert({ name, instagram: insta, signature_url: url });
     if(ie) throw ie;
-    closeModal();
-    toast('Danke für deinen Eintrag ✍️');
+
+    closeEditor();
+    resetEditor();
+    toast('Danke, deine Seite ist im Freundebuch ✏️');
     loadEntries();
   }catch(e){
     showError('Speichern fehlgeschlagen. Versuch es gleich nochmal.');
   }finally{
     btn.disabled = false;
-    btn.textContent = 'Eintragen';
+    btn.textContent = orig;
   }
 });
 
-// Escape schließt von innen nach außen: Malfeld → Modal → Seite.
+// Editor nach erfolgreichem Speichern leeren (fürs nächste Mal).
+function resetEditor(){
+  FIELD_MAP.forEach(([i, s]) => { $(i).value = ''; $(s).textContent = ''; $(s).dataset.empty = '1'; });
+  if(profileURL){ URL.revokeObjectURL(profileURL); profileURL = null; }
+  $('fbPhotoImg').hidden = true; $('fbPhotoImg').removeAttribute('src');
+  $('fbPhotoPh').hidden = false; $('fbPhotoSlot').classList.remove('has-photo');
+  if(sigBlob){ sigBlob = null; }
+  const sig = $('fbSignImg');
+  if(sig.src) URL.revokeObjectURL(sig.src);
+  sig.hidden = true; sig.removeAttribute('src');
+  $('fbSignBtnLbl').textContent = 'Unterschrift malen';
+  if(bgImgURL){ URL.revokeObjectURL(bgImgURL); bgImgURL = null; }
+  fbCardBg.style.backgroundImage = '';
+  fbCard.classList.remove('has-bg-img');
+  fbCard.style.backgroundColor = bgColor;
+}
+
+// Escape schließt von innen nach außen: Malfeld → Editor → Lightbox → Seite.
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if(draw.classList.contains('show')) closeDraw();
-  else if(modal.classList.contains('show')) closeModal();
+  else if(editor.classList.contains('show')) closeEditor();
+  else if(lightbox.classList.contains('show')) closeLightbox();
   else if(page.classList.contains('show')) closePage();
 });

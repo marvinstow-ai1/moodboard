@@ -19,6 +19,8 @@
 <link rel="preconnect" href="https://uvfuxnwinuakbqanaxtp.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://uvfuxnwinuakbqanaxtp.supabase.co">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<!-- Freundebuch: Doodle-/Handschrift-Fonts (Header + wählbare Seiten-Schriften) -->
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Chewy&family=Comic+Neue:wght@400;700&family=Gochi+Hand&family=Patrick+Hand&family=Schoolbell&family=Shadows+Into+Light&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/loading.css">
 <link rel="stylesheet" href="css/header.css">
@@ -776,7 +778,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
      Vollflächige Seite im Stil der Info-Page: Liste aller Einträge
      (Name, Instagram, gemalte Unterschrift) + "Eintragen"-Flow mit
      Malfeld. Logik in js/guestbook.js, Styles in css/guestbook.css. -->
-<div class="gb-page" id="gbPage" role="dialog" aria-modal="true" aria-label="Gästebuch" aria-hidden="true">
+<div class="gb-page" id="gbPage" role="dialog" aria-modal="true" aria-label="Freundebuch" aria-hidden="true">
 
   <!-- Kopfzeile: 1:1-Spiegelung des Haupt-Headers (.topbar). Titel führt zur
        Startseite zurück, das Hamburger-Menü verhält sich wie im Board. -->
@@ -812,9 +814,17 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   <div class="gb-scroll" id="gbScroll">
     <div class="gb-inner">
       <div class="gb-hero">
-        <div class="info-hero-badge" data-pixel-icon="guestbook"></div>
-        <h1 class="info-hero-title">Gästebuch</h1>
-        <p class="gb-hero-sub">Verewige dich mit einer Zeichnung oder deiner Unterschrift.</p>
+        <h1 class="fb-doodle-title" aria-label="Marvin's Freundebuch">
+          <span class="fb-doodle-line1">Marvin's</span>
+          <span class="fb-doodle-line2">Freundebuch</span>
+          <svg class="fb-doodle-underline" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M6 15 C 60 4, 120 22, 170 12 S 260 6, 294 14" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+          <span class="fb-doodle-star fb-doodle-star--a" aria-hidden="true">✦</span>
+          <span class="fb-doodle-star fb-doodle-star--b" aria-hidden="true">★</span>
+          <span class="fb-doodle-star fb-doodle-star--c" aria-hidden="true">✿</span>
+        </h1>
+        <p class="gb-hero-sub">Trag dich ein: füll deinen Steckbrief aus, mal deine Unterschrift und gestalte deine eigene Seite. ✏️</p>
       </div>
       <div class="gb-list" id="gbList">
         <div class="gb-status" id="gbStatus">Lade…</div>
@@ -826,34 +836,119 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
       <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
-    Eintragen
+    Eintragen ✏️
   </button>
 </div>
 
-<!-- Eintrags-Modal: Name + Instagram + Unterschrift-Feld -->
-<div class="gb-modal" id="gbModal" role="dialog" aria-modal="true" aria-label="Gästebuch-Eintrag">
-  <div class="gbm-content">
-    <div class="gbm-title">Dein Eintrag</div>
-    <input class="gbm-input" id="gbmName" placeholder="Dein Name" maxlength="60" autocomplete="name">
-    <div class="gbm-insta-row">
-      <span class="gbm-at">@</span>
-      <input class="gbm-input" id="gbmInsta" placeholder="Instagram (optional)" maxlength="60" autocomplete="off" autocapitalize="none">
+<!-- Freundebuch-Editor: eigene Steckbrief-Seite gestalten mit Live-Vorschau.
+     Links/oben die Vorschau-Karte (wird 1:1 als JPEG gerendert), darunter die
+     Steuerung (Felder, Profilbild, Unterschrift, Schriftart, Farbe, Bild). -->
+<div class="fb-editor" id="fbEditor" role="dialog" aria-modal="true" aria-label="Freundebuch-Seite gestalten" aria-hidden="true">
+  <div class="fb-editor-head">
+    <button class="fb-ed-btn ghost" id="fbCancel" type="button">Abbrechen</button>
+    <span class="fb-ed-title">Deine Seite</span>
+    <button class="fb-ed-btn primary" id="fbSave" type="button">Fertig ✓</button>
+  </div>
+
+  <div class="fb-editor-body">
+    <!-- ── Live-Vorschau (= das gerenderte Bild) ────────────────── -->
+    <div class="fb-preview-wrap">
+      <div class="fb-card" id="fbCard">
+        <div class="fb-card-bg" id="fbCardBg"></div>
+        <div class="fb-card-inner">
+          <div class="fb-card-top">
+            <span class="fb-card-deco fb-card-deco--l" aria-hidden="true">✿</span>
+            <span class="fb-card-heading">Mein Steckbrief</span>
+            <span class="fb-card-deco fb-card-deco--r" aria-hidden="true">✿</span>
+          </div>
+
+          <div class="fb-photo" id="fbPhotoSlot">
+            <img class="fb-photo-img" id="fbPhotoImg" alt="" hidden>
+            <span class="fb-photo-ph" id="fbPhotoPh">Foto</span>
+          </div>
+
+          <div class="fb-rows">
+            <div class="fb-row"><span class="fb-k">Name</span><span class="fb-dots"></span><span class="fb-v" id="fbvName" data-empty="1"></span></div>
+            <div class="fb-row"><span class="fb-k">Wohnort</span><span class="fb-dots"></span><span class="fb-v" id="fbvOrt" data-empty="1"></span></div>
+            <div class="fb-row"><span class="fb-k">Instagram</span><span class="fb-dots"></span><span class="fb-v" id="fbvInsta" data-empty="1"></span></div>
+            <div class="fb-row"><span class="fb-k">Hobbys</span><span class="fb-dots"></span><span class="fb-v" id="fbvHobby" data-empty="1"></span></div>
+            <div class="fb-row"><span class="fb-k">Lieblingsmusik</span><span class="fb-dots"></span><span class="fb-v" id="fbvMusik" data-empty="1"></span></div>
+            <div class="fb-row"><span class="fb-k">Lieblingssport</span><span class="fb-dots"></span><span class="fb-v" id="fbvSport" data-empty="1"></span></div>
+            <div class="fb-row"><span class="fb-k">Lieblingsserie</span><span class="fb-dots"></span><span class="fb-v" id="fbvSerie" data-empty="1"></span></div>
+          </div>
+
+          <div class="fb-sign">
+            <span class="fb-sign-label">Unterschrift</span>
+            <div class="fb-sign-line">
+              <img class="fb-sign-img" id="fbSignImg" alt="" hidden>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <button class="gbm-sig-box" id="gbmSigBox" type="button" aria-label="Zeichnung oder Unterschrift malen">
-      <img class="gbm-sig-preview" id="gbmSigPreview" alt="" hidden>
-      <span class="gbm-sig-hint" id="gbmSigHint">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-          <path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-        </svg>
-        Tippen &amp; malen
-      </span>
-    </button>
-    <div class="gbm-error" id="gbmError">&nbsp;</div>
-    <div class="gbm-actions">
-      <button class="gbm-btn cancel" id="gbmCancel" type="button">Abbrechen</button>
-      <button class="gbm-btn confirm" id="gbmSave" type="button">Eintragen</button>
+
+    <!-- ── Steuerung ─────────────────────────────────────────────── -->
+    <div class="fb-controls">
+      <button class="fb-upload-btn" id="fbPhotoBtn" type="button">
+        <span class="fb-upload-ic" aria-hidden="true">📷</span> Profilbild wählen
+      </button>
+      <input type="file" id="fbPhotoInput" accept="image/*" hidden>
+
+      <div class="fb-fields">
+        <label class="fb-field"><span class="fb-field-lbl">Name</span>
+          <input class="fb-input" id="fbName" maxlength="40" placeholder="Wie heißt du?" autocomplete="name"></label>
+        <label class="fb-field"><span class="fb-field-lbl">Wohnort</span>
+          <input class="fb-input" id="fbOrt" maxlength="40" placeholder="Wo wohnst du?"></label>
+        <label class="fb-field fb-field--insta"><span class="fb-field-lbl">Instagram</span>
+          <input class="fb-input" id="fbInsta" maxlength="40" placeholder="deinname" autocapitalize="none" autocomplete="off"></label>
+        <label class="fb-field"><span class="fb-field-lbl">Hobbys</span>
+          <input class="fb-input" id="fbHobby" maxlength="60" placeholder="Was machst du gern?"></label>
+        <label class="fb-field"><span class="fb-field-lbl">Lieblingsmusik</span>
+          <input class="fb-input" id="fbMusik" maxlength="60" placeholder="Band / Song / Genre"></label>
+        <label class="fb-field"><span class="fb-field-lbl">Lieblingssport</span>
+          <input class="fb-input" id="fbSport" maxlength="60" placeholder="Dein Sport"></label>
+        <label class="fb-field"><span class="fb-field-lbl">Lieblingsserie</span>
+          <input class="fb-input" id="fbSerie" maxlength="60" placeholder="Deine Serie"></label>
+      </div>
+
+      <button class="fb-upload-btn" id="fbSignBtn" type="button">
+        <span class="fb-upload-ic" aria-hidden="true">✍️</span> <span id="fbSignBtnLbl">Unterschrift malen</span>
+      </button>
+
+      <div class="fb-design">
+        <div class="fb-design-group">
+          <span class="fb-design-label">Schriftart</span>
+          <div class="fb-fonts" id="fbFonts" role="radiogroup" aria-label="Schriftart"></div>
+        </div>
+        <div class="fb-design-group">
+          <span class="fb-design-label">Hintergrundfarbe</span>
+          <div class="fb-bgcolors" id="fbBgColors" role="radiogroup" aria-label="Hintergrundfarbe"></div>
+        </div>
+        <div class="fb-design-group">
+          <span class="fb-design-label">Eigenes Hintergrundbild</span>
+          <div class="fb-bgimg-row">
+            <button class="fb-upload-btn slim" id="fbBgImgBtn" type="button">
+              <span class="fb-upload-ic" aria-hidden="true">🖼️</span> Bild hochladen
+            </button>
+            <button class="fb-bgimg-clear" id="fbBgImgClear" type="button" hidden>entfernen</button>
+          </div>
+          <input type="file" id="fbBgImgInput" accept="image/*" hidden>
+        </div>
+      </div>
+
+      <div class="fb-error" id="fbError">&nbsp;</div>
     </div>
   </div>
+</div>
+
+<!-- Lightbox: fertige Freundebuch-Seite groß ansehen -->
+<div class="fb-lightbox" id="fbLightbox" role="dialog" aria-modal="true" aria-label="Freundebuch-Seite" aria-hidden="true">
+  <button class="fb-lightbox-close" id="fbLightboxClose" type="button" aria-label="Schließen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;display:block">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+  <img class="fb-lightbox-img" id="fbLightboxImg" alt="">
 </div>
 
 <!-- Malfeld: öffnet sich fast vollflächig über dem Modal. Canvas im festen
@@ -868,8 +963,8 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <div class="gbd-tool">
         <span class="gbd-tool-label">Stift</span>
         <div class="gbd-colors" id="gbdColors" role="radiogroup" aria-label="Stiftfarbe">
-          <button class="gbd-color is-active" type="button" data-color="#ffffff" style="--c:#ffffff" aria-label="Weiß"></button>
-          <button class="gbd-color" type="button" data-color="#000000" style="--c:#000000" aria-label="Schwarz"></button>
+          <button class="gbd-color" type="button" data-color="#ffffff" style="--c:#ffffff" aria-label="Weiß"></button>
+          <button class="gbd-color is-active" type="button" data-color="#000000" style="--c:#000000" aria-label="Schwarz"></button>
           <button class="gbd-color" type="button" data-color="#0a84ff" style="--c:#0a84ff" aria-label="Blau"></button>
           <button class="gbd-color" type="button" data-color="#ff3b30" style="--c:#ff3b30" aria-label="Rot"></button>
           <button class="gbd-color" type="button" data-color="#30d158" style="--c:#30d158" aria-label="Grün"></button>
@@ -881,9 +976,9 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <div class="gbd-tool">
         <span class="gbd-tool-label">Hintergrund</span>
         <div class="gbd-colors" id="gbdBgColors" role="radiogroup" aria-label="Hintergrundfarbe">
-          <button class="gbd-color is-active" type="button" data-color="#17171a" style="--c:#17171a" aria-label="Dunkel"></button>
+          <button class="gbd-color is-active" type="button" data-color="#ffffff" style="--c:#ffffff" aria-label="Weiß"></button>
+          <button class="gbd-color" type="button" data-color="#17171a" style="--c:#17171a" aria-label="Dunkel"></button>
           <button class="gbd-color" type="button" data-color="#000000" style="--c:#000000" aria-label="Schwarz"></button>
-          <button class="gbd-color" type="button" data-color="#ffffff" style="--c:#ffffff" aria-label="Weiß"></button>
           <button class="gbd-color" type="button" data-color="#f2e7d5" style="--c:#f2e7d5" aria-label="Creme"></button>
           <button class="gbd-color" type="button" data-color="#142c47" style="--c:#142c47" aria-label="Blau"></button>
           <button class="gbd-color" type="button" data-color="#f6dce8" style="--c:#f6dce8" aria-label="Rosa"></button>
