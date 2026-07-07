@@ -2757,6 +2757,12 @@ $('accessBtn')?.addEventListener('click', () => {
   accessPopup.classList.add('show');
   renderAccessList();
 });
+// "Zugriffe" ist jetzt im Verwalten-Dropdown integriert: erst das Dropdown
+// schließen, damit das Zugriffe-Popup nicht dahinter aufgeht.
+$('accessManageBtn')?.addEventListener('click', () => {
+  closeMenu();
+  $('accessBtn').click();
+});
 $('accClose')?.addEventListener('click', () => accessPopup.classList.remove('show'));
 accessPopup?.addEventListener('click', (e) => {
   if (e.target === accessPopup) accessPopup.classList.remove('show');
