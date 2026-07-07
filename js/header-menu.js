@@ -54,7 +54,16 @@
 
       hubBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        hubMenu.classList.contains('show') ? closeAllMenus() : open();
+        // Ein zweiter Tap auf den Button schließt das gesamte Menü-System:
+        // entweder nur das offene Hub-Menü ODER – falls daraus schon das
+        // Verwalten-Dropdown bzw. Zugriffe-Popup geöffnet wurde – auch dieses.
+        // Nur wenn wirklich nichts offen ist, öffnet der Tap das Hub-Menü.
+        if (hubMenu.classList.contains('show') || window.MB?.isManageMenuOpen?.()) {
+          closeAllMenus();
+          window.MB?.closeManageMenu?.();
+        } else {
+          open();
+        }
       });
 
       hubMenu.querySelectorAll('.hub-item').forEach((item) => {

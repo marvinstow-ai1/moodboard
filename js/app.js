@@ -2768,6 +2768,16 @@ accessPopup?.addEventListener('click', (e) => {
   if (e.target === accessPopup) accessPopup.classList.remove('show');
 });
 
+// Der Hub-Button (☰) soll bei erneutem Tippen das GESAMTE Menü-System schließen –
+// also nicht nur das Hub-Menü, sondern auch das daraus geöffnete Verwalten-
+// Dropdown bzw. das Zugriffe-Popup. header-menu.js fragt dafür diese Helfer ab.
+window.MB.isManageMenuOpen = () =>
+  dropdown.classList.contains('show') ||
+  bottomSheet.classList.contains('show') ||
+  editorWrap.classList.contains('show') ||
+  !!accessPopup?.classList.contains('show');
+window.MB.closeManageMenu = () => { closeMenu(); accessPopup?.classList.remove('show'); };
+
 // ── App starten ───────────────────────────────────────────
 // initGate() entscheidet: gültige Session → App booten; sonst bleibt das
 // Gate stehen und startApp() wird erst nach erfolgreichem Login von dort
