@@ -294,11 +294,14 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 
 /* ── Doodle-Header „Marvin's Freundebuch" ────────────────────────────────────
    Der handgezeichnete Header (IMG) wurde in seine Einzel-Elemente zerschnitten
-   (img/fb/*.png, per Chroma-Key freigestellt). Jedes Element liegt hier an
-   seiner Original-Position im 1774×887-Raster und schwebt/wackelt/funkelt
-   eigenständig – so wirkt der Header lebendig statt statisch. */
+   (img/fb/*.png, per Chroma-Key freigestellt). Das Raster ist die Bounding-Box
+   des tatsächlichen Inhalts (1585×738 im Original) – so sitzt der Header exakt
+   mittig. Jedes Element liegt an seiner Original-Position und schwebt/wackelt/
+   funkelt eigenständig, damit der Header lebendig statt statisch wirkt.
+   width:100% (statt vw): der Header darf nie breiter sein als der Hero-Inhalt,
+   sonst läuft er rechts aus dem Scroll-Container und wird abgeschnitten. */
 .fb-header{
-  position:relative;width:min(560px,92vw);aspect-ratio:1774 / 887;
+  position:relative;width:min(560px,100%);aspect-ratio:1585 / 738;
   margin:0 auto;
 }
 .fbh{
@@ -307,22 +310,23 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   filter:drop-shadow(2px 3px 3px rgba(0,0,0,.4));
 }
 
-/* Positionen (aus dem Original-Bild abgeleitet). */
-.fbh-star-tan-big{left:8.455%;top:13.529%;width:12.514%}
-.fbh-star-blue{left:25.648%;top:20.857%;width:6.595%}
-.fbh-marvins{left:30.778%;top:23.112%;width:41.657%}
-.fbh-smiley{left:69.617%;top:7.892%;width:11.838%}
-.fbh-zigzag-blue{left:78.636%;top:19.729%;width:11.838%}
-.fbh-x-tan{left:88.219%;top:31.793%;width:5.919%}
-.fbh-spark-tan{left:52.706%;top:22.548%;width:6.201%}
-.fbh-freundebuch{left:9.865%;top:39.233%;width:78.523%}
-.fbh-spark-left{left:3.382%;top:48.478%;width:7.328%}
-.fbh-underline{left:28.072%;top:67.080%;width:59.019%}
-.fbh-smiley-crazy{left:2.931%;top:72.153%;width:13.529%}
-.fbh-arrow-blue{left:17.756%;top:77.790%;width:8.737%}
-.fbh-circle-tan{left:32.694%;top:82.074%;width:6.088%}
-.fbh-wave-blue{left:48.196%;top:83.202%;width:24.070%}
-.fbh-star-white{left:81.623%;top:73.055%;width:13.754%}
+/* Positionen (pixelgenau aus dem Original-Bild vermessen, relativ zur
+   Inhalts-Bounding-Box). */
+.fbh-star-tan-big{left:5.931%;top:7.724%;width:15.268%}
+.fbh-star-blue{left:24.101%;top:16.396%;width:5.363%}
+.fbh-marvins{left:31.420%;top:19.377%;width:42.965%}
+.fbh-smiley{left:75.205%;top:0%;width:9.590%}
+.fbh-zigzag-blue{left:85.300%;top:13.957%;width:9.211%}
+.fbh-x-tan{left:96.088%;top:28.726%;width:2.650%}
+.fbh-spark-tan{left:56.782%;top:17.344%;width:2.334%}
+.fbh-freundebuch{left:8.202%;top:37.398%;width:88.328%}
+.fbh-spark-left{left:1.136%;top:38.889%;width:5.868%}
+.fbh-underline{left:28.833%;top:70.732%;width:61.893%}
+.fbh-smiley-crazy{left:0%;top:74.526%;width:12.492%}
+.fbh-arrow-blue{left:13.943%;top:83.062%;width:10.284%}
+.fbh-circle-tan{left:33.943%;top:88.889%;width:2.839%}
+.fbh-wave-blue{left:51.293%;top:90.108%;width:22.776%}
+.fbh-star-white{left:88.707%;top:77.778%;width:11.293%}
 
 /* Bewegungen – bewusst unterschiedliche Dauern/Delays, damit nichts synchron
    läuft und die Doodles „natürlich" schweben. */
@@ -380,7 +384,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 
 @media(max-width:480px){
-  .fb-header{width:min(420px,94vw)}
+  .fb-header{width:min(420px,100%)}
 }
 
 /* ── Editor (vollflächig, über der Freundebuch-Seite) ─────────────────────── */
