@@ -60,6 +60,9 @@
   font-family:inherit;cursor:pointer;transition:transform .12s ease,background .15s,border-color .15s}
 .mc-quick-chip svg{width:16px;height:16px;display:block;flex-shrink:0;opacity:.85}
 .mc-quick-chip:active{transform:scale(.96)}
+/* Shuffle als reiner Icon-Button: quadratisch/rund, ohne Text, damit er in
+   einer Reihe mit „Recently" und „Archive" passt. */
+.mc-quick-chip--icon{width:38px;padding:0;justify-content:center;gap:0;flex-shrink:0}
 
 /* Status-Zeile (Treffer / leer / Fehler) + „Alle anzeigen" */
 .mc-status{display:none;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;color:rgba(255,255,255,.6);padding:0 2px}
