@@ -1034,6 +1034,7 @@ function closeAllOverlays(){
   window.MB?.closeChat?.();
   window.MB?.closeHubMenu?.();
   window.MB?.closeNav?.();
+  window.MB?.closeTama?.();
 }
 function isAnyOverlayOpen(){
   return dropdown.classList.contains('show') ||
@@ -1043,6 +1044,7 @@ function isAnyOverlayOpen(){
          !!document.getElementById('spotifyPopup')?.classList.contains('show') ||
          !!document.getElementById('moodChatPanel')?.classList.contains('show') ||
          !!document.getElementById('navPanel')?.classList.contains('show') ||
+         !!document.getElementById('tamaPage')?.classList.contains('show') ||
          !!document.querySelector('.hub-menu.show');
 }
 $('menuBtn').onclick = e => { e.stopPropagation(); openMenu(); };
