@@ -1148,54 +1148,24 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 </div>
 
 <!-- ============================================================
-     Tamagotchi
-     Vollflächige Seite im Stil der anderen Glas-Seiten: ein pixeliger
-     Mitbewohner in einem 16-Bit-Zimmer (Canvas), mit Füttern, Spielen,
+     Tamagotchi — Pop-up über der Pill
+     Öffnet sich (wie Navi-/Chat-Panel) als kleines Overlay direkt über der
+     Bottom-Bar und ist dort bedienbar – auf JEDER Seite, ohne die aktuelle
+     Ansicht zu verlassen. Ein pixeliger Mitbewohner mit Füttern, Spielen,
      Licht/Schlafen, Putzen und Medizin – Werte fallen auch offline.
      Logik in js/tamagotchi.js, Styles in css/tamagotchi.css. -->
-<div class="tama-page" id="tamaPage" role="dialog" aria-modal="true" aria-label="Tamagotchi" aria-hidden="true">
-
-  <!-- Kopfzeile: 1:1-Spiegelung des Haupt-Headers (.topbar). -->
-  <div class="topbar in-page">
-    <span class="board-title page-home" role="button" tabindex="0" aria-label="Zur Startseite">Marvin's Place</span>
-
-    <div class="topbar-right">
-      <button class="menubtn hubbtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-
-      <div class="hub-menu" role="menu">
-        <button class="hub-item admin-only" data-hub="menu" role="menuitem">
-          <span class="hub-ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </span> Verwalten</button>
-        <button class="hub-item" data-hub="login" role="menuitem">
-          <span class="hub-ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-          </span> <span class="hub-login-label">Login</span></button>
-      </div>
-    </div>
+<div class="tama-pop" id="tamaPage" role="dialog" aria-label="Tamagotchi" aria-hidden="true">
+  <div class="tama-pop-head">
+    <span class="tama-pop-title">Tamagotchi</span>
+    <button class="tama-pop-close" id="tamaClose" aria-label="Schließen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+    </button>
   </div>
 
-  <div class="tama-scroll" id="tamaScroll">
-    <div class="tama-inner">
-      <div class="tama-hero">
-        <div class="info-hero-badge" data-pixel-icon="tama"></div>
-        <h1 class="info-hero-title">Tamagotchi</h1>
-      </div>
-
-      <!-- Pure-CSS-Tamagotchi aus Marvins Gist (Pen von Manz.dev).
-           Alles unter .tama-gadget gescopt; die Farbe wird pro Tag automatisch
-           und zufällig in js/tamagotchi.js gesetzt (kein manueller Wechsel). -->
-      <div class="tama-gadget">
+  <!-- Pure-CSS-Tamagotchi aus Marvins Gist (Pen von Manz.dev).
+       Alles unter .tama-gadget gescopt; die Farbe wird pro Tag automatisch
+       und zufällig in js/tamagotchi.js gesetzt (kein manueller Wechsel). -->
+  <div class="tama-gadget">
         <div class="container">
           <div class="tamagotchi">
             <div class="left separation"></div>
@@ -1246,8 +1216,6 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
           </div>
         </div>
       </div>
-    </div>
-  </div>
 </div>
 </body>
 </html>

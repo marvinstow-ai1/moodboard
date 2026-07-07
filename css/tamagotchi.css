@@ -7,44 +7,40 @@
    Logik in js/tamagotchi.js.
    ─────────────────────────────────────────────────────────────────────── */
 
-/* Seite – gleiche Show/Hide-Mechanik wie .m3d-page / .gb-page, aber mit
-   deckend schwarzem Hintergrund: das Grid dahinter bleibt komplett
-   unsichtbar, die Seite wirkt als eigenständige Unterseite. */
-.tama-page{
-  position:fixed;top:0;left:0;right:0;z-index:70;
-  height:100vh;height:100lvh;
-  display:flex;flex-direction:column;
-  background:var(--bg);
-  opacity:0;visibility:hidden;pointer-events:none;
-  transform:translateY(14px) scale(.98);
-  transition:opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
-  overflow:hidden;
+/* Pop-up über der Pill – dieselbe Auf-/Zu-Mechanik und derselbe Look wie das
+   Navi-/Chat-Panel (css/nav.css). Das Tamagotchi liegt als kleines Overlay
+   direkt über der Bottom-Bar und ist dort bedienbar, ohne die aktuelle Seite
+   zu verlassen; es funktioniert daher auf JEDER Ansicht. Logik js/tamagotchi.js. */
+.tama-pop{
+  position:fixed;left:50%;bottom:80px;
+  transform:translateX(-50%) translateY(14px) scale(.95);
+  /* Über der Pill (72) und den Glas-Popups (70), unter der Lightbox (80) –
+     identisch zum Navi-Pop-up. */
+  z-index:73;width:min(340px,calc(100vw - 24px));
+  max-height:calc(100vh - 104px);max-height:calc(100lvh - 104px);
+  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  background:var(--panel);border:1px solid var(--border);border-radius:20px;
+  padding:12px 14px 16px;box-shadow:0 20px 50px rgba(0,0,0,.6);
+  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+  transform-origin:50% 100%;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s ease,transform .42s cubic-bezier(.22,1,.36,1);
 }
-.tama-page.show{
-  opacity:1;visibility:visible;pointer-events:auto;transform:none;
-  transition:opacity .26s cubic-bezier(.22,1,.36,1),
-             transform .28s cubic-bezier(.22,1,.36,1), visibility 0s;
+.tama-pop.show{
+  opacity:1;pointer-events:auto;
+  transform:translateX(-50%) translateY(0) scale(1);
 }
-.tama-page.is-animating{will-change:opacity,transform}
+.tama-pop.is-animating{will-change:opacity,transform}
 
-/* overscroll-behavior:none stoppt das Scroll-Chaining, damit am Anschlag
-   nicht das Grid dahinter weiterscrollt; das min-height am Inner hält den
-   Bereich immer minimal scrollbar, sodass iOS die Geste hier abfängt statt
-   sie an den Body durchzureichen. */
-.tama-scroll{
-  position:relative;z-index:1;flex:1;min-height:0;
-  overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;
-  padding:8px 16px calc(64px + env(safe-area-inset-bottom));
+/* Kopfzeile: Titel + Schließen – wie beim Navi-/Chat-Panel. */
+.tama-pop-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px}
+.tama-pop-title{font-size:14px;font-weight:600;color:#fff;letter-spacing:.01em}
+.tama-pop-close{
+  width:28px;height:28px;border-radius:999px;border:0;
+  background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);
+  cursor:pointer;display:grid;place-items:center;transition:.15s;flex-shrink:0;
 }
-.tama-inner{width:min(520px,100%);margin:0 auto;min-height:calc(100% + 1px)}
-
-.tama-hero{
-  display:flex;flex-direction:column;align-items:center;text-align:center;
-  gap:14px;padding:18px 8px 22px;opacity:0;transform:translateY(16px);
-}
-.tama-page.show .tama-hero{animation:infoRise .36s cubic-bezier(.22,1,.36,1) .04s forwards}
-.tama-hero .info-hero-badge{animation:tamaBadgeWobble 5s ease-in-out infinite}
-@keyframes tamaBadgeWobble{0%,100%{transform:rotate(0)}30%{transform:rotate(-7deg)}60%{transform:rotate(6deg)}}
+.tama-pop-close:active{background:rgba(255,255,255,.2);transform:scale(.92)}
 
 /* ── Pure-CSS-Tamagotchi (Gist) ───────────────────────────────────────────
    1:1 der Pen von Manz.dev, aber unter .tama-gadget gescopt, damit die sehr
@@ -77,7 +73,7 @@
   & .container{
     display:flex;
     justify-content:center;
-    margin-top:3em;
+    margin-top:.75em;
   }
 
   & .tamagotchi{
@@ -349,7 +345,7 @@
     }
   }
 }
-.tama-page.show .tama-gadget{animation:infoRise .38s cubic-bezier(.22,1,.36,1) .1s forwards}
+.tama-pop.show .tama-gadget{animation:infoRise .38s cubic-bezier(.22,1,.36,1) .06s forwards}
 
 @keyframes tgMovePet{
   0%{
@@ -423,8 +419,10 @@
   }
 }
 
-@media (max-width:380px){
-  .tama-scroll{padding-left:12px;padding-right:12px}
+/* Auf sehr schmalen Displays das Gadget minimal verkleinern, damit das Pop-up
+   samt Buttons sicher über die Pill passt. */
+@media (max-width:360px){
+  .tama-gadget{--width:255px;--height:305px}
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

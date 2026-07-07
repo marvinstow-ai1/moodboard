@@ -353,15 +353,13 @@ function markAnimating() {
   animTimer = setTimeout(() => page.classList.remove('is-animating'), 320);
 }
 function openPage() {
-  window.MB?.closeOtherPopups?.();
-  window.MB?.closeInfoPage?.();
-  window.MB?.closeGuestbook?.();
-  window.MB?.closeModels?.();
+  // Wie die anderen Pill-Popups (Spotify/Navi/Chat): nur die konkurrierenden
+  // Bottom-Bar-Popups schließen. Die aktuelle Seite bleibt stehen – das
+  // Tamagotchi legt sich als Overlay darüber und ist auf jeder Ansicht nutzbar.
+  window.MB?.closeOtherPopups?.('tama');
   markAnimating();
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');
-  window.MB?.updateBodyLock?.();
-  window.MB?.kickAutoplay?.();
   applyDailyColor();                                   // ggf. neue Tagesfarbe
   simulate(S.lastTick, Date.now());                    // Offline-Zeit nachziehen
   closeStatus(); selIndex = -1; updateSel();
@@ -373,11 +371,20 @@ function closePage() {
   page.classList.remove('show');
   page.setAttribute('aria-hidden', 'true');
   stop(); save();
-  window.MB?.updateBodyLock?.();
 }
 
-// header-menu.js schließt Seiten direkt über die CSS-Klasse – daran vorbei
-// würde der Tick weiterlaufen. Deshalb absichern: verschwindet .show, stoppen.
+// Schließen-Button oben rechts im Pop-up.
+$('tamaClose')?.addEventListener('click', (e) => { e.stopPropagation(); closePage(); });
+
+// Klick außerhalb des Pop-ups schließt es – wie bei den anderen Pill-Popups.
+document.addEventListener('click', (e) => {
+  if (!page.classList.contains('show')) return;
+  if (e.target.closest('#tamaPage')) return;
+  closePage();
+});
+
+// Wird das Pop-up anderweitig (z. B. via closeOtherPopups) versteckt, liefe der
+// Tick weiter. Deshalb absichern: verschwindet .show, stoppen.
 new MutationObserver(() => {
   if (!page.classList.contains('show') && tickTimer) { stop(); save(); }
 }).observe(page, { attributes: true, attributeFilter: ['class'] });
