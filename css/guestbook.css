@@ -16,24 +16,15 @@
      tatsächlich SICHTBAREN Unterkante ausgerichtet. Fallback 100vh. */
   height:100vh;height:100lvh;
   display:flex;flex-direction:column;
-  /* Fallback ohne backdrop-filter: solide Fläche; mit Support wird die
-     Seite zum reinen Glas-Popup (siehe @supports unten) – die zuletzt
-     offene Ansicht schimmert durch, GIFs/Videos laufen dort weiter.
-     Bewusst KEINE Farbverläufe mehr, damit die Medien erkennbar bleiben. */
-  background:var(--bg);
+  /* Deckend schwarzer Hintergrund (kein Glas-Popup mehr): die Seite legt sich
+     vollständig über die darunter liegende Ansicht. */
+  background:#000;
   opacity:0;visibility:hidden;pointer-events:none;
   transform:translateY(14px) scale(.98);
   transition:opacity .2s ease,
              transform .2s ease,
              visibility 0s linear .2s;
   overflow:hidden;
-}
-@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .gb-page{
-    background:rgba(8,8,10,.45);
-    -webkit-backdrop-filter:blur(18px) saturate(1.15);
-    backdrop-filter:blur(18px) saturate(1.15);
-  }
 }
 .gb-page.show{
   opacity:1;visibility:visible;pointer-events:auto;

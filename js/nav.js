@@ -2,9 +2,10 @@
    Navigation — Vorschau-Karten als Pop-up
    ----------------------------------------------------------------------------
    Der Kompass-Button in der Pill öffnet ein kleines Pop-up über der Bottom-Bar
-   – im selben Look/Verhalten wie das Chat-Panel. Darin lassen sich die
-   Vorschau-Karten der Seiten (Startseite, Info, Gästebuch) horizontal swipen;
-   ein Tipp öffnet die jeweilige Unterseite dynamisch und schließt das Pop-up.
+   – im selben Look/Verhalten wie das Chat-Panel. Die Vorschau-Karten der Seiten
+   (Startseite, Inventory, Tamagotchi, Gästebuch, Info) liegen alle nebeneinander
+   und sind sofort sichtbar – kein Swipen nötig. Ein Tipp öffnet die jeweilige
+   Unterseite dynamisch und schließt das Pop-up.
 
    Reine Ansteuerung; die eigentliche Navigation läuft über die schon
    vorhandenen Helfer in window.MB (goHome / openInfoPage / openGuestbook), die
@@ -106,24 +107,26 @@
     return wrap;
   }
 
+  // Feste Reihenfolge, alle Karten gleichzeitig sichtbar (kein Swipen mehr):
+  // links Startseite … Info rechts.
   const PAGES = [
     { key: 'home',      label: 'Startseite', build: buildHome,      go: () => window.MB?.goHome?.() },
-    { key: 'info',      label: 'Info',       build: buildInfo,      go: () => window.MB?.openInfoPage?.() },
-    { key: 'guestbook', label: 'Gästebuch',  build: buildGuestbook, go: () => window.MB?.openGuestbook?.() },
     { key: 'models',    label: 'Inventory',  build: buildModels,    go: () => window.MB?.openModels?.() },
     { key: 'tama',      label: 'Tamagotchi', build: buildTama,      go: () => window.MB?.openTama?.() },
+    { key: 'guestbook', label: 'Gästebuch',  build: buildGuestbook, go: () => window.MB?.openGuestbook?.() },
+    { key: 'info',      label: 'Info',       build: buildInfo,      go: () => window.MB?.openInfoPage?.() },
   ];
 
   function init() {
     const btn = $('navBtn');
     const panel = $('navPanel');
     const swiper = $('navSwiper');
-    const dotsEl = $('navDots');
     const closeBtn = $('navClose');
     if (!btn || !panel || !swiper) return;
 
     // Karten einmalig aufbauen (die Startseiten-Auswahl wird bei jedem Öffnen
     // frisch nachgezogen, sobald Items geladen sind – s. refreshHome()).
+    // Alle Karten liegen nebeneinander in einer Reihe und sind sofort sichtbar.
     const cards = PAGES.map((p) => {
       const card = document.createElement('button');
       card.type = 'button';
@@ -141,36 +144,13 @@
       card.append(frame, label);
       card.addEventListener('click', () => navigateTo(p));
       swiper.appendChild(card);
-
-      const dot = document.createElement('span');
-      dot.className = 'nav-dot';
-      dotsEl?.appendChild(dot);
       return card;
     });
 
-    const dots = dotsEl ? Array.from(dotsEl.children) : [];
-
+    // Hebt die Karte der aktuell offenen Seite hervor.
     function setActive(idx) {
       cards.forEach((c, i) => c.classList.toggle('is-active', i === idx));
-      dots.forEach((d, i) => d.classList.toggle('is-active', i === idx));
     }
-
-    // Aktive Karte anhand der Scroll-Position (nächste zur Swiper-Mitte).
-    function syncActive() {
-      const mid = swiper.scrollLeft + swiper.clientWidth / 2;
-      let best = 0, bestDist = Infinity;
-      cards.forEach((c, i) => {
-        const center = c.offsetLeft + c.offsetWidth / 2;
-        const d = Math.abs(center - mid);
-        if (d < bestDist) { bestDist = d; best = i; }
-      });
-      setActive(best);
-    }
-    let _raf = 0;
-    swiper.addEventListener('scroll', () => {
-      cancelAnimationFrame(_raf);
-      _raf = requestAnimationFrame(syncActive);
-    });
 
     function currentKey() {
       if ($('tamaPage')?.classList.contains('show')) return 'tama';
@@ -202,13 +182,9 @@
       panel.classList.add('show');
       panel.setAttribute('aria-hidden', 'false');
       btn.classList.add('active');
-      // Auf die Karte der aktuell offenen Seite zentrieren.
+      // Karte der aktuell offenen Seite hervorheben.
       const idx = Math.max(0, PAGES.findIndex((p) => p.key === currentKey()));
-      requestAnimationFrame(() => {
-        const c = cards[idx];
-        if (c) swiper.scrollLeft = c.offsetLeft - (swiper.clientWidth - c.offsetWidth) / 2;
-        setActive(idx);
-      });
+      setActive(idx);
     }
     function close() {
       panel.classList.remove('show');
