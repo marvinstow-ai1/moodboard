@@ -275,7 +275,21 @@
                 44px 48px 0 var(--pet-color),
                 24px 52px 0 var(--pet-color),
                 40px 52px 0 var(--pet-color);
-              animation:tgMovePet 1s infinite steps(2);
+              /* Bewegung: statt des früheren hektischen Links-rechts-Gehüpfes
+                 (tgMovePet) schlendert die Figur jetzt gemütlich (Keyframes
+                 unten). Drei getrennte Animationen auf drei Properties:
+                   translate  → Position (schlendern + Stehpausen)
+                   transform  → Blickrichtung (rotateY-Spiegel)
+                   scale      → 2-Frame-Trippel/Atmen wie auf echtem LCD
+                 Der Spiegel-/Squash-Punkt liegt in der Bildmitte auf
+                 Fusshöhe (Sprite ist 56px breit/hoch), damit die Figur beim
+                 Umdrehen an Ort bleibt und beim Wippen die Füsse am Boden. */
+              transform-origin:28px 56px;
+              translate:10px 0;             /* Ruheposition (reduced motion) */
+              animation:
+                tgStrollX 22s infinite,
+                tgStrollFace 22s infinite,
+                tgStrollStep 1.1s steps(1) infinite;
             }
           }
 
@@ -340,14 +354,33 @@
 }
 .tama-pop.show .tama-gadget{animation:infoRise .38s cubic-bezier(.22,1,.36,1) .06s forwards}
 
-@keyframes tgMovePet{
-  0%{
-    transform:translate(40px, 0) rotateY(180deg);
-  }
-
-  100%{
-    transform:translate(-20px, 0) rotateY(-180deg);
-  }
+/* ── Gemütlicher Spaziergang ──────────────────────────────────────────────
+   22-Sekunden-Loop: in der Mitte stehen → nach rechts schlendern → Pause →
+   umdrehen → nach links → Pause → zurück zur Mitte → stehen und sich kurz
+   umschauen. Die Wege laufen in groben steps(..), damit die Bewegung wie auf
+   einem echten LCD ruckelt statt zu gleiten. Blickrichtung läuft als eigene
+   Animation synchron dazu (Spiegelung um die Bildmitte, s. transform-origin). */
+@keyframes tgStrollX{
+  0%  {translate:8px 0}
+  9%  {translate:8px 0;animation-timing-function:steps(12)}
+  22% {translate:40px 0}
+  34% {translate:40px 0;animation-timing-function:steps(18)}
+  52% {translate:-24px 0}
+  64% {translate:-24px 0;animation-timing-function:steps(12)}
+  76% {translate:8px 0}
+  100%{translate:8px 0}
+}
+@keyframes tgStrollFace{
+  0%,26%  {transform:none}                /* schaut nach rechts, geht los    */
+  28%,56% {transform:rotateY(180deg)}     /* dreht um, schlendert nach links */
+  58%,86% {transform:none}                /* wieder nach rechts              */
+  88%,94% {transform:rotateY(180deg)}     /* schaut sich beim Stehen kurz um */
+  96%,100%{transform:none}
+}
+/* 2-Frame-„Trippeln"/Atmen: sanftes Stauchen, Füsse bleiben am Boden. */
+@keyframes tgStrollStep{
+  0%,100%{scale:1}
+  50%    {scale:1 .94}
 }
 
 @keyframes tgMoveShit{
@@ -443,27 +476,47 @@
 /* Spielfeld im LCD */
 .tama-gadget .middle{position:relative;overflow:hidden}
 
-/* ── Häufchen ("Kacki") auf dem Boden ─────────────────────────────────────*
-   Das Sprite (tgMoveShit) wird per box-shadow NACH UNTEN gezeichnet. Früher
-   saß der Anker ganz unten am LCD – dadurch verschwand die untere Hälfte hinter
-   dem Bildschirmrand (wirkte „halbiert") und lag zu tief. Jetzt sitzt das
-   Häufchen auf Fusshöhe des Tiers und wird per translateY komplett nach oben
-   gezogen, sodass es vollständig sichtbar ist. */
+/* ── Boden & Häufchen ("Kacki") ───────────────────────────────────────────
+   Geometrie: das LCD-Mittelfeld ist ~56px hoch, die Figur (56px-Sprite, um
+   die Mitte auf var(--pet-scale) skaliert) steht mit den Füssen ~10px über
+   der Unterkante. Diese Fusshöhe ist die "Bodenlinie": dort verläuft die
+   gepunktete Linie, dort LIEGEN die Häufchen (Unterkante des Sprites auf der
+   Linie statt frei zu schweben) und dort fegt der Besen. */
 .tama-gadget .tg-floor{position:absolute;inset:0;pointer-events:none}
-.tama-gadget .tg-poop{position:absolute;bottom:44%;width:4px;height:4px}
+/* Gepunktete Bodenlinie auf Fusshöhe – wie auf dem alten LCD. */
+.tama-gadget .tg-floor::before{
+  content:"";position:absolute;left:8px;right:8px;bottom:8px;height:2px;
+  background:repeating-linear-gradient(90deg, rgba(40,38,34,.3) 0 2px, transparent 2px 8px);
+}
+/* Ist es dreckig (Sauber-Wert niedrig, js/tamagotchi.js setzt .dirty),
+   liegen zusätzlich Dreckkrümel verstreut am Boden um die Füsse. */
+.tama-gadget .screen.dirty .tg-floor::after{
+  content:"";position:absolute;bottom:10px;left:16px;width:2px;height:2px;
+  background:rgba(40,38,34,.55);
+  box-shadow:
+    19px -3px 0 rgba(40,38,34,.4),
+    38px  1px 0 rgba(40,38,34,.5),
+    58px -2px 0 rgba(40,38,34,.35),
+    76px  0   0 rgba(40,38,34,.5),
+    91px -4px 0 rgba(40,38,34,.4);
+}
+/* Das Häufchen-Sprite (tgMoveShit) zeichnet per box-shadow ein 36×32-Pixel-
+   Bild nach unten/rechts. Auf 45 % verkleinert (≈16×14px) und so verankert,
+   dass die Unterkante auf der Bodenlinie liegt. */
+.tama-gadget .tg-poop{position:absolute;bottom:10px;width:17px;height:14px}
 .tama-gadget .tg-poop::before{
   content:"";display:block;width:4px;height:4px;
-  transform:translateY(-13px) scale(0.5);transform-origin:top left;
-  animation:tgMoveShit 1s infinite steps(2, jump-none);
+  transform:scale(.45);transform-origin:top left;
+  animation:tgMoveShit 1.4s infinite steps(2, jump-none);
 }
 .tama-gadget .tg-poop.clearing{animation:tgPoof .45s ease forwards}
 @keyframes tgPoof{0%{opacity:1;transform:translateY(0) scale(1)}
   100%{opacity:0;transform:translateY(-6px) scale(.2)}}
 
-/* Besen-Sweep beim Putzen – wischt auf Fusshöhe des Tiers (gleiche Bodenlinie
-   wie die Häufchen), damit es aussieht, als würde dort gefegt. */
+/* Besen-Sweep beim Putzen – wischt auf der Bodenlinie (gleiche Höhe wie die
+   Häufchen), damit es aussieht, als würde dort gefegt. */
 .tama-gadget .tg-broom{
-  position:absolute;bottom:38%;left:-14px;width:10px;height:16px;pointer-events:none;
+  position:absolute;bottom:8px;left:-14px;width:10px;height:16px;pointer-events:none;
   background:linear-gradient(#3a2a1c,#3a2a1c) 4px 0/2px 10px no-repeat,   /* Stiel */
             linear-gradient(#111,#111) 0 10px/10px 6px no-repeat;         /* Borsten */
   animation:tgSweep 1.3s ease-in-out forwards;
@@ -498,6 +551,84 @@
 @keyframes tgFloatZ{0%{opacity:0;transform:translate(0,0) scale(.6)}
   25%{opacity:.9}100%{opacity:0;transform:translate(10px,-26px) scale(1.1)}}
 
+/* ── Himmel: Sonne / Mond / Wolken / Sterne ───────────────────────────────
+   Macht das früher leere LCD lebendig – alles im Pixel-Stil der Figur
+   (3px-Kacheln per box-shadow, harte Kanten, monochrome LCD-Töne).
+   js/tamagotchi.js setzt .day/.night auf .screen anhand der echten Uhrzeit
+   (7–19 Uhr = Tag): tagsüber scheint eine Sonne mit blinkenden Strahlen und
+   Wolken ziehen langsam vorbei, nachts stehen Mond und funkelnde Sterne am
+   Himmel. Der Himmel liegt HINTER der Figur (DOM-Reihenfolge). Im Schlaf
+   blendet er aus – dann übernimmt das Schlaf-Overlay mit eigenem Mond. */
+.tama-gadget .tg-sky{position:absolute;inset:0;pointer-events:none;transition:opacity .4s ease}
+.tama-gadget .screen.sleeping .tg-sky{opacity:0}
+.tama-gadget .tg-sky span{position:absolute;width:3px;height:3px}
+
+/* Sonne bzw. Mond – EIN Element, Aussehen je nach Tageszeit.
+   Sonne = Pixel-Raute (5 Kacheln) statt vollem Quadrat, wirkt auf dem
+   kleinen LCD runder; die Strahlen aussen sind etwas heller. */
+.tama-gadget .tg-cel{top:7px;right:16px}
+.tama-gadget .screen.day .tg-cel{
+  background:transparent;
+  box-shadow:
+    3px 0 0 #4a463f,
+    0 3px 0 #4a463f, 3px 3px 0 #4a463f, 6px 3px 0 #4a463f,
+    3px 6px 0 #4a463f,
+    3px -6px 0 #7a756b, 3px 12px 0 #7a756b,   /* Strahlen: + */
+    -6px 3px 0 #7a756b, 12px 3px 0 #7a756b;
+  animation:tgSunRays 2.4s steps(1) infinite;
+}
+/* Strahlen wechseln im 2-Frame-Takt zwischen + und ×. */
+@keyframes tgSunRays{
+  0%,100%{box-shadow:
+    3px 0 0 #4a463f,
+    0 3px 0 #4a463f, 3px 3px 0 #4a463f, 6px 3px 0 #4a463f,
+    3px 6px 0 #4a463f,
+    3px -6px 0 #7a756b, 3px 12px 0 #7a756b,
+    -6px 3px 0 #7a756b, 12px 3px 0 #7a756b}
+  50%{box-shadow:
+    3px 0 0 #4a463f,
+    0 3px 0 #4a463f, 3px 3px 0 #4a463f, 6px 3px 0 #4a463f,
+    3px 6px 0 #4a463f,
+    -6px -6px 0 #7a756b, 12px -6px 0 #7a756b,  /* Strahlen: × */
+    -6px 12px 0 #7a756b, 12px 12px 0 #7a756b}
+}
+/* Pixel-Mond (gleiche Sichel wie im Schlaf-Overlay, nur in LCD-Dunkelton). */
+.tama-gadget .screen.night .tg-cel{
+  background:transparent;
+  box-shadow:
+    3px  0 0 #4a4d59, 6px  0 0 #4a4d59,
+    0    3px 0 #4a4d59,
+    0    6px 0 #4a4d59,
+    0    9px 0 #4a4d59,
+    3px 12px 0 #4a4d59, 6px 12px 0 #4a4d59;
+}
+
+/* Wolken – nur tagsüber, ziehen in groben LCD-Schritten übers Bild. */
+.tama-gadget .tg-cloud{display:none}
+.tama-gadget .screen.day .tg-cloud{display:block}
+.tama-gadget .tg-cloud{
+  left:0;background:#8e897f;
+  box-shadow:
+    3px 0 0 #8e897f, 6px 0 0 #8e897f, 9px 0 0 #8e897f,
+    -3px 3px 0 #8e897f, 0 3px 0 #8e897f, 3px 3px 0 #8e897f,
+    6px 3px 0 #8e897f, 9px 3px 0 #8e897f, 12px 3px 0 #8e897f;
+}
+.tama-gadget .tg-cloud.c1{top:5px;animation:tgDrift 44s steps(64) infinite}
+.tama-gadget .tg-cloud.c2{top:13px;opacity:.65;animation:tgDrift 67s steps(90) infinite;animation-delay:-30s}
+@keyframes tgDrift{0%{translate:-22px 0}100%{translate:132px 0}}
+
+/* Sterne – nur nachts, funkeln versetzt im 2-Frame-Takt. */
+.tama-gadget .tg-sky .tg-star{display:none;width:2px;height:2px;background:#4a4d59}
+.tama-gadget .screen.night .tg-star{display:block}
+.tama-gadget .tg-star.s1{top:6px;left:16px;animation:tgStarBlink 1.8s steps(1) infinite}
+.tama-gadget .tg-star.s2{top:14px;left:44px;animation:tgStarBlink 2.2s steps(1) infinite;animation-delay:-.6s}
+.tama-gadget .tg-star.s3{top:4px;left:78px;animation:tgStarBlink 2.6s steps(1) infinite;animation-delay:-1.2s}
+@keyframes tgStarBlink{0%,100%{opacity:.85}50%{opacity:.2}}
+
+/* Nachts bekommt das LCD einen dezenten Blau-Ton (bleibt gut lesbar;
+   .sick weiter unten gewinnt, das Schlaf-Overlay dunkelt zusätzlich ab). */
+.tama-gadget .screen.night{background:#adaeb6}
+
 /* ── Pet-Zustände ─────────────────────────────────────────────────────────
    Wichtig: die Basis-Regeln des Pens sind tief verschachtelt (hohe
    Spezifität). Damit Pausen/Posen zuverlässig gewinnen, wird das Anhalten der
@@ -505,7 +636,10 @@
    steckt in JEDER Pose-Keyframe, sonst würde die Figur beim Essen/Spielen auf
    volle Grösse springen. */
 .tama-gadget .pet{position:relative}
-.tama-gadget .screen.busy .pet::before{animation:none !important;transform:translate(10px,0)}
+/* Anhalten: animation:none stoppt alle drei Stroll-Animationen; translate
+   fällt auf die Ruheposition (10px) zurück, transform (Blickrichtung) auf
+   Standard. So steht die Figur beim Fressen/Spielen mittig und ruhig. */
+.tama-gadget .screen.busy .pet::before{animation:none !important;translate:10px 0;transform:none !important}
 .tama-gadget .pet.eat{animation:tgEat .34s steps(2) 6}
 .tama-gadget .pet.play{animation:tgHop .5s ease-in-out 5}
 .tama-gadget .pet.cheer{animation:tgHop .45s ease-in-out 2}
@@ -533,7 +667,7 @@
   background:rgba(34,46,82,.26);transition:opacity .4s ease;
 }
 .tama-gadget .screen.sleeping .tg-sleep{opacity:1}
-.tama-gadget .screen.sleeping .pet::before{animation:none !important;transform:translate(10px,2px)}
+.tama-gadget .screen.sleeping .pet::before{animation:none !important;translate:10px 2px;transform:none !important}
 /* Pixel-Mond (Kachel-Sichel im selben Stil wie die Figur, harte Kanten). */
 .tama-gadget .screen.sleeping .tg-sleep::before{
   content:"";position:absolute;top:11px;right:15px;width:3px;height:3px;
@@ -575,5 +709,6 @@
 
 @media (prefers-reduced-motion:reduce){
   .tama-gadget .pet::before,
-  .tama-gadget .tg-poop::before{animation:none !important}
+  .tama-gadget .tg-poop::before,
+  .tama-gadget .tg-sky span{animation:none !important}
 }

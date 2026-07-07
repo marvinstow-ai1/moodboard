@@ -1179,6 +1179,17 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 </div>
                 </div>
                 <div class="middle">
+                  <!-- Himmel hinter der Figur: Sonne (tags) bzw. Mond+Sterne
+                       (nachts), dazu ziehende Wolken. .day/.night setzt
+                       js/tamagotchi.js nach echter Uhrzeit. -->
+                  <div class="tg-sky" aria-hidden="true">
+                    <span class="tg-cel"></span>
+                    <span class="tg-cloud c1"></span>
+                    <span class="tg-cloud c2"></span>
+                    <span class="tg-star s1"></span>
+                    <span class="tg-star s2"></span>
+                    <span class="tg-star s3"></span>
+                  </div>
                   <div class="pet"></div>
                   <div class="tg-floor"></div>
                   <div class="tg-fx"></div>

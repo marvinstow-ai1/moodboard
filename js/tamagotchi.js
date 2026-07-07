@@ -12,6 +12,8 @@
    Vier Werte (Futter, Laune, Energie, Sauber) fallen mit der Zeit – auch
    offline (beim Öffnen wird bis 24 h nachsimuliert). Alles animiert in CSS,
    Zustand in localStorage. Das Tier stirbt nie, es wird höchstens krank.
+   Das LCD zeigt nach echter Uhrzeit Sonne/Wolken (tags) bzw. Mond/Sterne
+   (nachts); ist der Sauber-Wert niedrig, liegt Dreck am Boden (.dirty).
 
    Hardware-Buttons unten:  A = Auswahl weiter · B = Bestätigen · C = Abbrechen.
    Frühere Canvas-Version: archive/tamagotchi-classic/.
@@ -180,6 +182,17 @@ function setBusy(dur, pose) {
   }, dur);
 }
 
+/* ── Tag/Nacht im LCD ───────────────────────────────────────────────────────
+   Nach echter Uhrzeit: 7–19 Uhr scheint eine Pixel-Sonne (plus Wolken),
+   sonst stehen Mond und Sterne am Himmel. Das CSS (css/tamagotchi.css,
+   Abschnitt "Himmel") hängt an den Klassen .day/.night auf .screen. */
+function applyDayNight() {
+  const h = new Date().getHours();
+  const day = h >= 7 && h < 19;
+  screenEl.classList.toggle('day', day);
+  screenEl.classList.toggle('night', !day);
+}
+
 /* ── Rendering (spiegelt den Zustand ins LCD) ──────────────────────────────*/
 let sweeping = false;
 function renderFloor() {
@@ -194,8 +207,11 @@ function renderFloor() {
   });
 }
 function render() {
+  applyDayNight();
   screenEl.classList.toggle('sleeping', S.sleeping);
   screenEl.classList.toggle('sick', S.sick && !S.sleeping);
+  // Dreckig: unter 40 "Sauber" liegen zusätzlich Krümel am Boden (CSS .dirty)
+  screenEl.classList.toggle('dirty', S.clean < 40);
   renderFloor();
   const n = need();
   const att = items.find((el) => el.dataset.fn === 'attention');
