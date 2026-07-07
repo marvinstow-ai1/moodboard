@@ -224,11 +224,13 @@ html.gate-open .loading-screen{display:none}
 }
 
 /* Gelber Hinweis-Punkt am "Zugriffe"-Menüpunkt bei offenen Anfragen */
-.hub-item .acc-dot{
+.hub-item .acc-dot,
+.dd-btn.hub-access-item .acc-dot{
   width:8px;height:8px;border-radius:50%;background:#fd6;
   margin-left:auto;flex-shrink:0;display:none;
 }
-.hub-item.has-pending .acc-dot{display:block}
+.hub-item.has-pending .acc-dot,
+.dd-btn.hub-access-item.has-pending .acc-dot{display:block}
 
 @media (prefers-reduced-motion:reduce){
   .gate-title{animation:none}
