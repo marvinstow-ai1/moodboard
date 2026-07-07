@@ -113,7 +113,7 @@
     { key: 'home',      label: 'Startseite', build: buildHome,      go: () => window.MB?.goHome?.() },
     { key: 'models',    label: 'Inventory',  build: buildModels,    go: () => window.MB?.openModels?.() },
     { key: 'tama',      label: 'Tamagotchi', build: buildTama,      go: () => window.MB?.openTama?.() },
-    { key: 'guestbook', label: 'Gästebuch',  build: buildGuestbook, go: () => window.MB?.openGuestbook?.() },
+    { key: 'guestbook', label: 'Freundebuch', build: buildGuestbook, go: () => window.MB?.openGuestbook?.() },
     { key: 'info',      label: 'Info',       build: buildInfo,      go: () => window.MB?.openInfoPage?.() },
   ];
 

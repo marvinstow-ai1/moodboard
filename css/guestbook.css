@@ -100,7 +100,10 @@
   background:rgba(255,255,255,.03);
   border-bottom:1px solid rgba(255,255,255,.06);
 }
-.gb-entry-media img{width:100%;height:100%;object-fit:contain;display:block}
+/* Die Kachel zeigt jetzt die ganze gerenderte Freundebuch-Seite (4:5) –
+   füllt die 4:5-Kachel exakt, Tipp öffnet die Lightbox. */
+.gb-entry-media{cursor:pointer}
+.gb-entry-media img{width:100%;height:100%;object-fit:cover;display:block}
 
 /* Caption unterm Bild – wie bei einem Insta-Post. */
 .gb-entry-meta{min-width:0;display:flex;flex-direction:column;gap:3px;padding:10px 12px 12px}
@@ -281,4 +284,248 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   .gb-page,.gb-page.show{transition:opacity .2s ease,visibility 0s}
   .gb-page.show .gb-hero,.gb-entry{animation:none;opacity:1;transform:none}
   .gb-hero .info-hero-badge{animation:none}
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   FREUNDEBUCH
+   Doodle-Header, Editor mit Live-Vorschau (die Vorschau-Karte wird 1:1 als
+   JPEG gerendert), Steuerung und Lightbox.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Doodle-Header „Marvin's Freundebuch" (4.-Klässler-Optik) ─────────────── */
+.fb-doodle-title{
+  position:relative;display:flex;flex-direction:column;align-items:center;
+  gap:0;margin:0;padding:6px 18px 4px;line-height:.92;color:#ffd45e;
+  transform:rotate(-2deg);
+}
+.fb-doodle-line1{
+  font-family:'Chewy',cursive;font-weight:400;font-size:26px;color:#7fd7ff;
+  letter-spacing:.01em;transform:rotate(3deg) translateX(-14px);
+  text-shadow:2px 2px 0 rgba(0,0,0,.35);
+}
+.fb-doodle-line2{
+  font-family:'Chewy',cursive;font-weight:400;font-size:52px;color:#ff9edb;
+  letter-spacing:.005em;
+  /* Bunte, leicht versetzte Kontur wie mit dickem Filzstift nachgezogen. */
+  text-shadow:
+    3px 3px 0 rgba(0,0,0,.4),
+   -1.5px 0 0 #ffd45e, 1.5px 0 0 #7fd7ff;
+}
+.fb-doodle-underline{
+  width:min(300px,78vw);height:20px;margin-top:2px;color:#ff9edb;overflow:visible;
+}
+.fb-doodle-star{position:absolute;font-size:20px;color:#ffd45e;pointer-events:none;
+  text-shadow:1px 1px 0 rgba(0,0,0,.3);animation:fbStarTwinkle 3s ease-in-out infinite}
+.fb-doodle-star--a{top:-6px;right:8px;color:#7fd7ff;transform:rotate(12deg)}
+.fb-doodle-star--b{top:34px;left:2px;font-size:16px;animation-delay:.7s}
+.fb-doodle-star--c{bottom:2px;right:2px;color:#ff9edb;font-size:18px;animation-delay:1.3s}
+@keyframes fbStarTwinkle{0%,100%{opacity:.55;transform:scale(.9) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(10deg)}}
+
+@media(max-width:480px){
+  .fb-doodle-line1{font-size:22px}
+  .fb-doodle-line2{font-size:42px}
+}
+
+/* ── Editor (vollflächig, über der Freundebuch-Seite) ─────────────────────── */
+.fb-editor{
+  position:fixed;inset:0;z-index:82;
+  height:100vh;height:100lvh;
+  display:flex;flex-direction:column;
+  background:#0d0d0f;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .2s ease,visibility 0s linear .2s;
+}
+.fb-editor.show{
+  opacity:1;visibility:visible;pointer-events:auto;
+  transition:opacity .24s ease,visibility 0s;
+}
+
+.fb-editor-head{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  border-bottom:1px solid var(--border);
+  background:rgba(13,13,15,.9);
+}
+.fb-ed-title{font-size:15px;font-weight:700;letter-spacing:.02em;opacity:.9}
+.fb-ed-btn{
+  height:40px;padding:0 18px;border-radius:999px;font-size:14px;font-weight:700;
+  letter-spacing:.02em;cursor:pointer;transition:.15s;border:1px solid var(--border);
+}
+.fb-ed-btn.ghost{background:transparent;color:#fff;opacity:.75}
+.fb-ed-btn.ghost:hover{opacity:1;background:rgba(255,255,255,.06)}
+.fb-ed-btn.primary{background:#fff;color:#000;border-color:#fff}
+.fb-ed-btn.primary:hover{background:rgba(255,255,255,.85)}
+.fb-ed-btn:disabled{opacity:.45;cursor:default}
+
+.fb-editor-body{
+  flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:18px 16px calc(28px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:20px;align-items:center;
+}
+
+/* ── Live-Vorschau: Wrapper ──────────────────────────────────────────────── */
+.fb-preview-wrap{width:min(340px,100%);flex-shrink:0}
+
+/* ── Die Vorschau-Karte = das gerenderte Bild ────────────────────────────── */
+.fb-card{
+  position:relative;width:100%;aspect-ratio:4/5;overflow:hidden;
+  border-radius:20px;border:2px dashed rgba(0,0,0,.18);
+  background:#fff7e6;color:#2c2620;font-family:'Patrick Hand',cursive;font-size:15px;
+  box-shadow:0 14px 40px rgba(0,0,0,.45);
+}
+.fb-card-bg{
+  position:absolute;inset:0;z-index:0;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+}
+.fb-card-inner{
+  position:relative;z-index:1;height:100%;
+  display:flex;flex-direction:column;gap:.5em;
+  padding:1.1em 1.2em 1.2em;
+}
+/* Hintergrundbild aktiv → Text auf halbtransparentem Panel, damit alles lesbar bleibt. */
+.fb-card.has-bg-img .fb-card-inner{
+  background:rgba(255,255,255,.62);margin:.5em;padding:.9em 1em;border-radius:14px;height:auto;flex:1;
+}
+
+.fb-card-top{display:flex;align-items:center;justify-content:center;gap:.5em}
+.fb-card-heading{
+  font-size:1.55em;font-weight:700;letter-spacing:.01em;
+  border-bottom:2.5px solid rgba(0,0,0,.25);padding-bottom:.05em;
+}
+.fb-card-deco{font-size:1.1em;color:#e8619d}
+
+.fb-photo{
+  align-self:center;width:34%;aspect-ratio:1;border-radius:50%;overflow:hidden;
+  background:rgba(0,0,0,.05);border:3px solid #fff;
+  box-shadow:0 0 0 2px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.15);
+  display:grid;place-items:center;margin:.1em 0 .25em;
+}
+.fb-photo-img{width:100%;height:100%;object-fit:cover;display:block}
+.fb-photo-ph{font-size:.95em;opacity:.4;font-weight:700}
+
+.fb-rows{display:flex;flex-direction:column;gap:.34em;flex:1}
+.fb-row{display:flex;align-items:flex-end;gap:.4em;min-width:0}
+.fb-k{font-weight:700;white-space:nowrap;flex-shrink:0}
+.fb-k::after{content:':'}
+.fb-dots{display:none}
+.fb-v{
+  flex:1;min-width:0;line-height:1.25;min-height:1.2em;
+  border-bottom:1.6px dotted rgba(0,0,0,.3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.fb-sign{display:flex;flex-direction:column;gap:.15em;margin-top:.3em}
+.fb-sign-label{font-size:.85em;font-weight:700;opacity:.6}
+.fb-sign-line{
+  min-height:2.4em;border-bottom:1.6px dotted rgba(0,0,0,.3);
+  display:flex;align-items:flex-end;
+}
+.fb-sign-img{max-height:3.4em;max-width:60%;object-fit:contain;display:block}
+
+/* ── Steuerung ───────────────────────────────────────────────────────────── */
+.fb-controls{width:min(420px,100%);display:flex;flex-direction:column;gap:14px}
+
+.fb-upload-btn{
+  width:100%;height:48px;border-radius:14px;
+  border:1px dashed rgba(255,255,255,.28);background:rgba(255,255,255,.05);color:#fff;
+  font-size:14px;font-weight:700;letter-spacing:.02em;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;
+}
+.fb-upload-btn:hover{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.09)}
+.fb-upload-btn.slim{height:42px;flex:1}
+.fb-upload-ic{font-size:16px}
+
+.fb-fields{display:flex;flex-direction:column;gap:10px}
+.fb-field{display:flex;flex-direction:column;gap:5px}
+.fb-field-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;opacity:.5;padding-left:2px}
+.fb-input{
+  width:100%;height:46px;border-radius:12px;
+  border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;
+  padding:0 14px;font-size:16px;font-weight:500;outline:none;transition:border-color .15s;
+  -webkit-appearance:none;appearance:none;
+}
+.fb-input::placeholder{color:rgba(255,255,255,.32)}
+.fb-input:focus{border-color:rgba(255,255,255,.34)}
+.fb-field--insta{position:relative}
+.fb-field--insta .fb-input{padding-left:30px}
+.fb-field--insta::after{
+  content:'@';position:absolute;left:13px;bottom:13px;
+  font-size:15px;font-weight:600;opacity:.45;pointer-events:none;
+}
+
+/* Design-Block */
+.fb-design{display:flex;flex-direction:column;gap:16px;
+  border-top:1px solid var(--border);padding-top:16px;margin-top:2px}
+.fb-design-group{display:flex;flex-direction:column;gap:9px}
+.fb-design-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;opacity:.5}
+
+.fb-fonts{display:flex;flex-wrap:wrap;gap:8px}
+.fb-font-chip{
+  padding:8px 14px;border-radius:999px;font-size:16px;cursor:pointer;
+  border:1px solid var(--border);background:rgba(255,255,255,.05);color:#fff;
+  transition:.15s;line-height:1;
+}
+.fb-font-chip:hover{background:rgba(255,255,255,.1)}
+.fb-font-chip.is-active{background:#fff;color:#111;border-color:#fff}
+
+.fb-bgcolors{display:flex;flex-wrap:wrap;gap:10px}
+.fb-swatch{
+  width:30px;height:30px;border-radius:999px;border:0;padding:0;flex-shrink:0;
+  background:var(--c);cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);transition:transform .15s,box-shadow .15s;
+}
+.fb-swatch:hover{transform:scale(1.12)}
+.fb-swatch.is-active{
+  transform:scale(1.12);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.15),0 0 0 2px #0d0d0f,0 0 0 3.5px rgba(255,255,255,.95);
+}
+
+.fb-bgimg-row{display:flex;align-items:center;gap:10px}
+.fb-bgimg-clear{
+  height:42px;padding:0 14px;border-radius:12px;flex-shrink:0;
+  border:1px solid var(--border);background:transparent;color:#fff;opacity:.65;
+  font-size:13px;font-weight:600;cursor:pointer;transition:.15s;
+}
+.fb-bgimg-clear:hover{opacity:1;background:rgba(255,255,255,.06)}
+
+.fb-error{font-size:12.5px;color:#ff7b7b;min-height:16px;opacity:0;transition:opacity .15s;text-align:center}
+.fb-error.show{opacity:1}
+
+/* Ab ~860px: Vorschau und Steuerung nebeneinander, Vorschau bleibt sichtbar. */
+@media(min-width:860px){
+  .fb-editor-body{
+    flex-direction:row;align-items:flex-start;justify-content:center;
+    gap:40px;padding-top:28px;
+  }
+  .fb-preview-wrap{position:sticky;top:0;width:360px}
+  .fb-controls{width:400px}
+}
+
+/* ── Lightbox: fertige Seite groß ────────────────────────────────────────── */
+.fb-lightbox{
+  position:fixed;inset:0;z-index:88;
+  display:grid;place-items:center;padding:24px;
+  background:rgba(0,0,0,.82);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .2s ease,visibility 0s linear .2s;
+}
+.fb-lightbox.show{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s ease,visibility 0s}
+.fb-lightbox-img{
+  max-width:min(440px,92vw);max-height:86vh;width:auto;height:auto;
+  border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.7);
+  transform:scale(.96);transition:transform .22s cubic-bezier(.22,1,.36,1);
+}
+.fb-lightbox.show .fb-lightbox-img{transform:none}
+.fb-lightbox-close{
+  position:absolute;top:calc(env(safe-area-inset-top) + 14px);right:16px;
+  width:42px;height:42px;border-radius:999px;border:1px solid var(--border);
+  background:rgba(0,0,0,.5);color:#fff;cursor:pointer;display:grid;place-items:center;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:.15s;
+}
+.fb-lightbox-close:hover{background:rgba(0,0,0,.7)}
+
+@media(prefers-reduced-motion:reduce){
+  .fb-doodle-star{animation:none}
+  .fb-lightbox-img{transition:none;transform:none}
 }
