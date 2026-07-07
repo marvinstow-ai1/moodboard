@@ -1,0 +1,52 @@
+<!-- ============================================================
+     ARCHIV – Klassisches Tamagotchi (Canvas-Version)
+     ------------------------------------------------------------
+     Das ist das URSPRÜNGLICHE Markup der Tamagotchi-Seite, so wie
+     es bis Juli 2026 in index.html stand: Hero mit Infotext, das
+     "Device" mit Canvas-Charakter, Statuszeile, Werte-Balken und
+     Aktions-Buttons (Füttern/Snack/Spielen/Licht/Putzen/Medizin).
+
+     Auf der Website wird es nicht mehr verwendet (ersetzt durch den
+     Pure-CSS-Tamagotchi aus dem Gist). Hier nur zur Aufbewahrung,
+     falls die Version später nochmal gebraucht wird.
+
+     Zum Wiederherstellen siehe README.md in diesem Ordner.
+     ============================================================ -->
+
+<!-- Der gesamte Inhalt von .tama-inner der alten Seite: -->
+<div class="tama-inner">
+  <div class="tama-hero">
+    <div class="info-hero-badge" data-pixel-icon="tama"></div>
+    <h1 class="info-hero-title">Tamagotchi</h1>
+    <p class="tama-hero-sub">Mein kleiner Pixel-Mitbewohner. Füttere ihn, spiel mit ihm – und mach ab und zu sauber. Er lebt weiter, auch wenn du weg bist.</p>
+  </div>
+
+  <div class="tama-device">
+    <div class="tama-screen-frame">
+      <div class="tama-screen">
+        <canvas id="tamaCanvas" width="160" height="144"></canvas>
+        <div class="tama-msg" id="tamaMsg"></div>
+        <!-- Namens-Dialog beim allerersten Besuch -->
+        <div class="tama-name-dialog" id="tamaNameDlg" hidden>
+          <div class="tama-name-box">
+            <div class="tn-title">Ein Ei ist geschlüpft!<br>Wie soll es heißen?</div>
+            <input id="tamaNameInput" maxlength="10" placeholder="MOCHI" autocomplete="off" spellcheck="false">
+            <button id="tamaNameOk" type="button">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tama-statusline" id="tamaStatusline"></div>
+    <div class="tama-bars" id="tamaBars"></div>
+
+    <div class="tama-actions" id="tamaActions">
+      <button class="tama-btn" data-act="feed" type="button"><span class="tb-ic">🍙</span><span class="tb-txt">Füttern</span></button>
+      <button class="tama-btn" data-act="snack" type="button"><span class="tb-ic">🍬</span><span class="tb-txt">Snack</span></button>
+      <button class="tama-btn" data-act="play" type="button"><span class="tb-ic">🎮</span><span class="tb-txt">Spielen</span></button>
+      <button class="tama-btn" data-act="light" type="button"><span class="tb-ic">💡</span><span class="tb-txt">Licht</span></button>
+      <button class="tama-btn" data-act="clean" type="button"><span class="tb-ic">🧹</span><span class="tb-txt">Putzen</span></button>
+      <button class="tama-btn" data-act="med" type="button"><span class="tb-ic">💊</span><span class="tb-txt">Medizin</span></button>
+    </div>
+  </div>
+</div>
