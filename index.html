@@ -609,8 +609,9 @@
 
 <!-- ── Navigations-Vorschau ─────────────────────────────────
      Öffnet sich als kleines Pop-up über der Pill – genau wie das Chat-Panel.
-     Darin lassen sich die Vorschau-Karten der Seiten (Startseite, Info,
-     Gästebuch) swipen; ein Tipp öffnet die jeweilige Unterseite dynamisch. Die
+     Die Vorschau-Karten der Seiten (Startseite, Inventory, Tamagotchi,
+     Gästebuch, Info) liegen alle nebeneinander und sind sofort sichtbar – kein
+     Swipen nötig. Ein Tipp öffnet die jeweilige Unterseite dynamisch. Die
      Vorschauen zeigen bewusst keinen Header/keine Pill. Logik in js/nav.js. -->
 <div class="nav-panel" id="navPanel" aria-hidden="true">
   <div class="nav-head">
@@ -620,7 +621,6 @@
     </button>
   </div>
   <div class="nav-swiper" id="navSwiper"><!-- Karten werden in js/nav.js gerendert --></div>
-  <div class="nav-dots" id="navDots" aria-hidden="true"></div>
 </div>
 
 <!-- Mood-Chat: kleines Panel über der Bottom-Bar. Treffer erscheinen im Haupt-Grid. -->

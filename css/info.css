@@ -25,11 +25,9 @@
      mehr stehen. Fallback 100vh ohne lvh-Support. */
   height:100vh;height:100lvh;
   display:flex;flex-direction:column;
-  /* Fallback ohne backdrop-filter-Support: solide Fläche wie früher.
-     Mit Support (siehe @supports unten) wird die Seite zum Glas-Popup:
-     die zuletzt offene Ansicht (Grid, Moods, …) bleibt darunter sichtbar
-     und schimmert weichgezeichnet durch – GIFs/Videos laufen dort weiter. */
-  background:var(--bg);
+  /* Deckend schwarzer Hintergrund (kein Glas-Popup mehr): die Seite legt sich
+     vollständig über die darunter liegende Ansicht. */
+  background:#000;
   opacity:0;visibility:hidden;pointer-events:none;
   transform:translateY(14px) scale(.98);
   /* Schließen ist die Default-Transition (schnell). Der minimale scale()
@@ -40,17 +38,6 @@
              transform .2s ease,
              visibility 0s linear .2s;
   overflow:hidden;
-}
-/* Glassmorpher Popup-Hintergrund: transluzent + Blur statt deckendem --bg –
-   bewusst OHNE zusätzliche Farbflächen, damit die Medien dahinter erkennbar
-   bleiben. visibility:hidden im zugeklappten Zustand hält die Blur-Kosten
-   bei 0. */
-@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .info-page{
-    background:rgba(8,8,10,.45);
-    -webkit-backdrop-filter:blur(18px) saturate(1.15);
-    backdrop-filter:blur(18px) saturate(1.15);
-  }
 }
 .info-page.show{
   opacity:1;visibility:visible;pointer-events:auto;
