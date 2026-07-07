@@ -8,8 +8,11 @@
 // ohne Podest, Kachel oder Karte drumherum. Ein Tipp öffnet das Modell groß
 // im Viewer-Overlay mit voller Steuerung (drehen/zoomen).
 //
-// Inventar-Funktionen: Kategorie-Filter-Chips (Alle/Chars/Devices & Games/
-// Sports/Random Items), kleiner Such-Button (Feld fährt aus), kleiner
+// Das Inventar ist als Collection nach Kategorien gegliedert: pro Kategorie
+// (Chars → Devices & Games → Sports → Random Items) eine Überschrift, darunter
+// die Modelle dieser Kategorie im 3er-Grid. Man scrollt einfach durch.
+//
+// Inventar-Funktionen: kleiner Such-Button (Feld fährt aus), kleiner
 // Sortier-Button (Menü: neu/alt/A–Z) und Zähler.
 //
 // Verwaltung (nur Owner): Upload, Bearbeiten und Löschen laufen NICHT auf der
@@ -86,14 +89,12 @@ const DEFAULT_CAT = 'chars';   // Vorauswahl beim Hochladen (erste Kategorie)
 const FALLBACK_CAT = 'random'; // für Altbestand/Unbekanntes ("Random Items")
 const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.slug, c.label]));
 function catOf(m){ return CAT_LABEL[m?.category] ? m.category : FALLBACK_CAT; }
-function catLabel(slug){ return CAT_LABEL[slug] || CAT_LABEL[FALLBACK_CAT]; }
 
 // ── Inventar-Zustand ───────────────────────────────────────────────────────
 let _models = null;      // Cache der geladenen Datensätze (neueste zuerst)
 let _owner  = false;
 let _query  = '';
 let _sort   = 'new';     // 'new' | 'old' | 'az'
-let _category = 'all';   // 'all' | Kategorie-Slug – aktiver Filter im Inventar
 
 // ── Seite öffnen / schließen ───────────────────────────────────────────────
 let _animTimer = null;
@@ -276,9 +277,11 @@ function makeStage(m){
 }
 
 // ── Filtern / Sortieren / Rendern ──────────────────────────────────────────
+// Suche + Sortierung; die Kategorie-Einteilung passiert erst beim Rendern
+// (Gruppen), nicht hier – so bleibt die Sortierung innerhalb jeder Kategorie
+// erhalten.
 function visibleModels(){
   let list = _models ? [..._models] : [];
-  if(_category !== 'all') list = list.filter(m => catOf(m) === _category);
   const q = _query.trim().toLowerCase();
   if(q) list = list.filter(m => (m.title || '').toLowerCase().includes(q));
   if(_sort === 'old') list.reverse();
@@ -287,48 +290,24 @@ function visibleModels(){
   return list;
 }
 
-// Kategorie-Filter-Chips im Inventar: „Alle" + je eine Chip pro Kategorie mit
-// Anzahl. Leere Kategorien bleiben sichtbar (nur gedimmt), damit die Einteilung
-// immer vollständig erkennbar ist.
-function renderCats(){
-  const wrap = $('m3dCats');
-  if(!wrap) return;
-  const hasAny = !!(_models && _models.length);
-  wrap.hidden = !hasAny;
-  if(!hasAny){ wrap.innerHTML = ''; return; }
+// Eine Modell-Kachel (Bühne + Titel). i = laufender Index für die Einblend-
+// Staffelung über alle Kategorien hinweg.
+function makeItem(m, i){
+  const item = document.createElement('div');
+  item.className = 'm3d-item';
+  item.dataset.id = m.id;
+  item.style.animationDelay = `${Math.min(i, 8) * 0.04 + 0.04}s`;
 
-  const counts = {};
-  for(const m of _models){ const c = catOf(m); counts[c] = (counts[c] || 0) + 1; }
-  // Filter auf eine inzwischen leere/ungültige Kategorie zurücksetzen.
-  if(_category !== 'all' && !counts[_category]) _category = 'all';
+  const stage = makeStage(m);
+  stage.addEventListener('click', () => openViewer(m));
+  item.appendChild(stage);
 
-  const chips = [{ slug: 'all', label: 'Alle', n: _models.length }]
-    .concat(CATEGORIES.map(c => ({ slug: c.slug, label: c.label, n: counts[c.slug] || 0 })));
+  const title = document.createElement('div');
+  title.className = 'm3d-item-title';
+  title.textContent = m.title;
+  item.appendChild(title);
 
-  wrap.innerHTML = '';
-  for(const ch of chips){
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'm3d-cat';
-    if(_category === ch.slug) btn.classList.add('active');
-    if(ch.n === 0 && ch.slug !== 'all') btn.classList.add('empty');
-    btn.setAttribute('aria-pressed', String(_category === ch.slug));
-
-    const lbl = document.createElement('span');
-    lbl.className = 'm3d-cat-lbl';
-    lbl.textContent = ch.label;
-    const n = document.createElement('span');
-    n.className = 'm3d-cat-n';
-    n.textContent = ch.n;
-    btn.append(lbl, n);
-
-    btn.addEventListener('click', () => {
-      if(_category === ch.slug) return;
-      _category = ch.slug;
-      render();
-    });
-    wrap.appendChild(btn);
-  }
+  return item;
 }
 
 function render(){
@@ -338,7 +317,6 @@ function render(){
   const toolbar = $('m3dToolbar');
   const hasAny = !!(_models && _models.length);
   if(toolbar) toolbar.hidden = !hasAny;
-  renderCats();
 
   if(!hasAny){
     grid.innerHTML = _owner
@@ -349,37 +327,46 @@ function render(){
 
   const count = $('m3dCount');
   const list = visibleModels();
-  const filtered = !!_query.trim() || _category !== 'all';
-  if(count) count.textContent = filtered
+  if(count) count.textContent = _query.trim()
     ? `${list.length} / ${_models.length}`
     : `${_models.length} ${_models.length === 1 ? 'Modell' : 'Modelle'}`;
 
   grid.innerHTML = '';
   if(!list.length){
-    const msg = _query.trim()
-      ? 'Kein Modell passt zu deiner Suche.'
-      : `Noch nichts unter „${catLabel(_category)}“.`;
-    grid.innerHTML = `<div class="m3d-status">${msg}</div>`;
+    grid.innerHTML = '<div class="m3d-status">Kein Modell passt zu deiner Suche.</div>';
     return;
   }
 
-  list.forEach((m, i) => {
-    const item = document.createElement('div');
-    item.className = 'm3d-item';
-    item.dataset.id = m.id;
-    item.style.animationDelay = `${Math.min(i, 8) * 0.04 + 0.04}s`;
+  // Als Collection rendern: pro Kategorie (feste Reihenfolge) eine Überschrift
+  // und darunter die Modelle dieser Kategorie im 3er-Grid. Leere Kategorien
+  // werden übersprungen. Der Index läuft über alle Kategorien durch, damit die
+  // Einblend-Staffelung durchgängig wirkt.
+  let idx = 0;
+  for(const cat of CATEGORIES){
+    const items = list.filter(m => catOf(m) === cat.slug);
+    if(!items.length) continue;
 
-    const stage = makeStage(m);
-    stage.addEventListener('click', () => openViewer(m));
-    item.appendChild(stage);
+    const section = document.createElement('section');
+    section.className = 'm3d-section';
 
-    const title = document.createElement('div');
-    title.className = 'm3d-item-title';
-    title.textContent = m.title;
-    item.appendChild(title);
+    const head = document.createElement('h2');
+    head.className = 'm3d-sechead';
+    const hName = document.createElement('span');
+    hName.className = 'm3d-sechead-name';
+    hName.textContent = cat.label;
+    const hN = document.createElement('span');
+    hN.className = 'm3d-sechead-n';
+    hN.textContent = items.length;
+    head.append(hName, hN);
+    section.appendChild(head);
 
-    grid.appendChild(item);
-  });
+    const secItems = document.createElement('div');
+    secItems.className = 'm3d-secitems';
+    for(const m of items) secItems.appendChild(makeItem(m, idx++));
+    section.appendChild(secItems);
+
+    grid.appendChild(section);
+  }
 }
 
 // ── Toolbar: kleiner Such-Button (Feld fährt aus) + Sortier-Menü ──────────

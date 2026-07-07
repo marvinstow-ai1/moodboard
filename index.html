@@ -970,10 +970,8 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
         </div>
       </div>
 
-      <!-- Kategorie-Filter: „Alle" + je eine Chip pro Kategorie mit Anzahl.
-           Wird in js/models3d.js (renderCats) befüllt. -->
-      <div class="m3d-cats" id="m3dCats" role="tablist" aria-label="Kategorien" hidden></div>
-
+      <!-- Inventar als Collection: js/models3d.js rendert hier pro Kategorie
+           eine Überschrift (.m3d-sechead) mit den Modellen darunter. -->
       <div class="m3d-grid" id="m3dGrid">
         <div class="m3d-status" id="m3dStatus">Lade…</div>
       </div>
