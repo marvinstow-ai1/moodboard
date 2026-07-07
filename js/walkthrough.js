@@ -28,12 +28,16 @@ const steps = [
     popover: { title: 'Musik dazu', description: 'Tipp drauf und meine Playlist läuft – passt perfekt zum Durchscrollen.' },
   },
   {
-    element: '#shuffleBtn',
-    popover: { title: 'Neu mischen', description: 'Würfelt die Bilder in deiner aktuellen Ansicht neu durch – jedes Mal ’ne andere Anordnung.' },
-  },
-  {
     element: '#filterBtn',
     popover: { title: 'Kachelgröße', description: 'Macht die Kacheln größer oder kleiner – ganz wie du’s magst.' },
+  },
+  {
+    element: '#chatBtn',
+    popover: { title: 'Suche', description: 'Tipp ’ne Stimmung, Farbe oder ein Motiv ein – ich such dir die passenden Bilder raus. Drin steckt auch der „Shuffle", der deine Ansicht neu mischt.' },
+  },
+  {
+    element: '#tamaBtn',
+    popover: { title: 'Mein Tamagotchi', description: 'Mein pixeliger Mitbewohner. Tipp drauf – füttern, spielen, Licht aus. Er lebt weiter, auch wenn du weg bist.' },
   },
   {
     element: '#moodsMgmtBtn',

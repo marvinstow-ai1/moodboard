@@ -376,6 +376,7 @@ function openPage() {
   markAnimating();
   page.classList.add('show');
   page.setAttribute('aria-hidden', 'false');
+  openBtn?.classList.add('active');
   applyDailyColor();                                   // ggf. neue Tagesfarbe
   simulate(S.lastTick, Date.now());                    // Offline-Zeit nachziehen
   closeStatus(); selIndex = -1; updateSel();
@@ -386,8 +387,19 @@ function closePage() {
   markAnimating();
   page.classList.remove('show');
   page.setAttribute('aria-hidden', 'true');
+  openBtn?.classList.remove('active');
   stop(); save();
 }
+
+// Öffnen ausschließlich über den Tier-Button in der Pill (das Tamagotchi ist
+// nicht mehr in der Navigations-Vorschau). stopPropagation verhindert, dass der
+// gleiche Klick vom Außen-Klick-Handler unten sofort wieder geschlossen wird.
+const openBtn = $('tamaBtn');
+openBtn?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  openBtn.blur();
+  page.classList.contains('show') ? closePage() : openPage();
+});
 
 // Kein Schließen-Button: Klick außerhalb des Geräts schließt das Pop-up.
 document.addEventListener('click', (e) => {

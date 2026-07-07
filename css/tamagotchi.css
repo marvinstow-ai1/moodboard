@@ -31,6 +31,19 @@
 }
 .tama-pop.is-animating{will-change:opacity,transform}
 
+/* ── Tier-Button in der Pill ──────────────────────────────────────────────
+   Öffnet das Tamagotchi (rechts neben der Suche). Das Icon ist dasselbe
+   Pixel-Sprite wie die Figur im LCD (Pfad in index.html); .active spiegelt den
+   offenen Zustand wie bei den übrigen Pill-Buttons. Ein zartes Wippen macht den
+   Mitbewohner lebendig, ohne aufdringlich zu sein. */
+#tamaBtn.active{background:rgba(255,255,255,.14)}
+#tamaBtn svg{transition:transform .18s ease}
+#tamaBtn:active svg{transform:translateY(1px) scale(.94)}
+@media (prefers-reduced-motion:no-preference){
+  #tamaBtn:not(.active):hover svg{animation:tamaBtnHop 1.1s ease-in-out infinite}
+}
+@keyframes tamaBtnHop{0%,100%{transform:translateY(0)}45%{transform:translateY(-2px)}}
+
 /* ── Pure-CSS-Tamagotchi (Gist) ───────────────────────────────────────────
    1:1 der Pen von Manz.dev, aber unter .tama-gadget gescopt, damit die sehr
    generischen Klassen (.container, .item, .button, .screen, .name …) NICHT

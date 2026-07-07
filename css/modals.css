@@ -205,13 +205,11 @@
 .bottombar-btn, .bottombar-divider, .moods-mgmt-btn {
   transition:transform .45s cubic-bezier(.32,1,.23,1),opacity .45s cubic-bezier(.32,1,.23,1),width .45s cubic-bezier(.32,1,.23,1),margin .45s cubic-bezier(.32,1,.23,1),background-color .45s cubic-bezier(.32,1,.23,1);
 }
-.bottombar.moods-active #shuffleBtn,
 .bottombar.moods-active #filterBtn {
   transform:scale(0);opacity:0;width:0;padding:0;margin:0;
   overflow:hidden;pointer-events:none;
 }
-.bottombar.moods-active #filterDivider,
-.bottombar.moods-active #shuffleDivider {
+.bottombar.moods-active #filterDivider {
   transform:scaleX(0);opacity:0;width:0;margin:0;
 }
 

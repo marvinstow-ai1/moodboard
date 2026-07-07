@@ -6,20 +6,18 @@
    Vorschau-Karten der Seiten (Startseite, Info, Gästebuch) horizontal swipen;
    ein Tipp öffnet die jeweilige Unterseite dynamisch. Logik in js/nav.js.
 
-   Außerdem: die dynamische Pill. Auf Info-/Gästebuch-Seiten haben Shuffle und
-   Kachelgröße keine Funktion – sie werden mit einer Zieh-Animation eingezogen,
-   sodass nur noch Spotify, Chat und Navigation übrig bleiben.
+   Außerdem: die dynamische Pill. Auf Info-/Gästebuch-Seiten hat die Kachelgröße
+   keine Funktion – sie wird mit einer Zieh-Animation eingezogen, sodass nur noch
+   Spotify, Navigation, Suche und Tamagotchi übrig bleiben.
    ============================================================================ */
 
 /* ── Dynamische Pill: Unterseiten ────────────────────────────────────────────
-   Shuffle + Kachelgröße (inkl. der zugehörigen Trenner) fahren ein. Die
-   Zieh-Animation nutzt dieselbe Feder-Kurve wie der Moods-Modus (modals.css). */
-.bottombar.subpage #shuffleBtn,
+   Kachelgröße (inkl. des zugehörigen Trenners) fährt ein. Die Zieh-Animation
+   nutzt dieselbe Feder-Kurve wie der Moods-Modus (modals.css). */
 .bottombar.subpage #filterBtn{
   transform:scale(0);opacity:0;width:0;padding:0;margin:0;
   overflow:hidden;pointer-events:none;
 }
-.bottombar.subpage #shuffleDivider,
 .bottombar.subpage #filterDivider{
   transform:scaleX(0);opacity:0;width:0;margin:0;
 }

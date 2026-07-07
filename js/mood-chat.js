@@ -448,6 +448,20 @@ function initMoodChat() {
     };
   }
 
+  // Quick-Chip „Shuffle": mischt die aktuelle Ansicht neu (früher der Shuffle-
+  // Button in der Pill). Eine aktive Mood-Chat-/Kategorie-Suche bleibt bestehen –
+  // nur deren Treffer werden neu angeordnet; ohne aktive Suche wird das ganze
+  // Archiv gemischt. Panel zuerst schließen, damit das Shuffle-Overlay die
+  // Ansicht sauber überblendet.
+  const shuffleChip = $('mcShuffleChip');
+  if (shuffleChip) {
+    shuffleChip.onclick = () => {
+      clearStatus();
+      closePanel();
+      window.MB?.doShuffleInView?.();
+    };
+  }
+
   // ── Dynamische Placeholder-Vorschau ──
   // Tippt im leeren Eingabefeld nacheinander Vorschläge als Placeholder ein
   // (Buchstabe für Buchstabe), löscht sie wieder und loopt über die Liste.

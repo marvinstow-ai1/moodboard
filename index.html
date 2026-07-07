@@ -560,9 +560,11 @@
 </div>
 
 <div class="bottombar" id="bottombar">
-  <!-- Reihenfolge der Pill (v. links): Spotify · Kachelgröße · Navigation · Shuffle · Chat.
-       Kollabierende Buttons auf Unterseiten / im Moods-Modus: Kachelgröße + Shuffle
-       (samt filterDivider bzw. shuffleDivider), sodass Spotify · Navigation · Chat bleiben. -->
+  <!-- Reihenfolge der Pill (v. links): Spotify · Kachelgröße · Navigation · Suche · Tamagotchi.
+       Der Shuffle lebt jetzt im Suche-Panel (neben „Archive"), das Chat-Icon ist eine
+       Lupe (Stimmungs-/Bildsuche), ganz rechts öffnet der pixelige Mitbewohner das
+       Tamagotchi. Kollabierender Button auf Unterseiten / im Moods-Modus: Kachelgröße
+       (samt filterDivider), sodass Spotify · Navigation · Suche · Tamagotchi bleiben. -->
   <button class="bottombar-btn" id="spotifyBtn" aria-label="Spotify Playlist">
     <svg viewBox="0 0 168 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path fill="#1ED760" d="M83.996.277C37.747.277.253 37.77.253 84.019c0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l.001-.004zm38.404 120.78a5.217 5.217 0 0 1-7.18 1.73c-19.662-12.01-44.414-14.73-73.564-8.07a5.222 5.222 0 0 1-6.249-3.93 5.213 5.213 0 0 1 3.926-6.25c31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-.903-8.148-4.35a6.538 6.538 0 0 1 4.354-8.143c30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-.001zm.88-23.744c-26.99-16.031-71.52-17.505-97.289-9.684-4.138 1.255-8.514-1.081-9.768-5.219a7.835 7.835 0 0 1 5.221-9.771c29.581-8.98 78.756-7.245 109.83 11.202a7.823 7.823 0 0 1 2.74 10.733c-2.2 3.722-7.02 4.949-10.73 2.739z"/>
@@ -585,19 +587,18 @@
     </svg>
   </button>
   <div class="bottombar-divider" id="chatDivider"></div>
-  <button class="bottombar-btn" id="shuffleBtn" aria-label="Zufällig anordnen">
+  <button class="bottombar-btn" id="chatBtn" aria-label="Suche">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
-      <polyline points="16 3 21 3 21 8"/>
-      <line x1="4" y1="20" x2="21" y2="3"/>
-      <polyline points="21 16 21 21 16 21"/>
-      <line x1="15" y1="15" x2="21" y2="21"/>
-      <line x1="4" y1="4" x2="9" y2="9"/>
+      <circle cx="11" cy="11" r="7"/>
+      <line x1="21" y1="21" x2="16.2" y2="16.2"/>
     </svg>
   </button>
-  <div class="bottombar-divider" id="shuffleDivider"></div>
-  <button class="bottombar-btn" id="chatBtn" aria-label="Stimmungs-Suche">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+  <div class="bottombar-divider" id="tamaDivider"></div>
+  <!-- Tamagotchi öffnen: der pixelige Mitbewohner selbst als Button (dasselbe
+       Sprite wie die Figur im LCD, s. css/tamagotchi.css → .pet). Logik: js/tamagotchi.js. -->
+  <button class="bottombar-btn tama-btn" id="tamaBtn" aria-label="Tamagotchi">
+    <svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true" style="width:22px;height:22px;display:block;image-rendering:pixelated">
+      <path d="M20 0h4v4h-4zM24 0h4v4h-4zM28 0h4v4h-4zM32 0h4v4h-4zM36 0h4v4h-4zM16 4h4v4h-4zM40 4h4v4h-4zM4 8h4v4h-4zM8 8h4v4h-4zM12 8h4v4h-4zM20 8h4v4h-4zM36 8h4v4h-4zM44 8h4v4h-4zM0 12h4v4h-4zM48 12h4v4h-4zM4 16h4v4h-4zM8 16h4v4h-4zM12 16h4v4h-4zM48 16h4v4h-4zM0 20h4v4h-4zM48 20h4v4h-4zM4 24h4v4h-4zM8 24h4v4h-4zM12 24h4v4h-4zM48 24h4v4h-4zM12 28h4v4h-4zM32 28h4v4h-4zM40 28h4v4h-4zM52 28h4v4h-4zM12 32h4v4h-4zM32 32h4v4h-4zM40 32h4v4h-4zM52 32h4v4h-4zM12 36h4v4h-4zM36 36h4v4h-4zM52 36h4v4h-4zM16 40h4v4h-4zM48 40h4v4h-4zM20 44h4v4h-4zM28 44h4v4h-4zM32 44h4v4h-4zM36 44h4v4h-4zM44 44h4v4h-4zM20 48h4v4h-4zM28 48h4v4h-4zM36 48h4v4h-4zM44 48h4v4h-4zM24 52h4v4h-4zM40 52h4v4h-4z"/>
     </svg>
   </button>
   <button class="moods-mgmt-btn" id="moodsMgmtBtn">
@@ -611,10 +612,11 @@
 
 <!-- ── Navigations-Vorschau ─────────────────────────────────
      Öffnet sich als kleines Pop-up über der Pill – genau wie das Chat-Panel.
-     Die Vorschau-Karten der Seiten (Startseite, Inventory, Tamagotchi,
-     Gästebuch, Info) liegen alle nebeneinander und sind sofort sichtbar – kein
-     Swipen nötig. Ein Tipp öffnet die jeweilige Unterseite dynamisch. Die
-     Vorschauen zeigen bewusst keinen Header/keine Pill. Logik in js/nav.js. -->
+     Die Vorschau-Karten der Seiten (Startseite, Inventory, Gästebuch, Info)
+     liegen alle nebeneinander und sind sofort sichtbar – kein Swipen nötig. Ein
+     Tipp öffnet die jeweilige Unterseite dynamisch. Die Vorschauen zeigen bewusst
+     keinen Header/keine Pill. Das Tamagotchi öffnet nur über den Pill-Button.
+     Logik in js/nav.js. -->
 <div class="nav-panel" id="navPanel" aria-hidden="true">
   <div class="nav-head">
     <span class="nav-title">Wohin möchtest du?</span>
@@ -648,6 +650,10 @@
     <button class="mc-quick-chip" id="mcArchiveChip" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
       Archive
+    </button>
+    <button class="mc-quick-chip" id="mcShuffleChip" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+      Shuffle
     </button>
   </div>
   <div class="mc-status" id="mcStatus"></div>
