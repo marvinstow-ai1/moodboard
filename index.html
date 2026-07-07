@@ -970,6 +970,10 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
         </div>
       </div>
 
+      <!-- Kategorie-Filter: „Alle" + je eine Chip pro Kategorie mit Anzahl.
+           Wird in js/models3d.js (renderCats) befüllt. -->
+      <div class="m3d-cats" id="m3dCats" role="tablist" aria-label="Kategorien" hidden></div>
+
       <div class="m3d-grid" id="m3dGrid">
         <div class="m3d-status" id="m3dStatus">Lade…</div>
       </div>
@@ -982,7 +986,10 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
      Logik in js/models3d.js. -->
 <div class="m3d-manage" id="m3dManage" role="dialog" aria-modal="true" aria-label="3D-Modelle verwalten">
   <div class="m3dg-content">
-    <div class="m3dg-title">3D-Modelle verwalten</div>
+    <div class="m3dg-head">
+      <div class="m3dg-title">3D-Modelle verwalten</div>
+      <div class="m3dg-sub" id="m3dgSub"></div>
+    </div>
     <div class="m3dg-list" id="m3dgList"><div class="m3dg-empty">Lade…</div></div>
     <button class="m3dg-upload" id="m3dgUploadBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
@@ -1000,7 +1007,16 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   <div class="m3dm-content">
     <div class="m3dm-title" id="m3dmHeading">3D-Modell hochladen</div>
 
+    <label class="m3dm-label" for="m3dmTitle">Titel</label>
     <input class="m3dm-input" id="m3dmTitle" placeholder="Titel (z. B. „Sneaker“)" maxlength="80" autocomplete="off">
+
+    <label class="m3dm-label" for="m3dmCategory">Kategorie</label>
+    <select class="m3dm-select" id="m3dmCategory" aria-label="Kategorie">
+      <option value="chars">Chars</option>
+      <option value="devices">Devices &amp; Games</option>
+      <option value="sports">Sports</option>
+      <option value="random">Random Items</option>
+    </select>
 
     <label class="m3dm-drop" id="m3dmDrop" for="m3dmFile">
       <span class="m3dm-drop-ic">

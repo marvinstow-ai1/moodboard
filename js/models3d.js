@@ -8,7 +8,8 @@
 // ohne Podest, Kachel oder Karte drumherum. Ein Tipp öffnet das Modell groß
 // im Viewer-Overlay mit voller Steuerung (drehen/zoomen).
 //
-// Inventar-Funktionen: kleiner Such-Button (Feld fährt aus), kleiner
+// Inventar-Funktionen: Kategorie-Filter-Chips (Alle/Chars/Devices & Games/
+// Sports/Random Items), kleiner Such-Button (Feld fährt aus), kleiner
 // Sortier-Button (Menü: neu/alt/A–Z) und Zähler.
 //
 // Verwaltung (nur Owner): Upload, Bearbeiten und Löschen laufen NICHT auf der
@@ -70,11 +71,29 @@ function ensureViewerLib(){
   return _libPromise;
 }
 
+// ── Kategorien ─────────────────────────────────────────────────────────────
+// Feste Inventar-Kategorien (Slug ↔ Anzeigename). Die Reihenfolge bestimmt die
+// Anzeige-Reihenfolge überall: Filter-Chips im Inventar, Auswahl im Upload-
+// Sheet und die Gruppen im Verwalten-Popup. Der Slug steht in der Spalte
+// models_3d.category (siehe db/models_3d.sql), der Anzeigename bleibt im UI.
+const CATEGORIES = [
+  { slug: 'chars',   label: 'Chars' },
+  { slug: 'devices', label: 'Devices & Games' },
+  { slug: 'sports',  label: 'Sports' },
+  { slug: 'random',  label: 'Random Items' },
+];
+const DEFAULT_CAT = 'chars';   // Vorauswahl beim Hochladen (erste Kategorie)
+const FALLBACK_CAT = 'random'; // für Altbestand/Unbekanntes ("Random Items")
+const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.slug, c.label]));
+function catOf(m){ return CAT_LABEL[m?.category] ? m.category : FALLBACK_CAT; }
+function catLabel(slug){ return CAT_LABEL[slug] || CAT_LABEL[FALLBACK_CAT]; }
+
 // ── Inventar-Zustand ───────────────────────────────────────────────────────
 let _models = null;      // Cache der geladenen Datensätze (neueste zuerst)
 let _owner  = false;
 let _query  = '';
 let _sort   = 'new';     // 'new' | 'old' | 'az'
+let _category = 'all';   // 'all' | Kategorie-Slug – aktiver Filter im Inventar
 
 // ── Seite öffnen / schließen ───────────────────────────────────────────────
 let _animTimer = null;
@@ -259,12 +278,57 @@ function makeStage(m){
 // ── Filtern / Sortieren / Rendern ──────────────────────────────────────────
 function visibleModels(){
   let list = _models ? [..._models] : [];
+  if(_category !== 'all') list = list.filter(m => catOf(m) === _category);
   const q = _query.trim().toLowerCase();
   if(q) list = list.filter(m => (m.title || '').toLowerCase().includes(q));
   if(_sort === 'old') list.reverse();
   else if(_sort === 'az')
     list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'de', { sensitivity: 'base' }));
   return list;
+}
+
+// Kategorie-Filter-Chips im Inventar: „Alle" + je eine Chip pro Kategorie mit
+// Anzahl. Leere Kategorien bleiben sichtbar (nur gedimmt), damit die Einteilung
+// immer vollständig erkennbar ist.
+function renderCats(){
+  const wrap = $('m3dCats');
+  if(!wrap) return;
+  const hasAny = !!(_models && _models.length);
+  wrap.hidden = !hasAny;
+  if(!hasAny){ wrap.innerHTML = ''; return; }
+
+  const counts = {};
+  for(const m of _models){ const c = catOf(m); counts[c] = (counts[c] || 0) + 1; }
+  // Filter auf eine inzwischen leere/ungültige Kategorie zurücksetzen.
+  if(_category !== 'all' && !counts[_category]) _category = 'all';
+
+  const chips = [{ slug: 'all', label: 'Alle', n: _models.length }]
+    .concat(CATEGORIES.map(c => ({ slug: c.slug, label: c.label, n: counts[c.slug] || 0 })));
+
+  wrap.innerHTML = '';
+  for(const ch of chips){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'm3d-cat';
+    if(_category === ch.slug) btn.classList.add('active');
+    if(ch.n === 0 && ch.slug !== 'all') btn.classList.add('empty');
+    btn.setAttribute('aria-pressed', String(_category === ch.slug));
+
+    const lbl = document.createElement('span');
+    lbl.className = 'm3d-cat-lbl';
+    lbl.textContent = ch.label;
+    const n = document.createElement('span');
+    n.className = 'm3d-cat-n';
+    n.textContent = ch.n;
+    btn.append(lbl, n);
+
+    btn.addEventListener('click', () => {
+      if(_category === ch.slug) return;
+      _category = ch.slug;
+      render();
+    });
+    wrap.appendChild(btn);
+  }
 }
 
 function render(){
@@ -274,6 +338,7 @@ function render(){
   const toolbar = $('m3dToolbar');
   const hasAny = !!(_models && _models.length);
   if(toolbar) toolbar.hidden = !hasAny;
+  renderCats();
 
   if(!hasAny){
     grid.innerHTML = _owner
@@ -284,13 +349,17 @@ function render(){
 
   const count = $('m3dCount');
   const list = visibleModels();
-  if(count) count.textContent = _query.trim()
+  const filtered = !!_query.trim() || _category !== 'all';
+  if(count) count.textContent = filtered
     ? `${list.length} / ${_models.length}`
     : `${_models.length} ${_models.length === 1 ? 'Modell' : 'Modelle'}`;
 
   grid.innerHTML = '';
   if(!list.length){
-    grid.innerHTML = '<div class="m3d-status">Kein Modell passt zu deiner Suche.</div>';
+    const msg = _query.trim()
+      ? 'Kein Modell passt zu deiner Suche.'
+      : `Noch nichts unter „${catLabel(_category)}“.`;
+    grid.innerHTML = `<div class="m3d-status">${msg}</div>`;
     return;
   }
 
@@ -372,7 +441,7 @@ async function loadModels(){
 
   const [{ data, error }, owner] = await Promise.all([
     sb.from('models_3d')
-      .select('id,title,model_url,created_at')
+      .select('id,title,model_url,category,created_at')
       .order('created_at', { ascending: false }),
     isOwner(),
   ]);
@@ -428,40 +497,75 @@ $('m3dManageBtnSheet')?.addEventListener('click', openManage);
 $('m3dgClose')?.addEventListener('click', closeManage);
 manage?.addEventListener('click', e => { if(e.target === manage) closeManage(); });
 
+// Verwalten-Liste: nach Kategorie gruppiert, jede Gruppe mit Überschrift und
+// Anzahl. Das macht auf einen Blick sichtbar, was wo einsortiert ist, statt
+// eine lange, undifferenzierte Liste zu zeigen. Bearbeiten (inkl. Kategorie-
+// Wechsel) und Löschen bleiben pro Zeile.
 function renderManage(){
   const listEl = $('m3dgList');
   if(!listEl) return;
+
+  const sub = $('m3dgSub');
   if(!_models || !_models.length){
+    if(sub) sub.textContent = '';
     listEl.innerHTML = '<div class="m3dg-empty">Noch keine Modelle im Inventar.<br>Lade unten dein erstes 3D-Modell hoch 🧊</div>';
     return;
   }
+
+  const usedCats = CATEGORIES.filter(c => _models.some(m => catOf(m) === c.slug)).length;
+  if(sub) sub.textContent =
+    `${_models.length} ${_models.length === 1 ? 'Modell' : 'Modelle'} · `
+    + `${usedCats} ${usedCats === 1 ? 'Kategorie' : 'Kategorien'}`;
+
   listEl.innerHTML = '';
-  for(const m of _models){
-    const row = document.createElement('div');
-    row.className = 'm3dg-item';
+  for(const cat of CATEGORIES){
+    const items = _models.filter(m => catOf(m) === cat.slug);
+    if(!items.length) continue;
 
-    const name = document.createElement('span');
-    name.className = 'm3dg-name';
-    name.textContent = m.title;
-    row.appendChild(name);
+    const group = document.createElement('div');
+    group.className = 'm3dg-group';
 
-    const edit = document.createElement('button');
-    edit.type = 'button';
-    edit.setAttribute('aria-label', `„${m.title}“ bearbeiten`);
-    edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>';
-    edit.addEventListener('click', () => openModal(m));
-    row.appendChild(edit);
+    const head = document.createElement('div');
+    head.className = 'm3dg-grouphead';
+    const hName = document.createElement('span');
+    hName.className = 'm3dg-groupname';
+    hName.textContent = cat.label;
+    const hN = document.createElement('span');
+    hN.className = 'm3dg-groupn';
+    hN.textContent = items.length;
+    head.append(hName, hN);
+    group.appendChild(head);
 
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'm3dg-del';
-    del.setAttribute('aria-label', `„${m.title}“ löschen`);
-    del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
-    del.addEventListener('click', () => onDelete(m, del));
-    row.appendChild(del);
-
-    listEl.appendChild(row);
+    for(const m of items) group.appendChild(makeManageRow(m));
+    listEl.appendChild(group);
   }
+}
+
+function makeManageRow(m){
+  const row = document.createElement('div');
+  row.className = 'm3dg-item';
+
+  const name = document.createElement('span');
+  name.className = 'm3dg-name';
+  name.textContent = m.title;
+  row.appendChild(name);
+
+  const edit = document.createElement('button');
+  edit.type = 'button';
+  edit.setAttribute('aria-label', `„${m.title}“ bearbeiten`);
+  edit.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>';
+  edit.addEventListener('click', () => openModal(m));
+  row.appendChild(edit);
+
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'm3dg-del';
+  del.setAttribute('aria-label', `„${m.title}“ löschen`);
+  del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+  del.addEventListener('click', () => onDelete(m, del));
+  row.appendChild(del);
+
+  return row;
 }
 
 // Löschen zweistufig (wie im Gästebuch): erster Klick fragt nach, zweiter löscht.
@@ -563,6 +667,8 @@ function openModal(m = null){
   $('m3dmHeading').textContent = m ? 'Modell bearbeiten' : '3D-Modell hochladen';
   $('m3dmSave').textContent = m ? 'Speichern' : 'Hochladen';
   $('m3dmTitle').value = m ? (m.title || '') : '';
+  const catSel = $('m3dmCategory');
+  if(catSel) catSel.value = m ? catOf(m) : DEFAULT_CAT;
   $('m3dmFile').value = '';
   $('m3dmDrop').classList.remove('has-file');
   $('m3dmDropMain').textContent = dropIdleText();
@@ -600,6 +706,7 @@ async function uploadFile(file){
 // Speichern: neues Modell anlegen ODER bestehendes aktualisieren.
 $('m3dmSave')?.addEventListener('click', async () => {
   const title = $('m3dmTitle').value.trim();
+  const category = CAT_LABEL[$('m3dmCategory')?.value] ? $('m3dmCategory').value : DEFAULT_CAT;
   if(!title){ showError('Bitte einen Titel eintragen'); return; }
   if(!editModel && !pickedFile){ showError('Bitte eine .glb- oder .gltf-Datei wählen'); return; }
   if(pickedFile && pickedFile.size > 60 * 1024 * 1024){ showError('Datei ist zu groß (max. 60 MB)'); return; }
@@ -610,7 +717,7 @@ $('m3dmSave')?.addEventListener('click', async () => {
   btn.textContent = pickedFile ? 'Lade hoch…' : 'Speichere…';
   try{
     if(editModel){
-      const patch = { title: title.slice(0, 80) };
+      const patch = { title: title.slice(0, 80), category };
       if(pickedFile) patch.model_url = await uploadFile(pickedFile);
       const { error } = await sb.from('models_3d').update(patch).eq('id', editModel.id);
       if(error) throw error;
@@ -623,7 +730,7 @@ $('m3dmSave')?.addEventListener('click', async () => {
     }else{
       const url = await uploadFile(pickedFile);
       const { error } = await sb.from('models_3d')
-        .insert({ title: title.slice(0, 80), model_url: url });
+        .insert({ title: title.slice(0, 80), model_url: url, category });
       if(error) throw error;
       toast('Modell hinzugefügt 🧊');
     }

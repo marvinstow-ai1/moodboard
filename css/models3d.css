@@ -99,6 +99,29 @@
 .m3d-sortmenu button:hover{background:rgba(255,255,255,.07);opacity:1}
 .m3d-sortmenu button.active{opacity:1;background:rgba(255,255,255,.1)}
 
+/* ── Kategorie-Filter-Chips ───────────────────────────────────────────────
+   Waagerechte Chip-Reihe unter der Toolbar: „Alle" plus je eine Chip pro
+   Kategorie mit Anzahl-Badge. Leere Kategorien bleiben sichtbar, aber gedimmt.*/
+.m3d-cats{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.m3d-cats[hidden]{display:none}
+.m3d-cat{
+  display:inline-flex;align-items:center;gap:7px;padding:7px 12px 7px 13px;
+  border:1px solid var(--border);border-radius:999px;
+  background:rgba(255,255,255,.04);color:#fff;font:inherit;font-size:12.5px;font-weight:650;
+  letter-spacing:.01em;cursor:pointer;opacity:.6;
+  transition:background .16s,border-color .16s,opacity .16s;
+}
+.m3d-cat:hover{opacity:.92;background:rgba(255,255,255,.08)}
+.m3d-cat.active{opacity:1;background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.28)}
+.m3d-cat.empty{opacity:.3}
+.m3d-cat.empty:hover{opacity:.5}
+.m3d-cat-n{
+  font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;
+  min-width:17px;height:17px;padding:0 5px;display:inline-grid;place-items:center;
+  border-radius:999px;background:rgba(255,255,255,.13);opacity:.9;
+}
+.m3d-cat.active .m3d-cat-n{background:rgba(0,0,0,.3)}
+
 /* ── Inventar-Grid: immer 3 pro Reihe, Modelle frei im Bühnen-Halo ────────
    Bewusst starr 3 Spalten (Inventar-Look), keine Kacheln/Karten drumherum. */
 .m3d-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 12px;align-items:start}
@@ -181,8 +204,24 @@
   padding:20px;
   animation:infoRise .26s cubic-bezier(.22,1,.36,1);
 }
+.m3dg-head{display:flex;flex-direction:column;gap:3px}
 .m3dg-title{font-size:16px;font-weight:750;letter-spacing:.01em}
-.m3dg-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.m3dg-sub{font-size:12px;font-weight:600;opacity:.45;letter-spacing:.02em;
+  font-variant-numeric:tabular-nums}
+.m3dg-sub:empty{display:none}
+.m3dg-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+
+/* Kategorie-Gruppen im Verwalten-Popup: kleine Überschrift + Anzahl, darunter
+   die Zeilen der Kategorie. Macht die Einteilung auf einen Blick lesbar. */
+.m3dg-group{display:flex;flex-direction:column;gap:6px}
+.m3dg-grouphead{display:flex;align-items:center;gap:8px;padding:0 2px 2px}
+.m3dg-groupname{font-size:10.5px;font-weight:750;letter-spacing:.09em;
+  text-transform:uppercase;opacity:.5}
+.m3dg-groupn{
+  font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;
+  min-width:16px;height:16px;padding:0 5px;display:inline-grid;place-items:center;
+  border-radius:999px;background:rgba(255,255,255,.1);opacity:.7;
+}
 .m3dg-empty{font-size:13px;opacity:.5;text-align:center;padding:18px 0;line-height:1.5}
 .m3dg-item{
   display:flex;align-items:center;gap:10px;padding:9px 10px;

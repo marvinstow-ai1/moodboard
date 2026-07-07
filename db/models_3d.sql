@@ -29,11 +29,36 @@ create table if not exists public.models_3d (
   -- obsidian | marble | neon | gold | glass | wood. Default: obsidian.
   pedestal   text not null default 'obsidian'
              check (pedestal in ('obsidian','marble','neon','gold','glass','wood')),
+  -- Inventar-Kategorie (Slug, Anzeigename im UI, siehe js/models3d.js):
+  --   chars   → "Chars"
+  --   devices → "Devices & Games"
+  --   sports  → "Sports"
+  --   random  → "Random Items"  (Default/Fallback für Altbestand)
+  category   text not null default 'random'
+             check (category in ('chars','devices','sports','random')),
   created_at timestamptz not null default now()
 );
 
 create index if not exists models_3d_created_idx
   on public.models_3d (created_at desc);
+
+create index if not exists models_3d_category_idx
+  on public.models_3d (category);
+
+-- Nachträgliche Migration für bestehende Tabellen (apply_migration:
+-- "models_3d_add_category"). Additiv & idempotent: neue Spalte mit Default
+-- 'random', d. h. alle vorhandenen Modelle landen zunächst unter "Random Items"
+-- und lassen sich danach im Verwalten-Popup umsortieren.
+alter table public.models_3d
+  add column if not exists category text not null default 'random';
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'models_3d_category_check') then
+    alter table public.models_3d
+      add constraint models_3d_category_check
+      check (category in ('chars','devices','sports','random'));
+  end if;
+end $$;
 
 alter table public.models_3d enable row level security;
 
