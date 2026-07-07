@@ -436,14 +436,14 @@ function initMoodChat() {
     };
   }
 
-  // Quick-Chip „Archive": macht dasselbe wie ein Klick auf „Marvin's Place" im
-  // Header – die komplette Gallery wird neu gemischt (doShuffle) und eine aktive
-  // Mood-Chat-Suche aufgehoben. Danach das Panel schließen.
+  // Quick-Chip „Archive": zurück zur zuletzt gesehenen Archiv-Ansicht mit allen
+  // Bildern – bewusst OHNE neu zu mischen (wie das Schließen der Info-Seite).
+  // Eine aktive Mood-Chat-Suche wird dabei aufgehoben. Danach das Panel schließen.
   const archiveChip = $('mcArchiveChip');
   if (archiveChip) {
     archiveChip.onclick = () => {
       clearStatus();
-      window.MB?.doShuffle?.();
+      window.MB?.showArchiveView?.();
       closePanel();
     };
   }
