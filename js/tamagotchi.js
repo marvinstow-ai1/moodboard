@@ -39,27 +39,43 @@ const hwBtns   = gadget.querySelectorAll('.buttons-container .button');
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const rand  = (a, b) => a + Math.random() * (b - a);
 
-/* ── Farbwechsel-Buttons (aus dem Gist) ─────────────────────────────────────*/
-const COLORS_BUTTON = [
-  { text: 'Rojo',     color: '#890000', buttonsColor: 'gold' },
-  { text: 'Turquesa', color: '#19B1AC', buttonsColor: '#ccc' },
-  { text: 'Negro',    color: '#111',    buttonsColor: '#bbb' },
-  { text: 'Azul',     color: '#001F91', buttonsColor: '#ddd' },
-  { text: 'Amarillo', color: '#d68111', buttonsColor: '#1836a3' },
+/* ── Tagesfarbe ─────────────────────────────────────────────────────────────
+   Kein manueller Farbwechsel mehr: Pro Tag wird automatisch EINE zufällige
+   Farbe gewählt, die den ganzen Tag über gilt. Am nächsten Tag zieht das
+   Skript die nächste (wieder zufällige) Farbe. Die Auswahl wird pro Datum in
+   localStorage gemerkt, damit die Farbe innerhalb eines Tages stabil bleibt. */
+const DAILY_COLORS = [
+  { color: '#890000', buttonsColor: 'gold' },
+  { color: '#19B1AC', buttonsColor: '#ccc' },
+  { color: '#111',    buttonsColor: '#bbb' },
+  { color: '#001F91', buttonsColor: '#ddd' },
+  { color: '#d68111', buttonsColor: '#1836a3' },
 ];
-const changeColor = gadget.querySelector('.change-color');
-const tamagotchi  = gadget.querySelector('.tamagotchi');
-if (changeColor && tamagotchi) {
-  changeColor.innerHTML = COLORS_BUTTON.map((c) =>
-    `<button type="button" style="--color: ${c.color}; --text-color: ${c.buttonsColor}"><span>${c.text}</span></button>`
-  ).join('');
-  changeColor.querySelectorAll('button').forEach((button, index) => {
-    button.addEventListener('click', () => {
-      tamagotchi.style.setProperty('--body-color', COLORS_BUTTON[index].color);
-      tamagotchi.style.setProperty('--buttons-color', COLORS_BUTTON[index].buttonsColor);
-    });
-  });
+const COLOR_KEY = 'mb-tama-color';
+const tamagotchi = gadget.querySelector('.tamagotchi');
+
+function todayStamp() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
+function dailyColor() {
+  const today = todayStamp();
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(COLOR_KEY)); } catch (e) {}
+  if (saved && saved.day === today && DAILY_COLORS[saved.index]) {
+    return DAILY_COLORS[saved.index];
+  }
+  const index = Math.floor(Math.random() * DAILY_COLORS.length);
+  try { localStorage.setItem(COLOR_KEY, JSON.stringify({ day: today, index })); } catch (e) {}
+  return DAILY_COLORS[index];
+}
+function applyDailyColor() {
+  if (!tamagotchi) return;
+  const c = dailyColor();
+  tamagotchi.style.setProperty('--body-color', c.color);
+  tamagotchi.style.setProperty('--buttons-color', c.buttonsColor);
+}
+applyDailyColor();
 
 /* ── Persistenter Zustand ──────────────────────────────────────────────────*/
 const KEY = 'mb-tama-v2';
@@ -346,6 +362,7 @@ function openPage() {
   page.setAttribute('aria-hidden', 'false');
   window.MB?.updateBodyLock?.();
   window.MB?.kickAutoplay?.();
+  applyDailyColor();                                   // ggf. neue Tagesfarbe
   simulate(S.lastTick, Date.now());                    // Offline-Zeit nachziehen
   closeStatus(); selIndex = -1; updateSel();
   render(); save();
