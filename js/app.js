@@ -2164,6 +2164,7 @@ function revealWhenReady(){
     setProgress(1);
     // Die 100 % kurz stehen lassen, dann pixelig ausblenden und entfernen.
     setTimeout(() => {
+      document.documentElement.classList.remove('booting');  // Scroll-Lock lösen (loading.css)
       boot.classList.add('hide');
       setTimeout(() => boot.remove(), 500);
     }, 200);
@@ -2205,7 +2206,7 @@ async function loadItems(){
   const {data,error} = await sb.from(S().table)
     .select('id,title,moods,tags,media_url,media_type,thumb_url,colors')
     .order('created_at',{ascending:false});
-  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; _bootPending = false; $('bootMsg')?.remove(); return; }
+  if(error){ toast('Ladefehler: '+error.message); gridEl.innerHTML='<div style="padding:24px;color:#fff">Kein Datenzugriff</div>'; _bootPending = false; document.documentElement.classList.remove('booting'); $('bootMsg')?.remove(); return; }
   S().items=data||[];
   mergeMoodsFromItems();
   renderGrid(); revealWhenReady();

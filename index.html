@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="de">
+<!-- .booting sperrt Scrollen bis der Loading Screen weg ist (loading.css);
+     entfernt wird die Klasse überall dort, wo #bootMsg ausgeblendet wird. -->
+<html lang="de" class="booting">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -209,6 +211,7 @@
     setTimeout(function(){
       var boot = document.getElementById('bootMsg');
       if(!boot) return;
+      document.documentElement.classList.remove('booting');
       boot.classList.add('hide');
       setTimeout(function(){ boot.remove(); }, 600);
     }, 20000);
