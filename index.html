@@ -511,8 +511,9 @@
 <script type="module" src="js/mood-chat.js"></script>
 <script type="module" src="js/guestbook.js"></script>
 <script type="module" src="js/models3d.js"></script>
-<!-- Tamagotchi-Seite: Öffnen/Schließen + Pure-CSS-Gadget (Farbwechsel). -->
-<script defer src="js/tamagotchi.js"></script>
+<!-- Tamagotchi-Seite: Öffnen/Schließen + Pure-CSS-Gadget (Farbwechsel).
+     Modul, weil der Zustand global über Supabase geteilt wird (import). -->
+<script type="module" src="js/tamagotchi.js"></script>
 <!-- Vor js/nav.js laden: liefert die Pixel-Icons für Hero-Badges und Vorschau. -->
 <script defer src="js/pixel-icons.js"></script>
 <script defer src="js/nav.js"></script>
