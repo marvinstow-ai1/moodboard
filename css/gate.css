@@ -6,13 +6,22 @@
    synchron, ob eine Session im localStorage liegt – so blitzt für bereits
    eingeloggte Nutzer kein Gate auf); die Logik wohnt in js/app.js. */
 .gate{
-  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:1200;
+  /* 100dvh statt 100vh/lvh: im Browser (nicht-Standalone) wächst/schrumpft
+     die sichtbare Höhe mit der URL-Leiste – dvh folgt ihr dynamisch, damit
+     Info-Button und Owner-Login nie unter der Browser-Leiste verschwinden. */
+  position:fixed;inset:0;height:100vh;height:100dvh;z-index:1200;
   background:var(--bg);
   display:none;align-items:center;justify-content:center;
   transition:opacity .45s steps(6);
 }
 html.gate-open .gate{display:flex}
 html.gate-open .loading-screen{display:none}
+/* Solange das Gate steht, ist es eine eigene Seite: nichts dahinter darf
+   scrollen oder durchscheinen (z. B. die Bottom-Pill beim Runterscrollen). */
+html.gate-open,html.gate-open body{
+  overflow:hidden;height:100%;overscroll-behavior:none;
+}
+html.gate-open .bottombar{display:none !important}
 .gate.hide{opacity:0;pointer-events:none}
 
 /* CRT-Scanlines wie auf dem Loading Screen */
@@ -65,7 +74,11 @@ html.gate-open .loading-screen{display:none}
 .gate-inner{
   position:relative;z-index:2;
   display:flex;flex-direction:column;align-items:center;gap:20px;
-  padding:24px;text-align:center;width:min(420px,92vw);
+  /* Extra Luft unten, damit der runde Info-Button nie über dem
+     Owner-Login-Link liegt. Wird der Viewport zu niedrig (Browser-
+     Suchleiste, Landscape), scrollt der Inhalt innerhalb des Gates. */
+  padding:24px 24px 84px;text-align:center;width:min(420px,92vw);
+  max-height:100%;overflow-y:auto;
 }
 
 .gate-title{
@@ -142,7 +155,7 @@ html.gate-open .loading-screen{display:none}
 
 /* ── Nutzungshinweise-Popup (über dem Gate) ─────────────────── */
 .gate-info-popup{
-  position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:1300;display:none;
+  position:fixed;inset:0;height:100vh;height:100dvh;z-index:1300;display:none;
   align-items:center;justify-content:center;padding:18px;
   background:rgba(0,0,0,.72);
 }
@@ -231,6 +244,31 @@ html.gate-open .loading-screen{display:none}
 }
 .hub-item.has-pending .acc-dot,
 .dd-btn.hub-access-item.has-pending .acc-dot{display:block}
+
+/* ── Kompakt-Layout bei wenig Höhe ──────────────────────────────
+   Im Browser (URL-/Suchleiste frisst Platz) oder im Landscape wird
+   alles enger gesetzt, damit Titel, Formular, Owner-Login UND der
+   Info-Button gleichzeitig sichtbar bleiben – eine Seite für Webapp
+   und Browser statt zwei. */
+@media (max-height:720px){
+  .gate-inner{gap:12px;padding:16px 20px 72px}
+  .gate-title{font-size:clamp(20px,6.5vw,36px)}
+  .gate-sub{line-height:1.6}
+  .gate-form{gap:9px;margin-top:2px}
+  .gate-input{padding:10px 12px}
+  .gate-btn{padding:11px}
+  .gate-status{min-height:22px}
+  .gate-owner-link{padding:4px}
+  .gate-info-btn{
+    width:38px;height:38px;font-size:12px;
+    bottom:calc(12px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-height:560px){
+  .gate-inner{gap:8px;padding:12px 20px 60px}
+  .gate-title{font-size:clamp(18px,5vw,26px)}
+  .gate-status{min-height:16px;line-height:1.5}
+}
 
 @media (prefers-reduced-motion:reduce){
   .gate-title{animation:none}

@@ -137,13 +137,28 @@ function showGate(msgKey) {
 // ── Gate-Swiper: zwei fließende Bild-Reihen hinter dem Login ────────
 // Die Auswahl kommt aus der öffentlichen RPC gate_teaser (SECURITY
 // DEFINER, db/gate_teaser.sql): ohne Session ist die Items-Tabelle per
-// RLS gesperrt, fürs Gate gibt die Funktion aber eine zufällige
-// Mini-Auswahl der Medien-URLs frei (keine Titel/Moods/Tags, keine
-// echten Videos). GIF-Clips laufen stumm in Dauerschleife, Bilder
-// nutzen ihr Grid-Thumbnail. Schlägt der Abruf fehl, bleibt das Gate
-// einfach ohne Swiper voll funktionsfähig.
+// RLS gesperrt, fürs Gate gibt die Funktion aber eine FESTE, pro
+// Kategorie kuratierte Mini-Auswahl der Medien-URLs frei (keine
+// Titel/Moods/Tags, keine echten Videos). Weil die Auswahl bei jedem
+// Besuch identisch ist, kommen die Bilder ab dem zweiten Besuch aus dem
+// HTTP-Cache; zusätzlich merkt sich localStorage die URL-Liste, damit
+// die Kacheln sofort stehen statt erst nach der RPC-Antwort.
+// GIF-Clips laufen stumm in Dauerschleife, Bilder nutzen ihr
+// Grid-Thumbnail. Schlägt der Abruf fehl, bleibt das Gate einfach ohne
+// Swiper voll funktionsfähig.
 let _gateSwiperDone = false;
 const GATE_ROW_TILES = 10;   // Kacheln pro Reihe (vor der Loop-Verdopplung)
+const GATE_TEASER_CACHE = 'mb_gate_teaser_v2';
+
+function gateTeaserFromCache() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(GATE_TEASER_CACHE));
+    return Array.isArray(arr) && arr.length ? arr : null;
+  } catch (e) { return null; }
+}
+function gateTeaserToCache(data) {
+  try { localStorage.setItem(GATE_TEASER_CACHE, JSON.stringify(data)); } catch (e) {}
+}
 
 // Der Teaser-Abruf startet sofort beim Laden des Moduls, parallel zum
 // Session-Check in initGate – das Inline-Script in index.html hat
@@ -176,6 +191,9 @@ function gateTile(it) {
   } else {
     const im = document.createElement('img');
     im.alt = ''; im.decoding = 'async';
+    // Sofort und mit hoher Priorität laden – die Kacheln sind das
+    // Erste, was man auf dem Gate sieht.
+    im.loading = 'eager'; im.fetchPriority = 'high';
     gateTileReady(im, 'load');
     im.src = it.thumb_url || it.media_url;
     if (im.complete) im.classList.add('ready');   // war schon im Cache
@@ -196,11 +214,23 @@ function fillGateTrack(track, items) {
   track.classList.add('run');
 }
 
+function fillGateSwiper(a, b, data) {
+  const second = data.slice(GATE_ROW_TILES);
+  fillGateTrack(a, data.slice(0, GATE_ROW_TILES));
+  fillGateTrack(b, second.length ? second : data);
+}
+
 async function initGateSwiper() {
   if (_gateSwiperDone) return;
   _gateSwiperDone = true;
   const a = $('gateTrackA'), b = $('gateTrackB');
   if (!a || !b) return;
+
+  // Liegt die (feste) Auswahl schon im localStorage, stehen die Kacheln
+  // sofort – die Bilder selbst kommen dann meist aus dem HTTP-Cache.
+  const cached = gateTeaserFromCache();
+  if (cached) fillGateSwiper(a, b, cached);
+
   try {
     // Vorgezogenen Abruf nutzen, falls er beim Modul-Load gestartet wurde;
     // sonst (z. B. Gate erst nach abgelaufener Session) jetzt anfragen.
@@ -208,9 +238,10 @@ async function initGateSwiper() {
     if (!res) return;
     const { data, error } = res;
     if (error || !Array.isArray(data) || !data.length) return;
-    const second = data.slice(GATE_ROW_TILES);
-    fillGateTrack(a, data.slice(0, GATE_ROW_TILES));
-    fillGateTrack(b, second.length ? second : data);
+    gateTeaserToCache(data);
+    // Kacheln nur bauen, wenn sie nicht schon aus dem Cache stehen –
+    // die Auswahl ist serverseitig fest, ein Neuaufbau würde nur flackern.
+    if (!cached) fillGateSwiper(a, b, data);
   } catch (e) { /* Swiper ist reine Deko – Fehler bewusst schlucken */ }
 }
 
