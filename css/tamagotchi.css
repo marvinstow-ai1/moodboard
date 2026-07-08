@@ -287,7 +287,96 @@
                 36px 48px 0 var(--pet-color),
                 44px 48px 0 var(--pet-color),
                 24px 52px 0 var(--pet-color),
-                40px 52px 0 var(--pet-color);
+                40px 52px 0 var(--pet-color),
+                /* ── Deckende Körper-Füllung ─────────────────────────────
+                   Der Sprite ist nur ein Pixel-UMRISS – ohne Füllung scheinen
+                   Wolken/Mond/Sterne durch den Körper hindurch und wirken,
+                   als zögen sie VOR dem Tier vorbei. Deshalb werden alle
+                   Innenpixel in der LCD-Hintergrundfarbe nachgelegt (liegen
+                   in der Shadow-Liste HINTER den dunklen Pixeln). So verdeckt
+                   die Figur den Himmel überall dort, wo sie steht – das Tier
+                   bleibt immer im Vordergrund. */
+                20px 4px 0 var(--lcd-bgcolor),
+                24px 4px 0 var(--lcd-bgcolor),
+                28px 4px 0 var(--lcd-bgcolor),
+                32px 4px 0 var(--lcd-bgcolor),
+                36px 4px 0 var(--lcd-bgcolor),
+                16px 8px 0 var(--lcd-bgcolor),
+                24px 8px 0 var(--lcd-bgcolor),
+                28px 8px 0 var(--lcd-bgcolor),
+                32px 8px 0 var(--lcd-bgcolor),
+                40px 8px 0 var(--lcd-bgcolor),
+                4px 12px 0 var(--lcd-bgcolor),
+                8px 12px 0 var(--lcd-bgcolor),
+                12px 12px 0 var(--lcd-bgcolor),
+                16px 12px 0 var(--lcd-bgcolor),
+                20px 12px 0 var(--lcd-bgcolor),
+                24px 12px 0 var(--lcd-bgcolor),
+                28px 12px 0 var(--lcd-bgcolor),
+                32px 12px 0 var(--lcd-bgcolor),
+                36px 12px 0 var(--lcd-bgcolor),
+                40px 12px 0 var(--lcd-bgcolor),
+                44px 12px 0 var(--lcd-bgcolor),
+                16px 16px 0 var(--lcd-bgcolor),
+                20px 16px 0 var(--lcd-bgcolor),
+                24px 16px 0 var(--lcd-bgcolor),
+                28px 16px 0 var(--lcd-bgcolor),
+                32px 16px 0 var(--lcd-bgcolor),
+                36px 16px 0 var(--lcd-bgcolor),
+                40px 16px 0 var(--lcd-bgcolor),
+                44px 16px 0 var(--lcd-bgcolor),
+                4px 20px 0 var(--lcd-bgcolor),
+                8px 20px 0 var(--lcd-bgcolor),
+                12px 20px 0 var(--lcd-bgcolor),
+                16px 20px 0 var(--lcd-bgcolor),
+                20px 20px 0 var(--lcd-bgcolor),
+                24px 20px 0 var(--lcd-bgcolor),
+                28px 20px 0 var(--lcd-bgcolor),
+                32px 20px 0 var(--lcd-bgcolor),
+                36px 20px 0 var(--lcd-bgcolor),
+                40px 20px 0 var(--lcd-bgcolor),
+                44px 20px 0 var(--lcd-bgcolor),
+                16px 24px 0 var(--lcd-bgcolor),
+                20px 24px 0 var(--lcd-bgcolor),
+                24px 24px 0 var(--lcd-bgcolor),
+                28px 24px 0 var(--lcd-bgcolor),
+                32px 24px 0 var(--lcd-bgcolor),
+                36px 24px 0 var(--lcd-bgcolor),
+                40px 24px 0 var(--lcd-bgcolor),
+                44px 24px 0 var(--lcd-bgcolor),
+                16px 28px 0 var(--lcd-bgcolor),
+                20px 28px 0 var(--lcd-bgcolor),
+                24px 28px 0 var(--lcd-bgcolor),
+                28px 28px 0 var(--lcd-bgcolor),
+                36px 28px 0 var(--lcd-bgcolor),
+                44px 28px 0 var(--lcd-bgcolor),
+                48px 28px 0 var(--lcd-bgcolor),
+                16px 32px 0 var(--lcd-bgcolor),
+                20px 32px 0 var(--lcd-bgcolor),
+                24px 32px 0 var(--lcd-bgcolor),
+                28px 32px 0 var(--lcd-bgcolor),
+                36px 32px 0 var(--lcd-bgcolor),
+                44px 32px 0 var(--lcd-bgcolor),
+                48px 32px 0 var(--lcd-bgcolor),
+                16px 36px 0 var(--lcd-bgcolor),
+                20px 36px 0 var(--lcd-bgcolor),
+                24px 36px 0 var(--lcd-bgcolor),
+                28px 36px 0 var(--lcd-bgcolor),
+                32px 36px 0 var(--lcd-bgcolor),
+                40px 36px 0 var(--lcd-bgcolor),
+                44px 36px 0 var(--lcd-bgcolor),
+                48px 36px 0 var(--lcd-bgcolor),
+                20px 40px 0 var(--lcd-bgcolor),
+                24px 40px 0 var(--lcd-bgcolor),
+                28px 40px 0 var(--lcd-bgcolor),
+                32px 40px 0 var(--lcd-bgcolor),
+                36px 40px 0 var(--lcd-bgcolor),
+                40px 40px 0 var(--lcd-bgcolor),
+                44px 40px 0 var(--lcd-bgcolor),
+                24px 44px 0 var(--lcd-bgcolor),
+                40px 44px 0 var(--lcd-bgcolor),
+                24px 48px 0 var(--lcd-bgcolor),
+                40px 48px 0 var(--lcd-bgcolor);
               /* Bewegung: statt des früheren hektischen Links-rechts-Gehüpfes
                  (tgMovePet) schlendert die Figur jetzt gemütlich (Keyframes
                  unten). Drei getrennte Animationen auf drei Properties:
@@ -384,11 +473,13 @@
   100%{translate:8px 0}
 }
 @keyframes tgStrollFace{
-  0%,26%  {transform:none}                /* schaut nach rechts, geht los    */
-  28%,56% {transform:rotateY(180deg)}     /* dreht um, schlendert nach links */
-  58%,86% {transform:none}                /* wieder nach rechts              */
-  88%,94% {transform:rotateY(180deg)}     /* schaut sich beim Stehen kurz um */
-  96%,100%{transform:none}
+  /* Das Sprite schaut unverwandelt nach LINKS – beim Gehen nach rechts wird
+     deshalb gespiegelt (rotateY), sonst läuft die Figur rückwärts. */
+  0%,26%  {transform:rotateY(180deg)}     /* schaut nach rechts, geht los    */
+  28%,56% {transform:none}                /* dreht um, schlendert nach links */
+  58%,86% {transform:rotateY(180deg)}     /* wieder nach rechts              */
+  88%,94% {transform:none}                /* schaut sich beim Stehen kurz um */
+  96%,100%{transform:rotateY(180deg)}
 }
 /* 2-Frame-„Trippeln"/Atmen: sanftes Stauchen, Füsse bleiben am Boden. */
 @keyframes tgStrollStep{
@@ -537,7 +628,9 @@
 @keyframes tgSweep{0%{left:-14px;transform:rotate(-8deg)}
   50%{transform:rotate(8deg)}100%{left:118px;transform:rotate(-8deg)}}
 
-/* ── Partikel (Herzen, Funken, Zzz, Krümel) – monochrom wie das LCD ───────*/
+/* ── Partikel (Herzen, Funken, Zzz, Krümel) – monochrom wie das LCD.
+   Liegen per DOM-Reihenfolge HINTER der Figur (nur der Boden mit den
+   Häufchen liegt vor dem Tier). ─────────────────────────────────────────*/
 .tama-gadget .tg-fx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .tama-gadget .tg-p{position:absolute;width:7px;height:7px;background:#222;will-change:transform,opacity}
 .tama-gadget .tg-p.heart{
@@ -570,8 +663,10 @@
    js/tamagotchi.js setzt .day/.night auf .screen anhand der echten Uhrzeit
    (7–19 Uhr = Tag): tagsüber scheint eine Sonne mit blinkenden Strahlen und
    Wolken ziehen langsam vorbei, nachts stehen Mond und funkelnde Sterne am
-   Himmel. Der Himmel liegt HINTER der Figur (DOM-Reihenfolge). Im Schlaf
-   blendet er aus – dann übernimmt das Schlaf-Overlay mit eigenem Mond. */
+   Himmel. Der Himmel liegt HINTER der Figur (DOM-Reihenfolge) – und weil der
+   Sprite eine deckende Körper-Füllung hat (s. .pet::before), verdeckt das
+   Tier Wolken & Co. auch wirklich, statt sie durchscheinen zu lassen. Im
+   Schlaf blendet er aus – dann übernimmt das Schlaf-Overlay mit eigenem Mond. */
 .tama-gadget .tg-sky{position:absolute;inset:0;pointer-events:none;transition:opacity .4s ease}
 .tama-gadget .screen.sleeping .tg-sky{opacity:0}
 .tama-gadget .tg-sky span{position:absolute;width:3px;height:3px}
@@ -639,8 +734,10 @@
 @keyframes tgStarBlink{0%,100%{opacity:.85}50%{opacity:.2}}
 
 /* Nachts bekommt das LCD einen dezenten Blau-Ton (bleibt gut lesbar;
-   .sick weiter unten gewinnt, das Schlaf-Overlay dunkelt zusätzlich ab). */
-.tama-gadget .screen.night{background:#adaeb6}
+   .sick weiter unten gewinnt, das Schlaf-Overlay dunkelt zusätzlich ab).
+   Über die Variable statt direkt als background, damit die deckende
+   Körper-Füllung der Figur (s. .pet::before) automatisch mitzieht. */
+.tama-gadget .screen.night{--lcd-bgcolor:#adaeb6}
 
 /* ── Pet-Zustände ─────────────────────────────────────────────────────────
    Wichtig: die Basis-Regeln des Pens sind tief verschachtelt (hohe
@@ -664,8 +761,9 @@
   40%    {transform:scale(var(--pet-scale)) translateY(-11px)}
   70%    {transform:scale(var(--pet-scale)) translateY(-3px)}}
 
-/* Krank: LCD leicht grünlich, Pet grünlich, kleines Kreuz blinkt. */
-.tama-gadget .screen.sick{background:#a9b8a2}
+/* Krank: LCD leicht grünlich, Pet grünlich, kleines Kreuz blinkt.
+   (Variable statt background, damit die Körper-Füllung mitzieht.) */
+.tama-gadget .screen.sick{--lcd-bgcolor:#a9b8a2}
 .tama-gadget .screen.sick .pet::before{--pet-color:#37503a}
 .tama-gadget .screen.sick .pet::after{
   content:"";position:absolute;top:2px;left:50%;width:7px;height:7px;background:#8a2b2b;
