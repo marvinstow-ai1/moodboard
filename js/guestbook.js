@@ -1,17 +1,22 @@
 // ============================================================================
-// Freundebuch — jede/r Freund/in gestaltet die eigene Steckbrief-Seite
+// Freundebuch — jede/r Freund/in gestaltet die eigene Steckbrief-DOPPELSEITE
 // ----------------------------------------------------------------------------
 // Öffnet sich als vollflächige Seite (wie die Info-Page) über den Buch-Button
-// in der Bottom-Bar. "Eintragen" öffnet den Editor: links/oben eine LIVE-
-// Vorschau der Seite (Name, Wohnort, Instagram, Hobbys, Lieblingsmusik/-sport/
-// -serie, Profilbild, Unterschrift), darunter die Steuerung. Man kann
-// Schriftart, Hintergrundfarbe und ein eigenes Hintergrundbild wählen und eine
-// Unterschrift malen (Canvas im 4:5-Format). Beim "Fertig" wird die Vorschau-
-// Karte 1:1 als JPEG gerendert (html2canvas), in den Storage-Bucket
+// in der Bottom-Bar. "Eintragen" öffnet den Editor: oben/links eine LIVE-
+// Vorschau mit Seiten-Umschalter — Seite 1 ist der Steckbrief (Name, Wohnort,
+// Instagram, Hobbys, Lieblingsmusik/-sport/-serie, Profilbild, Unterschrift),
+// Seite 2 ("Mehr über mich") ist vorerst eine leere Linien-Seite; die Inhalte
+// dafür folgen später. Schriftart, Hintergrundfarbe und eigenes Hintergrund-
+// bild gelten immer für BEIDE Seiten. Das Profilbild wird beim Auswählen
+// clientseitig quadratisch zugeschnitten (Data-URL) — so umschließt der Kreis
+// das Bild exakt und html2canvas rendert es zuverlässig (vorher wurde es
+// teils nur halb geladen). Beim "Fertig" werden beide Seiten mit html2canvas
+// gerendert und nebeneinander — mit Buchfalz-Schatten in der Mitte — zu EINEM
+// breiten Doppelseiten-JPEG zusammengesetzt, in den Storage-Bucket
 // (guestbook/) hochgeladen und als Eintrag in public.guestbook_entries
-// abgelegt (RLS: nur Mitglieder, siehe db/guestbook.sql). Die fertigen Seiten
-// erscheinen als 2-spaltiges Kachel-Raster ("Fotobuch", css/guestbook.css) und
-// lassen sich per Tipp groß in einer Lightbox ansehen.
+// abgelegt (RLS: nur Mitglieder, siehe db/guestbook.sql). Die fertigen
+// Doppelseiten erscheinen groß, eine pro Zeile (css/guestbook.css) und lassen
+// sich per Tipp in einer Lightbox ansehen.
 // ============================================================================
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -30,10 +35,13 @@ const canvas = $('gbdCanvas');
 const wrap   = $('gbdCanvasWrap');
 const area   = $('gbdCanvasArea');
 
-// Editor + Vorschau
-const editor  = $('fbEditor');
-const fbCard  = $('fbCard');
-const fbCardBg= $('fbCardBg');
+// Editor + Vorschau (Seite 1 = Steckbrief, Seite 2 = "Mehr über mich")
+const editor   = $('fbEditor');
+const fbCard   = $('fbCard');
+const fbCardBg = $('fbCardBg');
+const fbCard2  = $('fbCard2');
+const fbCardBg2= $('fbCardBg2');
+const CARDS    = [fbCard, fbCard2];
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -175,7 +183,7 @@ lightbox?.addEventListener('click', e => { if(e.target === lightbox) closeLightb
 
 // ── Editor: Live-Vorschau ───────────────────────────────────────────────────
 // Jedes Feld schreibt live in die passende Zeile der Vorschau-Karte.
-let profileURL = null;   // Object-URL des Profilbilds (null = keins)
+let profileURL = null;   // Data-URL des quadratisch zugeschnittenen Profilbilds
 let bgImgURL   = null;   // Object-URL des Hintergrundbilds
 let sigBlob    = null;   // gemalte Unterschrift als PNG-Blob
 let bgColor    = '#fff7e6';
@@ -222,13 +230,13 @@ FONTS.forEach((f, i) => {
   b.textContent = f.label;
   b.style.fontFamily = f.css;
   b.addEventListener('click', () => {
-    fbCard.style.fontFamily = f.css;
+    CARDS.forEach(c => { c.style.fontFamily = f.css; });
     fontsRow.querySelector('.is-active')?.classList.remove('is-active');
     b.classList.add('is-active');
   });
   fontsRow.appendChild(b);
 });
-fbCard.style.fontFamily = FONTS[0].css;
+CARDS.forEach(c => { c.style.fontFamily = FONTS[0].css; });
 
 // ── Hintergrundfarbe ────────────────────────────────────────────────────────
 const BG_COLORS = ['#fff7e6','#ffe1ec','#e3f2ff','#e7ffe6','#fff0b3','#f0e6ff','#ffffff','#ffd9c2'];
@@ -241,28 +249,78 @@ BG_COLORS.forEach((c, i) => {
   b.setAttribute('aria-label', 'Farbe ' + c);
   b.addEventListener('click', () => {
     bgColor = c;
-    if(!bgImgURL) fbCard.style.backgroundColor = c;
+    if(!bgImgURL) CARDS.forEach(cd => { cd.style.backgroundColor = c; });
     bgRow.querySelector('.is-active')?.classList.remove('is-active');
     b.classList.add('is-active');
   });
   bgRow.appendChild(b);
 });
-fbCard.style.backgroundColor = bgColor;
+CARDS.forEach(cd => { cd.style.backgroundColor = bgColor; });
+
+// ── Seiten-Umschalter (Vorschau: Seite 1 / Seite 2) ─────────────────────────
+let curPage = 1;
+function showPage(n){
+  curPage = n;
+  fbCard.hidden  = n !== 1;
+  fbCard2.hidden = n !== 2;
+  $('fbPageSwitch').querySelectorAll('.fb-pgbtn').forEach(b => {
+    const active = Number(b.dataset.page) === n;
+    b.classList.toggle('is-active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+}
+$('fbPageSwitch').querySelectorAll('.fb-pgbtn').forEach(b => {
+  b.addEventListener('click', () => showPage(Number(b.dataset.page)));
+});
 
 // ── Bild-Uploads (Profil + Hintergrund) ─────────────────────────────────────
 function pickFile(input){ input.value = ''; input.click(); }
 
-$('fbPhotoBtn').addEventListener('click', () => pickFile($('fbPhotoInput')));
+// Profilbild quadratisch (mittig) zuschneiden und als Data-URL zurückgeben.
+// Der Kreis auf der Seite umschließt das Bild damit exakt — und html2canvas
+// rendert Data-URLs zuverlässig (Object-URLs luden vorher teils nur halb).
+async function cropSquare(file){
+  const objURL = URL.createObjectURL(file);
+  try{
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = objURL; });
+    const src  = Math.min(img.naturalWidth, img.naturalHeight);
+    const size = Math.min(src, 900);
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    c.getContext('2d').drawImage(
+      img,
+      (img.naturalWidth - src) / 2, (img.naturalHeight - src) / 2, src, src,
+      0, 0, size, size
+    );
+    return c.toDataURL('image/jpeg', 0.92);
+  }finally{
+    URL.revokeObjectURL(objURL);
+  }
+}
+
+const openPhotoPicker = () => pickFile($('fbPhotoInput'));
+$('fbPhotoBtn').addEventListener('click', openPhotoPicker);
+// Nutzerfreundlich: Tipp direkt auf den Foto-Kreis in der Vorschau.
+$('fbPhotoSlot').addEventListener('click', openPhotoPicker);
+$('fbPhotoSlot').addEventListener('keydown', e => {
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPhotoPicker(); }
+});
 $('fbPhotoInput').addEventListener('change', async e => {
   const file = e.target.files?.[0];
   if(!file) return;
-  if(profileURL) URL.revokeObjectURL(profileURL);
-  profileURL = URL.createObjectURL(file);
+  try{
+    profileURL = await cropSquare(file);
+  }catch(err){
+    toast('Das Bild konnte nicht geladen werden');
+    return;
+  }
   const img = $('fbPhotoImg');
   img.src = profileURL;
   img.hidden = false;
   $('fbPhotoPh').hidden = true;
   $('fbPhotoSlot').classList.add('has-photo');
+  $('fbPhotoBtnLbl').textContent = 'Foto ändern';
 });
 
 $('fbBgImgBtn').addEventListener('click', () => pickFile($('fbBgImgInput')));
@@ -271,16 +329,15 @@ $('fbBgImgInput').addEventListener('change', e => {
   if(!file) return;
   if(bgImgURL) URL.revokeObjectURL(bgImgURL);
   bgImgURL = URL.createObjectURL(file);
-  fbCardBg.style.backgroundImage = `url("${bgImgURL}")`;
-  fbCard.classList.add('has-bg-img');
+  [fbCardBg, fbCardBg2].forEach(bg => { bg.style.backgroundImage = `url("${bgImgURL}")`; });
+  CARDS.forEach(c => c.classList.add('has-bg-img'));
   $('fbBgImgClear').hidden = false;
 });
 $('fbBgImgClear').addEventListener('click', () => {
   if(bgImgURL) URL.revokeObjectURL(bgImgURL);
   bgImgURL = null;
-  fbCardBg.style.backgroundImage = '';
-  fbCard.classList.remove('has-bg-img');
-  fbCard.style.backgroundColor = bgColor;
+  [fbCardBg, fbCardBg2].forEach(bg => { bg.style.backgroundImage = ''; });
+  CARDS.forEach(c => { c.classList.remove('has-bg-img'); c.style.backgroundColor = bgColor; });
   $('fbBgImgClear').hidden = true;
 });
 
@@ -292,6 +349,7 @@ function openEditor(){
   $('fbvName').textContent = saved;
   $('fbvName').dataset.empty = saved ? '0' : '1';
   clearError();
+  showPage(1);
   editor.classList.add('show');
   editor.setAttribute('aria-hidden', 'false');
 }
@@ -306,6 +364,7 @@ function showError(msg){
   const el = $('fbError');
   el.textContent = msg;
   el.classList.add('show');
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 function clearError(){
   const el = $('fbError');
@@ -403,6 +462,11 @@ function openDraw(){
 function closeDraw(){ draw.classList.remove('show'); }
 
 $('fbSignBtn').addEventListener('click', openDraw);
+// Nutzerfreundlich: Tipp direkt auf die Unterschrift-Zeile in der Vorschau.
+$('fbSignSlot').addEventListener('click', openDraw);
+$('fbSignSlot').addEventListener('keydown', e => {
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openDraw(); }
+});
 $('gbdClear').addEventListener('click', () => {
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -459,20 +523,60 @@ async function waitImages(){
   await Promise.all(imgs.map(i => (i.decode ? i.decode().catch(() => {}) : Promise.resolve())));
 }
 
-async function renderCardToBlob(){
+// Zwei Frames warten, bis das Layout nach einem Seitenwechsel steht.
+function settleFrames(){
+  return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+}
+
+async function renderCard(h2c, card){
+  const w = card.offsetWidth || 360;
+  const scale = Math.max(1.5, Math.min(3, 1080 / w));
+  card.classList.add('is-render');   // Editor-Rahmen/Rundung nicht mitrendern
+  try{
+    return await h2c(card, {
+      backgroundColor: bgImgURL ? null : bgColor,
+      scale,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+    });
+  }finally{
+    card.classList.remove('is-render');
+  }
+}
+
+// Beide Seiten rendern und nebeneinander zu EINEM Doppelseiten-Bild
+// zusammensetzen — mit dezentem Falz-Schatten in der Buchmitte.
+async function renderSpreadToBlob(){
   const h2c = await loadHtml2Canvas();
   try{ await (document.fonts?.ready ?? Promise.resolve()); }catch(e){}
   await waitImages();
-  const w = fbCard.offsetWidth || 360;
-  const scale = Math.max(1.5, Math.min(3, 1080 / w));
-  const rendered = await h2c(fbCard, {
-    backgroundColor: bgImgURL ? null : bgColor,
-    scale,
-    useCORS: true,
-    allowTaint: true,
-    logging: false,
-  });
-  return new Promise(res => rendered.toBlob(res, 'image/jpeg', 0.92));
+
+  const prevPage = curPage;
+  showPage(1); await settleFrames();
+  const c1 = await renderCard(h2c, fbCard);
+  showPage(2); await settleFrames();
+  const c2 = await renderCard(h2c, fbCard2);
+  showPage(prevPage);
+
+  const w = c1.width, h = c1.height;
+  const out = document.createElement('canvas');
+  out.width = w * 2;
+  out.height = h;
+  const octx = out.getContext('2d');
+  octx.drawImage(c1, 0, 0, w, h);
+  octx.drawImage(c2, w, 0, w, h);
+
+  // Buchfalz: weicher Schatten über der Mittelkante.
+  const spread = w * 0.045;
+  const g = octx.createLinearGradient(w - spread, 0, w + spread, 0);
+  g.addColorStop(0,   'rgba(0,0,0,0)');
+  g.addColorStop(0.5, 'rgba(0,0,0,.18)');
+  g.addColorStop(1,   'rgba(0,0,0,0)');
+  octx.fillStyle = g;
+  octx.fillRect(w - spread, 0, spread * 2, h);
+
+  return new Promise(res => out.toBlob(res, 'image/jpeg', 0.92));
 }
 
 // ── Speichern ────────────────────────────────────────────────────────────────
@@ -490,7 +594,7 @@ $('fbSave').addEventListener('click', async () => {
       .replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '')
       .replace(/\/.*$/, '') || null;
 
-    const blob = await renderCardToBlob();
+    const blob = await renderSpreadToBlob();
     if(!blob) throw new Error('render');
 
     const path = `guestbook/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
@@ -518,18 +622,19 @@ $('fbSave').addEventListener('click', async () => {
 // Editor nach erfolgreichem Speichern leeren (fürs nächste Mal).
 function resetEditor(){
   FIELD_MAP.forEach(([i, s]) => { $(i).value = ''; $(s).textContent = ''; $(s).dataset.empty = '1'; });
-  if(profileURL){ URL.revokeObjectURL(profileURL); profileURL = null; }
+  profileURL = null;   // Data-URL, kein revoke nötig
   $('fbPhotoImg').hidden = true; $('fbPhotoImg').removeAttribute('src');
   $('fbPhotoPh').hidden = false; $('fbPhotoSlot').classList.remove('has-photo');
+  $('fbPhotoBtnLbl').textContent = 'Foto auswählen';
   if(sigBlob){ sigBlob = null; }
   const sig = $('fbSignImg');
   if(sig.src) URL.revokeObjectURL(sig.src);
   sig.hidden = true; sig.removeAttribute('src');
   $('fbSignBtnLbl').textContent = 'Unterschrift malen';
   if(bgImgURL){ URL.revokeObjectURL(bgImgURL); bgImgURL = null; }
-  fbCardBg.style.backgroundImage = '';
-  fbCard.classList.remove('has-bg-img');
-  fbCard.style.backgroundColor = bgColor;
+  [fbCardBg, fbCardBg2].forEach(bg => { bg.style.backgroundImage = ''; });
+  CARDS.forEach(c => { c.classList.remove('has-bg-img'); c.style.backgroundColor = bgColor; });
+  showPage(1);
 }
 
 // Escape schließt von innen nach außen: Malfeld → Editor → Lightbox → Seite.

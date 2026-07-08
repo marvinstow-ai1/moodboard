@@ -847,7 +847,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
           <img class="fbh fbh-wave-blue"     src="img/fb/wave-blue.png?v=2"     alt="" aria-hidden="true">
           <img class="fbh fbh-star-white"    src="img/fb/star-white.png?v=2"    alt="" aria-hidden="true">
         </h1>
-        <p class="gb-hero-sub">Trag dich ein: füll deinen Steckbrief aus, mal deine Unterschrift und gestalte deine eigene Seite. ✏️</p>
+        <p class="gb-hero-sub">Trag dich ein: füll deinen Steckbrief aus, mal deine Unterschrift und gestalte deine eigene Doppelseite. ✏️</p>
       </div>
       <div class="gb-list" id="gbList">
         <div class="gb-status" id="gbStatus">Lade…</div>
@@ -863,82 +863,128 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   </button>
 </div>
 
-<!-- Freundebuch-Editor: eigene Steckbrief-Seite gestalten mit Live-Vorschau.
-     Links/oben die Vorschau-Karte (wird 1:1 als JPEG gerendert), darunter die
-     Steuerung (Felder, Profilbild, Unterschrift, Schriftart, Farbe, Bild). -->
+<!-- Freundebuch-Editor: eigene Steckbrief-DOPPELSEITE gestalten mit Live-
+     Vorschau. Oben/links die Vorschau (Seite 1 = Steckbrief, Seite 2 = "Mehr
+     über mich", umschaltbar), darunter die Steuerung in klaren Abschnitten
+     (Foto, Steckbrief, Unterschrift, Design). Beide Seiten werden beim
+     Speichern nebeneinander als EIN Doppelseiten-JPEG gerendert. -->
 <div class="fb-editor" id="fbEditor" role="dialog" aria-modal="true" aria-label="Freundebuch-Seite gestalten" aria-hidden="true">
   <div class="fb-editor-head">
     <button class="fb-ed-btn ghost" id="fbCancel" type="button">Abbrechen</button>
-    <span class="fb-ed-title">Deine Seite</span>
+    <span class="fb-ed-title">Deine Doppelseite</span>
     <button class="fb-ed-btn primary" id="fbSave" type="button">Fertig ✓</button>
   </div>
 
   <div class="fb-editor-body">
     <!-- ── Live-Vorschau (= das gerenderte Bild) ────────────────── -->
     <div class="fb-preview-wrap">
-      <div class="fb-card" id="fbCard">
-        <div class="fb-card-bg" id="fbCardBg"></div>
-        <div class="fb-card-inner">
-          <div class="fb-card-top">
-            <span class="fb-card-deco fb-card-deco--l" aria-hidden="true">✿</span>
-            <span class="fb-card-heading">Mein Steckbrief</span>
-            <span class="fb-card-deco fb-card-deco--r" aria-hidden="true">✿</span>
-          </div>
+      <div class="fb-pageswitch" id="fbPageSwitch" role="tablist" aria-label="Seite wählen">
+        <button class="fb-pgbtn is-active" type="button" data-page="1" role="tab" aria-selected="true">Seite 1 · Steckbrief</button>
+        <button class="fb-pgbtn" type="button" data-page="2" role="tab" aria-selected="false">Seite 2</button>
+      </div>
 
-          <div class="fb-photo" id="fbPhotoSlot">
-            <img class="fb-photo-img" id="fbPhotoImg" alt="" hidden>
-            <span class="fb-photo-ph" id="fbPhotoPh">Foto</span>
-          </div>
+      <div class="fb-pages">
+        <!-- Seite 1: der Steckbrief -->
+        <div class="fb-card" id="fbCard">
+          <div class="fb-card-bg" id="fbCardBg"></div>
+          <div class="fb-card-inner">
+            <div class="fb-card-top">
+              <span class="fb-card-deco fb-card-deco--l" aria-hidden="true">✿</span>
+              <span class="fb-card-heading">Mein Steckbrief</span>
+              <span class="fb-card-deco fb-card-deco--r" aria-hidden="true">✿</span>
+            </div>
 
-          <div class="fb-rows">
-            <div class="fb-row"><span class="fb-k">Name</span><span class="fb-dots"></span><span class="fb-v" id="fbvName" data-empty="1"></span></div>
-            <div class="fb-row"><span class="fb-k">Wohnort</span><span class="fb-dots"></span><span class="fb-v" id="fbvOrt" data-empty="1"></span></div>
-            <div class="fb-row"><span class="fb-k">Instagram</span><span class="fb-dots"></span><span class="fb-v" id="fbvInsta" data-empty="1"></span></div>
-            <div class="fb-row"><span class="fb-k">Hobbys</span><span class="fb-dots"></span><span class="fb-v" id="fbvHobby" data-empty="1"></span></div>
-            <div class="fb-row"><span class="fb-k">Lieblingsmusik</span><span class="fb-dots"></span><span class="fb-v" id="fbvMusik" data-empty="1"></span></div>
-            <div class="fb-row"><span class="fb-k">Lieblingssport</span><span class="fb-dots"></span><span class="fb-v" id="fbvSport" data-empty="1"></span></div>
-            <div class="fb-row"><span class="fb-k">Lieblingsserie</span><span class="fb-dots"></span><span class="fb-v" id="fbvSerie" data-empty="1"></span></div>
-          </div>
+            <div class="fb-photo" id="fbPhotoSlot" role="button" tabindex="0" aria-label="Profilbild wählen">
+              <img class="fb-photo-img" id="fbPhotoImg" alt="" hidden>
+              <span class="fb-photo-ph" id="fbPhotoPh">Foto</span>
+            </div>
 
-          <div class="fb-sign">
-            <span class="fb-sign-label">Unterschrift</span>
-            <div class="fb-sign-line">
-              <img class="fb-sign-img" id="fbSignImg" alt="" hidden>
+            <div class="fb-rows">
+              <div class="fb-row"><span class="fb-k">Name</span><span class="fb-dots"></span><span class="fb-v" id="fbvName" data-empty="1"></span></div>
+              <div class="fb-row"><span class="fb-k">Wohnort</span><span class="fb-dots"></span><span class="fb-v" id="fbvOrt" data-empty="1"></span></div>
+              <div class="fb-row"><span class="fb-k">Instagram</span><span class="fb-dots"></span><span class="fb-v" id="fbvInsta" data-empty="1"></span></div>
+              <div class="fb-row"><span class="fb-k">Hobbys</span><span class="fb-dots"></span><span class="fb-v" id="fbvHobby" data-empty="1"></span></div>
+              <div class="fb-row"><span class="fb-k">Lieblingsmusik</span><span class="fb-dots"></span><span class="fb-v" id="fbvMusik" data-empty="1"></span></div>
+              <div class="fb-row"><span class="fb-k">Lieblingssport</span><span class="fb-dots"></span><span class="fb-v" id="fbvSport" data-empty="1"></span></div>
+              <div class="fb-row"><span class="fb-k">Lieblingsserie</span><span class="fb-dots"></span><span class="fb-v" id="fbvSerie" data-empty="1"></span></div>
+            </div>
+
+            <div class="fb-sign" id="fbSignSlot" role="button" tabindex="0" aria-label="Unterschrift malen">
+              <span class="fb-sign-label">Unterschrift</span>
+              <div class="fb-sign-line">
+                <img class="fb-sign-img" id="fbSignImg" alt="" hidden>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Seite 2: "Mehr über mich" – bewusst noch leere Linien, die
+             Fragen/Inhalte folgen später. Design (Schrift, Farbe, Bild)
+             läuft immer synchron mit Seite 1. -->
+        <div class="fb-card fb-card--p2" id="fbCard2" hidden>
+          <div class="fb-card-bg" id="fbCardBg2"></div>
+          <div class="fb-card-inner">
+            <div class="fb-card-top">
+              <span class="fb-card-deco" aria-hidden="true">✿</span>
+              <span class="fb-card-heading">Mehr über mich</span>
+              <span class="fb-card-deco" aria-hidden="true">✿</span>
+            </div>
+            <div class="fb-p2-lines" aria-hidden="true">
+              <div class="fb-p2-line"></div>
+              <div class="fb-p2-line"></div>
+              <div class="fb-p2-line"></div>
+              <div class="fb-p2-line"></div>
+              <div class="fb-p2-line"></div>
+              <div class="fb-p2-line"></div>
+              <div class="fb-p2-line"></div>
+              <div class="fb-p2-line"></div>
+              <div class="fb-p2-line"></div>
+            </div>
+            <div class="fb-p2-note">to be continued … ✏️</div>
+          </div>
+        </div>
       </div>
+
+      <p class="fb-preview-hint">Tipp: Tippe in der Vorschau aufs Foto oder auf die Unterschrift ✨</p>
     </div>
 
-    <!-- ── Steuerung ─────────────────────────────────────────────── -->
+    <!-- ── Steuerung: klare Abschnitte statt langer Liste ────────── -->
     <div class="fb-controls">
-      <button class="fb-upload-btn" id="fbPhotoBtn" type="button">
-        <span class="fb-upload-ic" aria-hidden="true">📷</span> Profilbild wählen
-      </button>
-      <input type="file" id="fbPhotoInput" accept="image/*" hidden>
+      <section class="fb-sec">
+        <h3 class="fb-sec-title"><span class="fb-sec-ic" aria-hidden="true">📷</span> Profilbild</h3>
+        <p class="fb-sec-hint">Kommt in den Kreis auf deiner Seite – Gesicht bis halber Körper passt rein.</p>
+        <button class="fb-upload-btn" id="fbPhotoBtn" type="button"><span id="fbPhotoBtnLbl">Foto auswählen</span></button>
+        <input type="file" id="fbPhotoInput" accept="image/*" hidden>
+      </section>
 
-      <div class="fb-fields">
-        <label class="fb-field"><span class="fb-field-lbl">Name</span>
-          <input class="fb-input" id="fbName" maxlength="40" placeholder="Wie heißt du?" autocomplete="name"></label>
-        <label class="fb-field"><span class="fb-field-lbl">Wohnort</span>
-          <input class="fb-input" id="fbOrt" maxlength="40" placeholder="Wo wohnst du?"></label>
-        <label class="fb-field fb-field--insta"><span class="fb-field-lbl">Instagram</span>
-          <input class="fb-input" id="fbInsta" maxlength="40" placeholder="deinname" autocapitalize="none" autocomplete="off"></label>
-        <label class="fb-field"><span class="fb-field-lbl">Hobbys</span>
-          <input class="fb-input" id="fbHobby" maxlength="60" placeholder="Was machst du gern?"></label>
-        <label class="fb-field"><span class="fb-field-lbl">Lieblingsmusik</span>
-          <input class="fb-input" id="fbMusik" maxlength="60" placeholder="Band / Song / Genre"></label>
-        <label class="fb-field"><span class="fb-field-lbl">Lieblingssport</span>
-          <input class="fb-input" id="fbSport" maxlength="60" placeholder="Dein Sport"></label>
-        <label class="fb-field"><span class="fb-field-lbl">Lieblingsserie</span>
-          <input class="fb-input" id="fbSerie" maxlength="60" placeholder="Deine Serie"></label>
-      </div>
+      <section class="fb-sec">
+        <h3 class="fb-sec-title"><span class="fb-sec-ic" aria-hidden="true">✏️</span> Dein Steckbrief</h3>
+        <div class="fb-fields">
+          <label class="fb-field"><span class="fb-field-lbl">Name</span>
+            <input class="fb-input" id="fbName" maxlength="40" placeholder="Wie heißt du?" autocomplete="name" enterkeyhint="next"></label>
+          <label class="fb-field"><span class="fb-field-lbl">Wohnort</span>
+            <input class="fb-input" id="fbOrt" maxlength="40" placeholder="Wo wohnst du?" enterkeyhint="next"></label>
+          <label class="fb-field fb-field--insta"><span class="fb-field-lbl">Instagram</span>
+            <input class="fb-input" id="fbInsta" maxlength="40" placeholder="deinname" autocapitalize="none" autocomplete="off" enterkeyhint="next"></label>
+          <label class="fb-field"><span class="fb-field-lbl">Hobbys</span>
+            <input class="fb-input" id="fbHobby" maxlength="60" placeholder="Was machst du gern?" enterkeyhint="next"></label>
+          <label class="fb-field"><span class="fb-field-lbl">Lieblingsmusik</span>
+            <input class="fb-input" id="fbMusik" maxlength="60" placeholder="Band / Song / Genre" enterkeyhint="next"></label>
+          <label class="fb-field"><span class="fb-field-lbl">Lieblingssport</span>
+            <input class="fb-input" id="fbSport" maxlength="60" placeholder="Dein Sport" enterkeyhint="next"></label>
+          <label class="fb-field"><span class="fb-field-lbl">Lieblingsserie</span>
+            <input class="fb-input" id="fbSerie" maxlength="60" placeholder="Deine Serie" enterkeyhint="done"></label>
+        </div>
+      </section>
 
-      <button class="fb-upload-btn" id="fbSignBtn" type="button">
-        <span class="fb-upload-ic" aria-hidden="true">✍️</span> <span id="fbSignBtnLbl">Unterschrift malen</span>
-      </button>
+      <section class="fb-sec">
+        <h3 class="fb-sec-title"><span class="fb-sec-ic" aria-hidden="true">✍️</span> Unterschrift</h3>
+        <button class="fb-upload-btn" id="fbSignBtn" type="button"><span id="fbSignBtnLbl">Unterschrift malen</span></button>
+      </section>
 
-      <div class="fb-design">
+      <section class="fb-sec">
+        <h3 class="fb-sec-title"><span class="fb-sec-ic" aria-hidden="true">🎨</span> Design</h3>
+        <p class="fb-sec-hint">Gilt für beide Seiten deiner Doppelseite.</p>
         <div class="fb-design-group">
           <span class="fb-design-label">Schriftart</span>
           <div class="fb-fonts" id="fbFonts" role="radiogroup" aria-label="Schriftart"></div>
@@ -950,14 +996,12 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
         <div class="fb-design-group">
           <span class="fb-design-label">Eigenes Hintergrundbild</span>
           <div class="fb-bgimg-row">
-            <button class="fb-upload-btn slim" id="fbBgImgBtn" type="button">
-              <span class="fb-upload-ic" aria-hidden="true">🖼️</span> Bild hochladen
-            </button>
+            <button class="fb-upload-btn slim" id="fbBgImgBtn" type="button">🖼️ Bild hochladen</button>
             <button class="fb-bgimg-clear" id="fbBgImgClear" type="button" hidden>entfernen</button>
           </div>
           <input type="file" id="fbBgImgInput" accept="image/*" hidden>
         </div>
-      </div>
+      </section>
 
       <div class="fb-error" id="fbError">&nbsp;</div>
     </div>

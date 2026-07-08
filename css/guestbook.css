@@ -53,7 +53,8 @@
      190px = Platz für den gestapelten Eintragen-Button + globale Pill. */
   padding-bottom:calc(100lvh - var(--app-vh,100lvh) + 190px + env(safe-area-inset-bottom));
 }
-.gb-inner{width:min(640px,100%);margin:0 auto}
+/* Breiter als früher (640px): eine Doppelseite pro Zeile braucht Platz. */
+.gb-inner{width:min(760px,100%);margin:0 auto}
 
 .gb-hero{
   display:flex;flex-direction:column;align-items:center;text-align:center;
@@ -69,27 +70,17 @@
   50%{transform:translateY(-6px)}
 }
 
-/* Einträge: 2-spaltiges Kachel-Raster im Insta-Feed-Stil (wie die Kacheln
-   der Grid-Ansicht) – Bild oben als 4:5-Kachel (ganzes Bild sichtbar),
-   Name/Insta/Datum als Caption darunter. */
-.gb-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start}
-.gb-status{grid-column:1/-1;text-align:center;font-size:13px;opacity:.45;padding:26px 0;letter-spacing:.03em}
+/* Einträge: EINE Doppelseite pro Zeile – jeder Eintrag ist ein aufgeschlagenes
+   Buch (2 Seiten nebeneinander, als ein breites Bild gerendert). Kein dunkler
+   Karten-Rahmen mehr: das Papier-Bild steht groß für sich, darunter nur eine
+   schlanke Caption (Name, Insta, Datum). */
+.gb-list{display:flex;flex-direction:column;gap:30px;align-items:stretch}
+.gb-status{text-align:center;font-size:13px;opacity:.45;padding:26px 0;letter-spacing:.03em}
 
 .gb-entry{
-  display:flex;flex-direction:column;
-  border:1px solid var(--border);border-radius:20px;overflow:hidden;
-  /* Etwas deckender als früher: die Seite ist jetzt ein Glas-Popup, hinter
-     dem bunte Grid-Medien durchschimmern – Name/Datum sollen lesbar bleiben. */
-  background:rgba(18,18,20,.72);
-  box-shadow:0 10px 36px rgba(0,0,0,.32);
+  display:flex;flex-direction:column;gap:10px;
   opacity:0;transform:translateY(14px);
   animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
-  transition:border-color .25s,background-color .25s,box-shadow .25s;
-}
-/* Nur Border/Glow, kein transform – das hielte die forwards-Animation fest. */
-.gb-entry:hover{
-  border-color:rgba(255,255,255,.22);background:rgba(26,26,28,.78);
-  box-shadow:0 14px 44px rgba(0,0,0,.42);
 }
 /* Leichtes Staffeln der ersten Einträge beim Öffnen. */
 .gb-entry:nth-child(1){animation-delay:.05s}
@@ -101,21 +92,24 @@
 .gb-entry:nth-child(7){animation-delay:.29s}
 .gb-entry:nth-child(8){animation-delay:.33s}
 
-/* Bild-Kachel: gleiche 4:5-Ratio wie das Malfeld – neue Bilder füllen sie
-   exakt, alte (freigestellte Unterschriften) werden zentriert eingepasst. */
-.gb-entry-media{
-  position:relative;aspect-ratio:4/5;
-  background:rgba(255,255,255,.03);
-  border-bottom:1px solid rgba(255,255,255,.06);
+/* Das Bild bestimmt seine Höhe selbst: neue Doppelseiten sind breit (8:5),
+   ältere Einzelseiten (4:5) bleiben ohne Beschnitt sichtbar – nur nach oben
+   gedeckelt, damit ein Hochformat die Liste nicht sprengt. */
+.gb-entry-media{position:relative;cursor:pointer;line-height:0}
+.gb-entry-media img{
+  width:100%;height:auto;max-height:72vh;object-fit:contain;display:block;
+  border-radius:16px;border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 14px 44px rgba(0,0,0,.45);
+  transition:box-shadow .25s,border-color .25s;
 }
-/* Die Kachel zeigt jetzt die ganze gerenderte Freundebuch-Seite (4:5) –
-   füllt die 4:5-Kachel exakt, Tipp öffnet die Lightbox. */
-.gb-entry-media{cursor:pointer}
-.gb-entry-media img{width:100%;height:100%;object-fit:cover;display:block}
+.gb-entry-media:hover img{
+  border-color:rgba(255,255,255,.2);
+  box-shadow:0 18px 56px rgba(0,0,0,.55);
+}
 
-/* Caption unterm Bild – wie bei einem Insta-Post. */
-.gb-entry-meta{min-width:0;display:flex;flex-direction:column;gap:3px;padding:10px 12px 12px}
-.gb-entry-name{font-size:13.5px;font-weight:700;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Schlanke Caption unter der Doppelseite. */
+.gb-entry-meta{min-width:0;display:flex;flex-direction:column;gap:2px;padding:0 4px}
+.gb-entry-name{font-size:14.5px;font-weight:700;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gb-entry-warhier{font-size:12px;font-weight:500;opacity:.45;letter-spacing:.02em}
 .gb-entry-sub{display:flex;align-items:baseline;gap:6px;min-width:0}
 .gb-entry-insta{
@@ -283,8 +277,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 .gbd-canvas-wrap.has-ink .gbd-hint{opacity:0}
 
 @media(max-width:480px){
-  .gb-list{gap:10px}
-  .gb-entry-meta{padding:9px 10px 11px}
+  .gb-list{gap:22px}
   .gbd-content{padding:13px;gap:9px}
 }
 
@@ -415,7 +408,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   border-bottom:1px solid var(--border);
   background:rgba(13,13,15,.9);
 }
-.fb-ed-title{font-size:15px;font-weight:700;letter-spacing:.02em;opacity:.9}
+.fb-ed-title{font-size:15px;font-weight:700;letter-spacing:.02em;opacity:.9;text-align:center;line-height:1.25}
 .fb-ed-btn{
   height:40px;padding:0 18px;border-radius:999px;font-size:14px;font-weight:700;
   letter-spacing:.02em;cursor:pointer;transition:.15s;border:1px solid var(--border);
@@ -432,16 +425,52 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   display:flex;flex-direction:column;gap:20px;align-items:center;
 }
 
-/* ── Live-Vorschau: Wrapper ──────────────────────────────────────────────── */
-.fb-preview-wrap{width:min(340px,100%);flex-shrink:0}
+/* ── Live-Vorschau: Wrapper mit Seiten-Umschalter ────────────────────────── */
+.fb-preview-wrap{
+  width:min(360px,100%);flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;
+  /* Container für cqw-Einheiten: die Karten-Typo skaliert mit der Breite,
+     damit der Steckbrief auf jeder Viewport-Größe exakt in die 4:5-Seite
+     passt (Fallback: feste 15px, s. .fb-card). */
+  container-type:inline-size;
+}
+
+/* Segmented Control: Seite 1 (Steckbrief) / Seite 2. */
+.fb-pageswitch{
+  display:flex;gap:4px;padding:4px;margin-bottom:14px;
+  border:1px solid var(--border);border-radius:999px;
+  background:rgba(255,255,255,.05);
+}
+.fb-pgbtn{
+  height:34px;padding:0 16px;border:0;border-radius:999px;
+  background:transparent;color:#fff;opacity:.6;
+  font-size:13px;font-weight:700;letter-spacing:.02em;cursor:pointer;
+  transition:opacity .15s,background-color .15s,color .15s;
+}
+.fb-pgbtn:hover{opacity:.85}
+.fb-pgbtn.is-active{background:#fff;color:#000;opacity:1}
+
+.fb-pages{width:100%}
+
+.fb-preview-hint{
+  margin-top:12px;font-size:12px;font-weight:500;opacity:.4;
+  text-align:center;letter-spacing:.02em;
+}
 
 /* ── Die Vorschau-Karte = das gerenderte Bild ────────────────────────────── */
 .fb-card{
   position:relative;width:100%;aspect-ratio:4/5;overflow:hidden;
   border-radius:20px;border:2px dashed rgba(0,0,0,.18);
-  background:#fff7e6;color:#2c2620;font-family:'Patrick Hand',cursive;font-size:15px;
+  background:#fff7e6;color:#2c2620;font-family:'Patrick Hand',cursive;
+  /* Fallback für Browser ohne Container Queries, sonst breiten-relativ. */
+  font-size:15px;font-size:4.1cqw;
   box-shadow:0 14px 40px rgba(0,0,0,.45);
 }
+/* Nur während des html2canvas-Renderns: gestrichelter Editor-Rahmen und
+   Eckenrundung raus – die fertige Doppelseite ist eine durchgehende,
+   randlose Buchseite (die Liste rundet das Bild selbst). */
+.fb-card.is-render{border-color:transparent;border-radius:0}
+
 .fb-card-bg{
   position:absolute;inset:0;z-index:0;
   background-size:cover;background-position:center;background-repeat:no-repeat;
@@ -463,11 +492,17 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 .fb-card-deco{font-size:1.1em;color:#e8619d}
 
+/* Foto-Kreis: größer als früher (44 % statt 34 % der Seitenbreite – genug
+   Platz für Gesicht bis halben Körper) und cleaner: ein einzelner ruhiger
+   Tinten-Ring statt weißem Rahmen + Doppel-Ring. Das Bild wird beim Auswählen
+   quadratisch vorgeschnitten (js), der Kreis umschließt es also exakt. */
 .fb-photo{
-  align-self:center;width:34%;aspect-ratio:1;border-radius:50%;overflow:hidden;
-  background:rgba(0,0,0,.05);border:3px solid #fff;
-  box-shadow:0 0 0 2px rgba(0,0,0,.18),0 4px 10px rgba(0,0,0,.15);
+  align-self:center;width:44%;aspect-ratio:1;border-radius:50%;overflow:hidden;
+  background:rgba(0,0,0,.05);
+  border:.16em solid rgba(44,38,32,.65);
+  box-shadow:0 .25em .7em rgba(0,0,0,.14);
   display:grid;place-items:center;margin:.1em 0 .25em;
+  cursor:pointer;
 }
 .fb-photo-img{width:100%;height:100%;object-fit:cover;display:block}
 .fb-photo-ph{font-size:.95em;opacity:.4;font-weight:700}
@@ -483,7 +518,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
-.fb-sign{display:flex;flex-direction:column;gap:.15em;margin-top:.3em}
+.fb-sign{display:flex;flex-direction:column;gap:.15em;margin-top:.3em;cursor:pointer}
 .fb-sign-label{font-size:.85em;font-weight:700;opacity:.6}
 .fb-sign-line{
   min-height:2.4em;border-bottom:1.6px dotted rgba(0,0,0,.3);
@@ -491,8 +526,32 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 .fb-sign-img{max-height:3.4em;max-width:60%;object-fit:contain;display:block}
 
-/* ── Steuerung ───────────────────────────────────────────────────────────── */
+/* ── Seite 2: "Mehr über mich" – leere Linien, Inhalte folgen später ─────── */
+.fb-p2-lines{
+  flex:1;display:flex;flex-direction:column;justify-content:space-evenly;
+  padding:.4em .1em .2em;
+}
+.fb-p2-line{border-bottom:1.6px dotted rgba(0,0,0,.3);height:0}
+.fb-p2-note{
+  text-align:center;font-size:.9em;opacity:.45;font-weight:700;
+  padding-bottom:.2em;
+}
+
+/* ── Steuerung: klar getrennte Abschnitts-Karten ─────────────────────────── */
 .fb-controls{width:min(420px,100%);display:flex;flex-direction:column;gap:14px}
+
+.fb-sec{
+  display:flex;flex-direction:column;gap:12px;
+  border:1px solid var(--border);border-radius:18px;
+  background:rgba(255,255,255,.03);
+  padding:16px;
+}
+.fb-sec-title{
+  display:flex;align-items:center;gap:8px;margin:0;
+  font-size:14px;font-weight:700;letter-spacing:.02em;
+}
+.fb-sec-ic{font-size:15px}
+.fb-sec-hint{margin:-6px 0 0;font-size:12px;line-height:1.45;opacity:.45;font-weight:500}
 
 .fb-upload-btn{
   width:100%;height:48px;border-radius:14px;
@@ -522,9 +581,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
   font-size:15px;font-weight:600;opacity:.45;pointer-events:none;
 }
 
-/* Design-Block */
-.fb-design{display:flex;flex-direction:column;gap:16px;
-  border-top:1px solid var(--border);padding-top:16px;margin-top:2px}
+/* Design-Gruppen (leben jetzt in der 🎨-Abschnitts-Karte). */
 .fb-design-group{display:flex;flex-direction:column;gap:9px}
 .fb-design-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;opacity:.5}
 
@@ -566,7 +623,7 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
     flex-direction:row;align-items:flex-start;justify-content:center;
     gap:40px;padding-top:28px;
   }
-  .fb-preview-wrap{position:sticky;top:0;width:360px}
+  .fb-preview-wrap{position:sticky;top:0;width:380px}
   .fb-controls{width:400px}
 }
 
@@ -581,7 +638,8 @@ a.gb-entry-insta:hover{opacity:.85;text-decoration:underline}
 }
 .fb-lightbox.show{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s ease,visibility 0s}
 .fb-lightbox-img{
-  max-width:min(440px,92vw);max-height:86vh;width:auto;height:auto;
+  /* Doppelseiten sind breit – die Lightbox darf entsprechend groß werden. */
+  max-width:min(960px,94vw);max-height:86vh;width:auto;height:auto;
   border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.7);
   transform:scale(.96);transition:transform .22s cubic-bezier(.22,1,.36,1);
 }
