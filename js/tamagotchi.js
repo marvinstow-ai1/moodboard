@@ -17,7 +17,20 @@
 
    Hardware-Buttons unten:  A = Auswahl weiter · B = Bestätigen · C = Abbrechen.
    Frühere Canvas-Version: archive/tamagotchi-classic/.
+
+   GEMEINSAMES TIER: Der Spielzustand ist NICHT mehr pro Browser (localStorage),
+   sondern global — genau EIN Tier für alle. Er liegt in Supabase in einer
+   einzigen Zeile (public.tamagotchi_state, id = 1, siehe db/tamagotchi.sql) und
+   wird per Realtime zwischen allen offenen Browsern synchron gehalten: Füttert
+   jemand, sind alle satt. localStorage dient nur noch als schneller Zwischen-
+   Cache fürs erste Bild, bis der Server-Zustand geladen ist.
    ============================================================================ */
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://uvfuxnwinuakbqanaxtp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2ZnV4bndpbnVha2JxYW5heHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNzg3MDIsImV4cCI6MjA5NTc1NDcwMn0.quSvaycB3Yk2JXCnQz7AQmHpyATtx6u0U8aGQXD73fo';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 (function () {
 'use strict';
 
@@ -53,23 +66,20 @@ const DAILY_COLORS = [
   { color: '#001F91', buttonsColor: '#ddd' },
   { color: '#d68111', buttonsColor: '#1836a3' },
 ];
-const COLOR_KEY = 'mb-tama-color';
 const tamagotchi = gadget.querySelector('.tamagotchi');
 
 function todayStamp() {
   const d = new Date();
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
+// Farbe deterministisch aus dem Datum ableiten (kein Zufall, kein Speicher):
+// So sieht das gemeinsame Tier an einem Tag bei ALLEN gleich aus und wechselt
+// zum nächsten Tag automatisch die Farbe.
 function dailyColor() {
-  const today = todayStamp();
-  let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(COLOR_KEY)); } catch (e) {}
-  if (saved && saved.day === today && DAILY_COLORS[saved.index]) {
-    return DAILY_COLORS[saved.index];
-  }
-  const index = Math.floor(Math.random() * DAILY_COLORS.length);
-  try { localStorage.setItem(COLOR_KEY, JSON.stringify({ day: today, index })); } catch (e) {}
-  return DAILY_COLORS[index];
+  const stamp = todayStamp();
+  let hash = 0;
+  for (let i = 0; i < stamp.length; i++) hash = (hash * 31 + stamp.charCodeAt(i)) >>> 0;
+  return DAILY_COLORS[hash % DAILY_COLORS.length];
 }
 function applyDailyColor() {
   if (!tamagotchi) return;
@@ -91,6 +101,8 @@ function defaults() {
     nextPoop: 0,      // Timestamp: nach dem Essen kommt irgendwann ein Häufchen
   };
 }
+// Erststart: schnell aus dem lokalen Cache malen, damit sofort ein Tier da ist.
+// Der maßgebliche (globale) Zustand kommt gleich danach vom Server (loadState).
 let S = (() => {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY));
@@ -98,7 +110,59 @@ let S = (() => {
   } catch (e) {}
   return defaults();
 })();
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+// localStorage ist nur noch Cache fürs erste Bild – nicht mehr die Wahrheit.
+function cacheLocal() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* ── Globaler Zustand über Supabase ────────────────────────────────────────
+   Genau eine Zeile (id = 1). Gelesen wird beim Öffnen, geschrieben wird nach
+   jeder Aktion (entprellt). Realtime pusht fremde Änderungen sofort zu uns.  */
+let persistTimer = null;
+let echoUntil    = 0;   // kurz nach eigenem Schreiben eigene Realtime-Echos ignorieren
+
+async function pushRemote() {
+  clearTimeout(persistTimer); persistTimer = null;
+  echoUntil = Date.now() + 2500;
+  try {
+    await sb.from('tamagotchi_state')
+      .update({ state: S, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+  } catch (e) {}
+}
+function schedulePersist() {
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(pushRemote, 500);
+}
+// Nach jeder Aktion: lokal cachen + (entprellt) global speichern.
+function save() { cacheLocal(); schedulePersist(); }
+
+async function loadState() {
+  try {
+    const { data, error } = await sb
+      .from('tamagotchi_state').select('state').eq('id', 1).maybeSingle();
+    if (!error && data && data.state && typeof data.state === 'object') {
+      S = Object.assign(defaults(), data.state);
+      cacheLocal();
+    }
+  } catch (e) {}
+}
+
+// Fremde Änderung (jemand anderes hat gefüttert/geputzt …) übernehmen.
+function applyRemote(state) {
+  if (!state || typeof state !== 'object') return;
+  if (Date.now() < echoUntil) return;           // eigenes Echo -> ignorieren
+  S = Object.assign(defaults(), state);
+  simulate(S.lastTick, Date.now());
+  cacheLocal();
+  if (page.classList.contains('show')) render();
+}
+try {
+  sb.channel('tamagotchi_state_changes')
+    .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tamagotchi_state' },
+        (payload) => applyRemote(payload.new && payload.new.state))
+    .subscribe();
+} catch (e) {}
 
 function ageDays() { return Math.floor((Date.now() - S.born) / 86400000); }
 function weightG() { return Math.round(5 + (S.hunger / 100) * 3 + S.snacks * 0.6); }
@@ -356,7 +420,11 @@ let tickTimer = null;
 function tick() {
   simulate(S.lastTick, Date.now());
   if (S.sleeping && Math.random() < 0.5) spawn('zzz', 1);
-  render(); save();
+  // Der stille Zeit-Zerfall wird NICHT bei jedem Tick zur DB geschickt (das
+  // würde bei mehreren offenen Browsern nur Schreib-Kollisionen erzeugen).
+  // Er landet global erst beim nächsten echten Handeln bzw. beim Schließen –
+  // beim nächsten Öffnen rechnet simulate() den Zeitraum ohnehin wieder nach.
+  render(); cacheLocal();
 }
 function start() { if (tickTimer) return; tickTimer = setInterval(tick, 1500); }
 function stop()  { clearInterval(tickTimer); tickTimer = null; }
@@ -368,7 +436,7 @@ function markAnimating() {
   clearTimeout(animTimer);
   animTimer = setTimeout(() => page.classList.remove('is-animating'), 320);
 }
-function openPage() {
+async function openPage() {
   // Wie die anderen Pill-Popups (Spotify/Navi/Chat): nur die konkurrierenden
   // Bottom-Bar-Popups schließen. Die aktuelle Seite bleibt stehen – das
   // Tamagotchi legt sich als Overlay darüber und ist auf jeder Ansicht nutzbar.
@@ -378,17 +446,24 @@ function openPage() {
   page.setAttribute('aria-hidden', 'false');
   openBtn?.classList.add('active');
   applyDailyColor();                                   // ggf. neue Tagesfarbe
-  simulate(S.lastTick, Date.now());                    // Offline-Zeit nachziehen
+  // Sofort mit dem (gecachten) Stand malen, dann den globalen Server-Stand
+  // holen und übernehmen – so ist gleich ein Tier da, ohne auf das Netz zu
+  // warten.
+  simulate(S.lastTick, Date.now());
   closeStatus(); selIndex = -1; updateSel();
-  render(); save();
+  render();
   start();
+  await loadState();                                   // globaler Stand (Wahrheit)
+  simulate(S.lastTick, Date.now());                    // Offline-Zeit nachziehen
+  if (page.classList.contains('show')) render();
 }
 function closePage() {
   markAnimating();
   page.classList.remove('show');
   page.setAttribute('aria-hidden', 'true');
   openBtn?.classList.remove('active');
-  stop(); save();
+  stop();
+  cacheLocal(); pushRemote();                          // Stand global sichern
 }
 
 // Öffnen ausschließlich über den Tier-Button in der Pill (das Tamagotchi ist
@@ -411,14 +486,22 @@ document.addEventListener('click', (e) => {
 // Wird das Pop-up anderweitig (z. B. via closeOtherPopups) versteckt, liefe der
 // Tick weiter. Deshalb absichern: verschwindet .show, stoppen.
 new MutationObserver(() => {
-  if (!page.classList.contains('show') && tickTimer) { stop(); save(); }
+  if (!page.classList.contains('show') && tickTimer) { stop(); cacheLocal(); pushRemote(); }
 }).observe(page, { attributes: true, attributeFilter: ['class'] });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { save(); stop(); }
-  else if (page.classList.contains('show')) { simulate(S.lastTick, Date.now()); render(); start(); }
+  if (document.hidden) { cacheLocal(); pushRemote(); stop(); }
+  else if (page.classList.contains('show')) {
+    stop();
+    loadState().then(() => {                            // beim Zurückkommen frischen globalen Stand holen
+      simulate(S.lastTick, Date.now());
+      if (page.classList.contains('show')) { render(); start(); }
+    });
+  }
 });
-window.addEventListener('pagehide', save);
+// Beim Entladen ist ein normaler Netz-Request unzuverlässig – wenigstens lokal
+// cachen; der globale Stand wurde beim letzten Handeln/Schließen gesichert.
+window.addEventListener('pagehide', cacheLocal);
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || !page.classList.contains('show')) return;
