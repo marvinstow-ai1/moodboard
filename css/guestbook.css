@@ -17,8 +17,16 @@
   height:100vh;height:100lvh;
   display:flex;flex-direction:column;
   /* Deckend schwarzer Hintergrund (kein Glas-Popup mehr): die Seite legt sich
-     vollständig über die darunter liegende Ansicht. */
-  background:#000;
+     vollständig über die darunter liegende Ansicht.
+     Feste Papier-Textur als Seiten-Hintergrund: Das Bild ist ein stark
+     komprimiertes 720px-WebP (~36 KB, img/fb/paper-bg.webp). Die Farbe #000
+     malt SOFORT (0 ms, render-blocking-frei) – die Seite ist also von der
+     ersten Millisekunde an schwarz, exakt wie eine normale schwarze Seite.
+     Die schwarz-auf-schwarze Textur lädt als niedrig priorisiertes
+     Hintergrundbild nach und "schärft" unsichtbar ein – kein Flash, kein
+     Layout-Shift, keine wahrnehmbare Ladezeit. center/cover deckt jeden
+     Portrait-Viewport formatfüllend ab. */
+  background:#000 url('../img/fb/paper-bg.webp') center center / cover no-repeat;
   opacity:0;visibility:hidden;pointer-events:none;
   transform:translateY(14px) scale(.98);
   transition:opacity .2s ease,
