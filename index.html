@@ -1125,29 +1125,8 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
         <h1 class="info-hero-title">Inventory</h1>
       </div>
 
-      <!-- Inventar-Toolbar: Zähler + kleine Buttons für Suche & Sortierung (js/models3d.js) -->
-      <div class="m3d-toolbar" id="m3dToolbar" hidden>
-        <span class="m3d-count" id="m3dCount"></span>
-        <div class="m3d-search" id="m3dSearchWrap">
-          <input id="m3dSearch" type="search" placeholder="Inventar durchsuchen…" autocomplete="off" aria-label="Inventar durchsuchen">
-          <button class="m3d-iconbtn" id="m3dSearchBtn" type="button" aria-label="Inventar durchsuchen" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
-          </button>
-        </div>
-        <div class="m3d-sortwrap">
-          <button class="m3d-iconbtn" id="m3dSortBtn" type="button" aria-label="Sortierung" aria-haspopup="true" aria-expanded="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v13"/><polyline points="4 14 7 17 10 14"/><path d="M17 20V7"/><polyline points="14 10 17 7 20 10"/></svg>
-          </button>
-          <div class="m3d-sortmenu" id="m3dSortMenu" role="menu">
-            <button type="button" data-sort="new" class="active" role="menuitemradio" aria-checked="true">Neueste zuerst</button>
-            <button type="button" data-sort="old" role="menuitemradio" aria-checked="false">Älteste zuerst</button>
-            <button type="button" data-sort="az" role="menuitemradio" aria-checked="false">A–Z</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Inventar als Collection: js/models3d.js rendert hier pro Kategorie
-           eine Überschrift (.m3d-sechead) mit den Modellen darunter. -->
+      <!-- Modell des Tages: js/models3d.js rendert hier genau EIN Modell
+           (groß, zentriert, mit Namen darunter). Rotation siehe pickDaily(). -->
       <div class="m3d-grid" id="m3dGrid">
         <div class="m3d-status" id="m3dStatus">Lade…</div>
       </div>

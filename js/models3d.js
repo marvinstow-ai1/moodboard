@@ -3,31 +3,30 @@
 // ----------------------------------------------------------------------------
 // Öffnet sich als vollflächige, deckend schwarze Seite (wie Info-/Gästebuch-
 // Seite) über den "3D Modelle"-Eintrag in der Navigations-Vorschau (js/nav.js).
-// Zeigt alle hochgeladenen 3D-Modelle als cleanes Inventar in einem festen
-// 3er-Grid: jedes Modell dreht sich live und schwebt frei im Bühnen-Halo –
-// ohne Podest, Kachel oder Karte drumherum. Ein Tipp öffnet das Modell groß
-// im Viewer-Overlay mit voller Steuerung (drehen/zoomen).
+// Zeigt pro Tag GENAU EIN zufälliges 3D-Modell groß und zentriert: es dreht
+// sich live und schwebt frei im Bühnen-Halo – ohne Podest, Kachel oder Karte
+// drumherum. Ein Tipp öffnet das Modell groß im Viewer-Overlay mit voller
+// Steuerung (drehen/zoomen). Der Name des Modells steht darunter.
 //
-// Das Inventar ist als Collection nach Kategorien gegliedert: pro Kategorie
-// (Chars → Devices & Games → Sports → Random Items) eine Überschrift, darunter
-// die Modelle dieser Kategorie im 3er-Grid. Man scrollt einfach durch.
-//
-// Inventar-Funktionen: kleiner Such-Button (Feld fährt aus), kleiner
-// Sortier-Button (Menü: neu/alt/A–Z) und Zähler.
+// Tages-Rotation: jedes Modell wird „gestrichen", bis alle Modelle einmal an
+// der Reihe waren; danach beginnt die Rotation von vorn – in neuer, zufälliger
+// Reihenfolge (siehe pickDaily). Die Wahl ist deterministisch aus dem Kalender-
+// tag abgeleitet, damit alle Besucher am selben Tag dasselbe Modell sehen und
+// ein Reload nichts verändert – ohne dass etwas gespeichert werden muss.
 //
 // Verwaltung (nur Owner): Upload, Bearbeiten und Löschen laufen NICHT auf der
 // Seite selbst, sondern gebündelt im "3D-Modelle verwalten"-Popup (#m3dManage),
 // das über den Verwalten-Tab des Header-Menüs (#m3dManageBtn/-Sheet) geöffnet
-// wird. Das Upload-Sheet (#m3dModal) dient dabei auch als Editor: der Titel
-// ist änderbar, eine neue Datei ersetzt das Modell optional.
+// wird. Dort ist weiterhin das komplette Inventar nach Kategorien sichtbar.
+// Das Upload-Sheet (#m3dModal) dient dabei auch als Editor: der Titel ist
+// änderbar, eine neue Datei ersetzt das Modell optional.
 //
 // Performance:
+//  · Es lädt nur EIN Modell statt des gesamten Inventars – es gibt nie mehr als
+//    einen WebGL-Kontext auf der Seite, die Anzeige ist sofort da.
 //  · Die <model-viewer>-Bibliothek wird NICHT beim App-Start geladen, sondern
-//    erst beim ersten Öffnen dieser Seite dynamisch importiert.
-//  · Pro Bühne wird der <model-viewer> erst erzeugt, wenn sie in die Nähe des
-//    Viewports scrollt (IntersectionObserver) – und wieder entfernt, wenn sie
-//    weit genug herausscrollt. So existieren nie dutzende WebGL-Kontexte
-//    gleichzeitig, egal wie groß das Inventar wird.
+//    erst beim ersten Öffnen dieser Seite dynamisch importiert (parallel zu den
+//    Daten).
 //  · Die Modell-Liste wird gecacht: erneutes Öffnen rendert sofort aus dem
 //    Cache und gleicht die Daten still im Hintergrund ab.
 //
@@ -93,8 +92,6 @@ function catOf(m){ return CAT_LABEL[m?.category] ? m.category : FALLBACK_CAT; }
 // ── Inventar-Zustand ───────────────────────────────────────────────────────
 let _models = null;      // Cache der geladenen Datensätze (neueste zuerst)
 let _owner  = false;
-let _query  = '';
-let _sort   = 'new';     // 'new' | 'old' | 'az'
 
 // ── Seite öffnen / schließen ───────────────────────────────────────────────
 let _animTimer = null;
@@ -276,147 +273,89 @@ function makeStage(m){
   return stage;
 }
 
-// ── Filtern / Sortieren / Rendern ──────────────────────────────────────────
-// Suche + Sortierung; die Kategorie-Einteilung passiert erst beim Rendern
-// (Gruppen), nicht hier – so bleibt die Sortierung innerhalb jeder Kategorie
-// erhalten.
-function visibleModels(){
-  let list = _models ? [..._models] : [];
-  const q = _query.trim().toLowerCase();
-  if(q) list = list.filter(m => (m.title || '').toLowerCase().includes(q));
-  if(_sort === 'old') list.reverse();
-  else if(_sort === 'az')
-    list.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'de', { sensitivity: 'base' }));
-  return list;
+// ── Tages-Rotation ─────────────────────────────────────────────────────────
+// Bestimmt das Modell des heutigen Tages. Jedes Modell kommt genau einmal je
+// Runde dran (wird bis dahin „gestrichen"); ist die Runde durch, startet eine
+// neue in frischer, zufälliger Reihenfolge. Die Wahl hängt nur vom Kalendertag
+// ab – deterministisch, also für alle Besucher gleich und über Reloads stabil,
+// ganz ohne gespeicherten Zustand.
+function dayIndex(){
+  const now = new Date();   // lokaler Kalendertag → Wechsel um Mitternacht
+  return Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000);
+}
+// Kleiner, schneller PRNG (mulberry32) für eine reproduzierbare Reihenfolge.
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Deterministischer Fisher-Yates-Shuffle mit gegebenem Seed.
+function seededShuffle(arr, seed){
+  const a = [...arr];
+  const rnd = mulberry32(seed);
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+// Das Modell des heutigen Tages aus der vollständigen Liste wählen.
+function pickDaily(models){
+  if(!models || !models.length) return null;
+  // Stabile Grundreihenfolge (unabhängig von der Ladereihenfolge), damit die
+  // Rotation reproduzierbar bleibt.
+  const base = [...models].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const n = base.length;
+  const day = dayIndex();
+  const cycle = Math.floor(day / n);   // wievielte volle Runde
+  const pos = ((day % n) + n) % n;     // Position innerhalb der Runde
+  // Pro Runde eine neue zufällige Reihenfolge ⇒ jedes Modell genau einmal je Runde.
+  return seededShuffle(base, cycle + 1)[pos];
 }
 
-// Eine Modell-Kachel (Bühne + Titel). i = laufender Index für die Einblend-
-// Staffelung über alle Kategorien hinweg.
-function makeItem(m, i){
-  const item = document.createElement('div');
-  item.className = 'm3d-item';
-  item.dataset.id = m.id;
-  item.style.animationDelay = `${Math.min(i, 8) * 0.04 + 0.04}s`;
-
-  const stage = makeStage(m);
-  stage.addEventListener('click', () => openViewer(m));
-  item.appendChild(stage);
-
-  const title = document.createElement('div');
-  title.className = 'm3d-item-title';
-  title.textContent = m.title;
-  item.appendChild(title);
-
-  return item;
-}
-
+// ── Rendern ────────────────────────────────────────────────────────────────
+// Zeigt nur das Modell des Tages: groß, zentriert, mit Namen darunter. Der
+// <model-viewer> wird über den IntersectionObserver eingehängt (die Bühne ist
+// sofort im Blick, also lädt er unmittelbar) und beim Öffnen des großen Viewers
+// wieder freigegeben (pauseGrid/resumeGrid).
 function render(){
-  // Alte Bühnen sauber abbauen, bevor das Grid neu befüllt wird.
+  // Alte Bühne sauber abbauen, bevor neu befüllt wird.
   grid.querySelectorAll('.m3d-stage').forEach(st => { _io?.unobserve(st); unmountStage(st); });
 
-  const toolbar = $('m3dToolbar');
-  const hasAny = !!(_models && _models.length);
-  if(toolbar) toolbar.hidden = !hasAny;
-
-  if(!hasAny){
+  if(!(_models && _models.length)){
     grid.innerHTML = _owner
       ? '<div class="m3d-status">Noch keine Modelle – lade dein erstes über „Verwalten → 3D-Modelle verwalten“ hoch 🧊</div>'
       : '<div class="m3d-status">Noch keine Modelle im Inventar 🧊</div>';
     return;
   }
 
-  const count = $('m3dCount');
-  const list = visibleModels();
-  if(count) count.textContent = _query.trim()
-    ? `${list.length} / ${_models.length}`
-    : `${_models.length} ${_models.length === 1 ? 'Modell' : 'Modelle'}`;
-
+  const m = pickDaily(_models);
   grid.innerHTML = '';
-  if(!list.length){
-    grid.innerHTML = '<div class="m3d-status">Kein Modell passt zu deiner Suche.</div>';
-    return;
-  }
 
-  // Als Collection rendern: pro Kategorie (feste Reihenfolge) eine Überschrift
-  // und darunter die Modelle dieser Kategorie im 3er-Grid. Leere Kategorien
-  // werden übersprungen. Der Index läuft über alle Kategorien durch, damit die
-  // Einblend-Staffelung durchgängig wirkt.
-  let idx = 0;
-  for(const cat of CATEGORIES){
-    const items = list.filter(m => catOf(m) === cat.slug);
-    if(!items.length) continue;
+  const wrap = document.createElement('div');
+  wrap.className = 'm3d-featured';
 
-    const section = document.createElement('section');
-    section.className = 'm3d-section';
+  const kicker = document.createElement('div');
+  kicker.className = 'm3d-featured-kicker';
+  kicker.textContent = 'Modell des Tages';
+  wrap.appendChild(kicker);
 
-    const head = document.createElement('h2');
-    head.className = 'm3d-sechead';
-    const hName = document.createElement('span');
-    hName.className = 'm3d-sechead-name';
-    hName.textContent = cat.label;
-    const hN = document.createElement('span');
-    hN.className = 'm3d-sechead-n';
-    hN.textContent = items.length;
-    head.append(hName, hN);
-    section.appendChild(head);
+  const stage = makeStage(m);
+  stage.classList.add('m3d-stage-big');
+  stage.addEventListener('click', () => openViewer(m));
+  wrap.appendChild(stage);
 
-    const secItems = document.createElement('div');
-    secItems.className = 'm3d-secitems';
-    for(const m of items) secItems.appendChild(makeItem(m, idx++));
-    section.appendChild(secItems);
+  const name = document.createElement('div');
+  name.className = 'm3d-featured-name';
+  name.textContent = m.title || '3D-Modell';
+  wrap.appendChild(name);
 
-    grid.appendChild(section);
-  }
+  grid.appendChild(wrap);
 }
-
-// ── Toolbar: kleiner Such-Button (Feld fährt aus) + Sortier-Menü ──────────
-let _searchTimer = 0;
-const searchWrap  = $('m3dSearchWrap');
-const searchInput = $('m3dSearch');
-
-$('m3dSearchBtn')?.addEventListener('click', () => {
-  const open = !searchWrap.classList.contains('open');
-  searchWrap.classList.toggle('open', open);
-  $('m3dSearchBtn').setAttribute('aria-expanded', String(open));
-  if(open){
-    searchInput.focus();
-  }else if(_query){
-    // Zuklappen verwirft die Suche – zurück zum vollen Inventar.
-    searchInput.value = '';
-    _query = '';
-    render();
-  }
-});
-searchInput?.addEventListener('input', e => {
-  clearTimeout(_searchTimer);
-  _searchTimer = setTimeout(() => { _query = e.target.value || ''; render(); }, 140);
-});
-
-const sortMenu = $('m3dSortMenu');
-$('m3dSortBtn')?.addEventListener('click', e => {
-  e.stopPropagation();
-  const open = !sortMenu.classList.contains('show');
-  sortMenu.classList.toggle('show', open);
-  $('m3dSortBtn').setAttribute('aria-expanded', String(open));
-});
-sortMenu?.querySelectorAll('button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    _sort = btn.dataset.sort;
-    sortMenu.querySelectorAll('button').forEach(b => {
-      b.classList.toggle('active', b === btn);
-      b.setAttribute('aria-checked', String(b === btn));
-    });
-    closeSortMenu();
-    render();
-  });
-});
-function closeSortMenu(){
-  sortMenu?.classList.remove('show');
-  $('m3dSortBtn')?.setAttribute('aria-expanded', 'false');
-}
-document.addEventListener('click', e => {
-  if(!e.target.closest('.m3d-sortwrap')) closeSortMenu();
-});
 
 // ── Modelle laden ──────────────────────────────────────────────────────────
 // Mit Cache: liegt schon eine Liste vor, wird sofort daraus gerendert und die
