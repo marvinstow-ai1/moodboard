@@ -165,12 +165,21 @@ grant execute on function public.ai_tag_image(uuid) to authenticated, service_ro
 -- 6) Scheduling --------------------------------------------------------------
 -- Images AND gifs. `for update skip locked` lets overlapping runs process
 -- disjoint rows safely, so the job self-parallelises and drains backlogs fast.
+--
+-- WICHTIG: `.mp4`-URLs werden ausgeschlossen. Manche GIFs liegen im Storage als
+-- .mp4, sind aber mit media_type='gif' markiert. Das Bild-Vision-Modell kann
+-- ein Video nicht als image_url lesen -> ai_tag_image scheitert -> ai_status
+-- bleibt 'failed' -> der Retry-Job zieht die Datei alle 15 Min erneut ->
+-- OpenRouter laedt jedes Mal das komplette Video -> Egress-Endlosschleife
+-- (hat den Free-Plan gesprengt: 402 auf alle Requests, inkl. Login). Der
+-- `media_url !~* '\.mp4($|\?)'`-Filter verhindert genau diese Schleife.
 select cron.unschedule(jobid) from cron.job where jobname in ('auto-tag-pending','auto-tag-retry');
 
 select cron.schedule('auto-tag-pending', '* * * * *', $$
   select public.ai_tag_image(id) from (
     select id from public.moodboard_items
     where media_type in ('image','gif') and ai_status = 'pending'
+      and media_url !~* '\.mp4($|\?)'
     order by created_at desc limit 18 for update skip locked
   ) s
 $$);
@@ -179,6 +188,7 @@ select cron.schedule('auto-tag-retry', '*/15 * * * *', $$
   select public.ai_tag_image(id) from (
     select id from public.moodboard_items
     where media_type in ('image','gif') and ai_status = 'failed'
+      and media_url !~* '\.mp4($|\?)'
     order by created_at desc limit 10
   ) s
 $$);
