@@ -532,8 +532,18 @@ function setAmbientFor(it){
   if(isClip(it)){
     ambientSwap(layer => {
       const v = document.createElement('video');
-      v.src = it.media_url; v.muted = true; v.loop = true;
-      v.autoplay = true; v.playsInline = true; v.preload = 'auto';
+      v.src = it.media_url; v.muted = true; v.playsInline = true;
+      v.preload = 'auto';
+      // WICHTIG (Performance): Der Ambient-Hintergrund ist ein 48px-Gauss-Blur
+      // über ein auf 135 % vergrößertes Vollbild-Element. Ein LAUFENDES Video
+      // zwingt den Browser, diesen Blur pro Frame neu zu rastern – zusammen mit
+      // dem zweiten Decoding derselben Datei ließ das die Lightbox stark laggen
+      // (Hauptvideo ruckelt, Blur zieht nach). Für einen reinen Farb-Glow genügt
+      // EIN Standbild: kurz anspielen, damit der erste Frame dekodiert wird, dann
+      // sofort einfrieren (pause). Der Blur wird so nur einmal gerastert und vom
+      // Compositor gecacht – kein Dauer-Decode, kein Per-Frame-Blur mehr.
+      v.loop = false;
+      v.addEventListener('playing', () => { try{ v.pause(); }catch(e){} }, { once:true });
       const p = v.play(); if(p && p.catch) p.catch(() => {});
       layer.appendChild(v);
     });
