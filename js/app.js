@@ -947,12 +947,11 @@ async function makeGifThumb(file, maxPx=GIF_THUMB_PX){
 }
 // ── GIF → MP4 (ffmpeg.wasm) ──────────────────────────────
 // Wandelt animierte GIFs nach H.264-MP4: typisch 5–20× kleiner, hardware-
-// dekodiert und streambar. Läuft automatisch beim Upload (s. uploadOne) UND
-// über den Owner-Button "GIFs → Video (MP4) konvertieren" für Altbestände.
-// media_type bleibt 'gif' (u. a. für den Mood-Chat), gerendert wird als
-// <video muted loop> mit Autoplay – verhält sich also exakt wie das GIF.
-// ffmpeg.wasm (~10 MB Core) wird erst beim ersten Einsatz nachgeladen –
-// normale Besuche kostet es nichts.
+// dekodiert und streambar. Läuft NICHT automatisch beim Upload, sondern nur
+// über den Owner-Button "GIFs → Video (MP4) konvertieren". media_type bleibt
+// 'gif' (u. a. für den Mood-Chat), gerendert wird als <video muted loop> mit
+// Autoplay – verhält sich also exakt wie das GIF. ffmpeg.wasm (~10 MB Core)
+// wird erst beim ersten Einsatz nachgeladen – normale Besuche kostet es nichts.
 // Bewusst die UMD-Builds: die ESM-Worker-Datei hat relative Imports und lässt
 // sich deshalb nicht als (nötige) Blob-URL instanziieren – der UMD-Worker-Chunk
 // (814.ffmpeg.js) ist dagegen self-contained.
@@ -1800,24 +1799,10 @@ async function upload(files){
   toast(`${arr.length} Datei${arr.length>1?'en':''} wird${arr.length>1?'en':''} hochgeladen…`);
   let done = 0;
   const uploadOne = async (f) => {
-    // GIFs werden beim Upload automatisch nach H.264-MP4 konvertiert (typisch
-    // 5–20× kleiner, hardware-dekodiert, streambar) – exakt wie der Owner-Button
-    // "GIFs → Video (MP4) konvertieren", nur direkt beim Hochladen. media_type
-    // bleibt 'gif' (u. a. für den Mood-Chat-Filter), die media_url zeigt aber auf
-    // die .mp4 und gerendert wird als <video muted loop>. Schlägt die Konvertierung
-    // fehl (CDN offline, exotisches GIF …), fällt es transparent auf den bisherigen
-    // GIF-Weg (Gifsicle) zurück – es geht also nie etwas kaputt.
-    const gif = isGif(f.name);
-    let cf, mp4Ok = false;
-    if(gif){
-      const mp4 = await gifToMp4(f);
-      if(mp4){ cf = mp4; mp4Ok = true; }
-      else   { cf = await compressGif(f); }   // Fallback: GIF bleibt GIF
-    } else {
-      cf = await compress(f);
-    }
-    // media_type: konvertierte GIFs behalten 'gif' – nur ihre URL ist dann .mp4.
-    const mediaType = isVid(f.name) ? 'video' : gif ? 'gif' : 'image';
+    // GIFs bleiben beim Upload GIFs (Gifsicle-Kompression via compress) –
+    // nach MP4 konvertiert wird nur noch bewusst über den Owner-Button
+    // "GIFs → Video (MP4) konvertieren".
+    const cf = await compress(f);
     const ext = cf.name.split('.').pop().toLowerCase();
     const path = `${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}.${ext}`;
     // cacheControl auf 1 Jahr: Die Dateinamen sind einmalig und werden nie
@@ -1827,13 +1812,12 @@ async function upload(files){
     const {error:e1} = await sb.storage.from(BUCKET).upload(path, cf, {upsert:false, contentType:cf.type, cacheControl:'31536000'});
     if(e1){ toast('Upload-Fehler: '+e1.message); return null; }
     const {data:pub} = sb.storage.from(BUCKET).getPublicUrl(path);
+    const mediaType = isVid(f.name) ? 'video' : isGif(f.name) ? 'gif' : 'image';
     // Kleines Grid-Thumbnail erzeugen & hochladen: statische Bilder als WebP,
-    // GIFs als verkleinertes animiertes GIF-Thumbnail. Videos UND zu MP4
-    // konvertierte GIFs bekommen KEIN Poster/Thumbnail – sie laufen im Grid
-    // direkt als Autoplay-Video (das seinen ersten Frame zeigt).
+    // GIFs als verkleinertes animiertes GIF-Thumbnail. Videos bekommen KEIN
+    // Poster/Thumbnail – sie laufen im Grid direkt als Autoplay-Video.
     let thumbUrl = null;
-    const tf = mp4Ok                 ? null
-             : mediaType === 'image' ? await makeThumb(cf)
+    const tf = mediaType === 'image' ? await makeThumb(cf)
              : mediaType === 'gif'   ? await makeGifThumb(cf)
              : null;
     if(tf){
@@ -1842,13 +1826,10 @@ async function upload(files){
       if(!te) thumbUrl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
     }
     const suggestedMoods = mediaType === 'image' ? await autoSuggestMoods(pub.publicUrl) : [];
-    // Farbprofil aus einer per <img> dekodierbaren Quelle berechnen (kostenlos,
+    // Farbprofil direkt aus der bereits dekodierten Datei berechnen (kostenlos,
     // kein zusätzlicher Download) und mitspeichern, damit die Chat-Farbsuche
-    // später sofort filtern kann. Bei konvertierten GIFs stammt es aus dem
-    // Original-GIF (erster Frame), da eine MP4 nicht per <img> dekodierbar ist.
-    // Videos haben kein sinnvolles Standbild → null.
-    const colorSrc = gif ? f : cf;
-    const colors = (mediaType === 'image' || mediaType === 'gif') ? await fileColors(colorSrc) : null;
+    // später sofort filtern kann. Videos haben kein sinnvolles Standbild → null.
+    const colors = (mediaType === 'image' || mediaType === 'gif') ? await fileColors(cf) : null;
     const item = { title:f.name.replace(/\.[^.]+$/,''), moods:suggestedMoods, tags:[], media_url:pub.publicUrl, media_type:mediaType, thumb_url:thumbUrl, colors};
     const {data:ins, error:e2} = await sb.from(S().table).insert(item).select().single();
     if(e2){ toast('DB-Fehler: '+e2.message); return null; }
