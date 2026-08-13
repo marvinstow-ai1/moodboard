@@ -36,6 +36,7 @@
 .m3d-scroll{
   position:relative;z-index:1;flex:1;min-height:0;
   overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;
+  touch-action:pan-y;   /* vertikales Wischen bleibt immer Scrollen dieses Bereichs */
   padding:8px 16px calc(190px + env(safe-area-inset-bottom));
   padding-bottom:calc(100lvh - var(--app-vh,100lvh) + 190px + env(safe-area-inset-bottom));
 }
@@ -95,6 +96,8 @@
   position:relative;aspect-ratio:1/1;width:100%;padding:0;overflow:hidden;
   border:1px solid var(--border);border-radius:14px;
   background:rgba(255,255,255,.04);color:inherit;cursor:pointer;
+  /* Vertikales Wischen scrollt weiter, ein Tipp wählt aus. */
+  touch-action:pan-y;-webkit-tap-highlight-color:transparent;
   opacity:0;transform:translateY(10px);
   animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
   transition:border-color .18s,background .18s,transform .1s;
@@ -116,6 +119,12 @@
 }
 .m3d-tile-img{
   position:relative;z-index:1;width:100%;height:100%;object-fit:contain;padding:8px;
+  /* Wichtig fürs Scrollen: die Touch-/Zeigergeste gehört dem Scrollbereich bzw.
+     dem Button, nicht dem Bild. Ohne das schluckt das <img> auf Mobilgeräten die
+     Wischgeste (Bild-Ziehen/„Bild sichern"-Callout) und die Seite scrollt nicht,
+     wenn der Finger über einer Kachel startet. Der Button bleibt klickbar. */
+  pointer-events:none;user-select:none;-webkit-user-select:none;
+  -webkit-user-drag:none;-webkit-touch-callout:none;
 }
 /* Platzhalter (noch kein Vorschaubild): kleiner rotierender Diamant. */
 .m3d-tile-ph{position:absolute;left:50%;top:50%;translate:-50% -50%;z-index:1;pointer-events:none}
@@ -143,6 +152,9 @@
   --poster-color:transparent;background-color:transparent;
   --progress-bar-color:rgba(255,255,255,.5);
   --progress-mask:transparent;
+  /* Das große Modell oben dreht sich nur selbst – vertikales Wischen soll die
+     Seite scrollen und darf nicht vom <model-viewer>-Canvas geschluckt werden. */
+  touch-action:pan-y;
 }
 .m3d-mv::part(default-progress-bar){display:none}
 
