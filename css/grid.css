@@ -18,6 +18,9 @@
 .dd-divider{height:1px;background:rgba(255,255,255,.07);margin:6px 0}
 .dd-btn{width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:10px;border-radius:10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:10px}
 .dd-btn .icon{width:18px;text-align:center;opacity:.6;font-size:15px}
+/* Aktiver Umschalt-Filter (z. B. „Nur MP4/Videos") deutlich hervorheben. */
+.dd-btn.active{background:rgba(110,168,254,.16);color:#cfe0ff}
+.dd-btn.active .icon{opacity:1;color:#6ea8fe}
 .dd-input-row{display:flex;gap:6px;padding:4px 2px 6px}
 /* font-size:16px verhindert das automatische Reinzoomen von iOS Safari beim Fokus. */
 .dd-input-row input{flex:1;border:1px solid var(--border);background:rgba(255,255,255,.06);color:#fff;border-radius:10px;padding:10px;outline:none;font-size:16px}

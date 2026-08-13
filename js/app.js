@@ -29,6 +29,7 @@ let editId=null, lbIndex=0, lbOpenIndex=0, selMode=null, lbIsMuted=false;
 let selectedIds=new Set();
 let _observer = null;
 let sortNewest = false;
+let mp4Only = false;        // Ansicht-Filter: nur Clips (MP4/Videos) zeigen
 let chatResultIds = null;   // Mood-Chat: aktive Treffer-IDs (oder null = aus)
 // Reihenfolge des zuletzt gerenderten Archivs (Bild-IDs). renderGrid mischt das
 // Archiv sonst bei jedem Aufruf neu; hier merken wir uns die zuletzt gesehene
@@ -1227,6 +1228,10 @@ function renderGrid(){
     if(!sortNewest) _lastArchiveOrder = arr.map(i => i.id);
   }
   _keepArchiveOrder = false;   // Einmal-Flag: nach diesem Render zurücksetzen
+  // Ansicht-Filter „Nur MP4/Videos": zeigt ausschließlich als <video> gerenderte
+  // Kacheln (echte Videos + zu MP4 konvertierte GIFs). Läuft nach allen anderen
+  // Filtern/Sortierungen, damit die Reihenfolge erhalten bleibt.
+  if(mp4Only) arr = arr.filter(isClip);
   s.currentItems = arr;
   if(_observer){ _observer.disconnect(); _observer=null; }
   // Erste Reihen sofort & priorisiert laden (statt pauschal "lazy"), damit
@@ -2117,6 +2122,27 @@ async function convertGifsToMp4(){
 }
 $('gifConvertBtn')?.addEventListener('click', convertGifsToMp4);
 $('gifConvertBtnSheet')?.addEventListener('click', convertGifsToMp4);
+
+// Ansicht-Filter „Nur MP4/Videos": blendet alle statischen Bilder/GIFs aus und
+// zeigt nur noch als Video gerenderte Kacheln – praktisch zum gezielten Sichten
+// oder Löschen der konvertierten Clips. Toggle; Zustand nur im Speicher (Reload
+// zeigt wieder alles), damit nie versehentlich „das halbe Board fehlt".
+function updateMp4FilterUI(){
+  document.querySelectorAll('#mp4FilterBtn, #mp4FilterBtnSheet').forEach(b => {
+    b.classList.toggle('active', mp4Only);
+    const l = b.querySelector('.mp4-label');
+    if(l) l.textContent = mp4Only ? 'Filter aus – alle zeigen' : 'Nur MP4/Videos zeigen';
+  });
+}
+function toggleMp4Only(){
+  mp4Only = !mp4Only;
+  updateMp4FilterUI();
+  renderGrid();
+  closeMenu();
+  toast(mp4Only ? 'Filter: nur MP4/Videos' : 'Filter aus – alle Medien');
+}
+$('mp4FilterBtn')?.addEventListener('click', toggleMp4Only);
+$('mp4FilterBtnSheet')?.addEventListener('click', toggleMp4Only);
 
 function openEditor(id){
   editId=id; const it=S().items.find(x=>x.id===id); if(!it) return;
