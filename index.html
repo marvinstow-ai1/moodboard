@@ -1125,8 +1125,12 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
         <h1 class="info-hero-title">Inventory</h1>
       </div>
 
-      <!-- Modell des Tages: js/models3d.js rendert hier genau EIN Modell
-           (groß, zentriert, mit Namen darunter). Rotation siehe pickDaily(). -->
+      <!-- Große, live drehende Modellansicht: js/models3d.js rendert hier das
+           gewählte Modell (Start = Modell des Tages) mit Namen darunter. -->
+      <div class="m3d-featured-host" id="m3dFeatured"></div>
+
+      <!-- Cleanes Grid aus statischen Vorschaubildern aller Modelle (ohne
+           Namen). Klick lädt das Modell oben. Rendering siehe renderGrid(). -->
       <div class="m3d-grid" id="m3dGrid">
         <div class="m3d-status" id="m3dStatus">Lade…</div>
       </div>
@@ -1144,6 +1148,9 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <div class="m3dg-sub" id="m3dgSub"></div>
     </div>
     <div class="m3dg-list" id="m3dgList"><div class="m3dg-empty">Lade…</div></div>
+    <!-- Vorschaubilder für Modelle ohne Screenshot nachträglich erzeugen
+         (Altbestand). Wird ausgeblendet, wenn alle Modelle ein Bild haben. -->
+    <button class="m3dg-thumbs" id="m3dgThumbsBtn" type="button" hidden>Vorschaubilder erzeugen</button>
     <button class="m3dg-upload" id="m3dgUploadBtn" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>

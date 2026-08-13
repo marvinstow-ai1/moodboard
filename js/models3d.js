@@ -3,32 +3,34 @@
 // ----------------------------------------------------------------------------
 // Öffnet sich als vollflächige, deckend schwarze Seite (wie Info-/Gästebuch-
 // Seite) über den "3D Modelle"-Eintrag in der Navigations-Vorschau (js/nav.js).
-// Zeigt pro Tag GENAU EIN zufälliges 3D-Modell groß und zentriert: es dreht
-// sich live und schwebt frei im Bühnen-Halo – ohne Podest, Kachel oder Karte
-// drumherum. Ein Tipp öffnet das Modell groß im Viewer-Overlay mit voller
-// Steuerung (drehen/zoomen). Der Name des Modells steht darunter.
+// Aufbau: OBEN ein großes, live drehendes 3D-Modell (#m3dFeatured, genau ein
+// WebGL-Viewer), DARUNTER ein cleanes Grid aus statischen Vorschaubildern aller
+// Modelle (#m3dGrid, ohne Namen). Ein Klick auf eine Kachel lädt das Modell oben
+// und scrollt dorthin; ein Tipp auf das große Modell öffnet es im Viewer-Overlay
+// mit voller Steuerung (drehen/zoomen). Der Name steht unter der großen Ansicht.
 //
-// Tages-Rotation: jedes Modell wird „gestrichen", bis alle Modelle einmal an
-// der Reihe waren; danach beginnt die Rotation von vorn – in neuer, zufälliger
-// Reihenfolge (siehe pickDaily). Die Wahl ist deterministisch aus dem Kalender-
-// tag abgeleitet, damit alle Besucher am selben Tag dasselbe Modell sehen und
-// ein Reload nichts verändert – ohne dass etwas gespeichert werden muss.
-//
-// Verwaltung (nur Owner): Upload, Bearbeiten und Löschen laufen NICHT auf der
-// Seite selbst, sondern gebündelt im "3D-Modelle verwalten"-Popup (#m3dManage),
-// das über den Verwalten-Tab des Header-Menüs (#m3dManageBtn/-Sheet) geöffnet
-// wird. Dort ist weiterhin das komplette Inventar nach Kategorien sichtbar.
-// Das Upload-Sheet (#m3dModal) dient dabei auch als Editor: der Titel ist
-// änderbar, eine neue Datei ersetzt das Modell optional.
+// Tages-Rotation: Das Startmodell oben und die Reihenfolge des Grids richten
+// sich nach einer pro Kalendertag zufälligen, aber deterministischen Reihenfolge
+// (siehe dailyState): jedes Modell kommt einmal je Runde als „Modell des Tages"
+// dran, danach beginnt die Runde neu gemischt. Deterministisch ⇒ für alle
+// Besucher gleich und über Reloads stabil, ohne gespeicherten Zustand.
 //
 // Performance:
-//  · Es lädt nur EIN Modell statt des gesamten Inventars – es gibt nie mehr als
-//    einen WebGL-Kontext auf der Seite, die Anzeige ist sofort da.
-//  · Die <model-viewer>-Bibliothek wird NICHT beim App-Start geladen, sondern
-//    erst beim ersten Öffnen dieser Seite dynamisch importiert (parallel zu den
-//    Daten).
-//  · Die Modell-Liste wird gecacht: erneutes Öffnen rendert sofort aus dem
-//    Cache und gleicht die Daten still im Hintergrund ab.
+//  · Die Übersicht sind statische Bilder (kein WebGL pro Kachel); live läuft nur
+//    das eine große Modell oben. So ist alles auf einen Blick sichtbar, ohne
+//    dutzende Viewer/WebGL-Kontexte gleichzeitig.
+//  · Vorschaubilder werden einmalig im Browser per <model-viewer>.toBlob()
+//    erzeugt: beim Upload automatisch, für Altbestand per Owner-Backfill
+//    („Vorschaubilder erzeugen"). Sie liegen im Storage unter models/thumbs/,
+//    die URL in models_3d.thumb_url.
+//  · Die <model-viewer>-Bibliothek wird erst beim ersten Öffnen dieser Seite
+//    dynamisch importiert; die Modell-Liste wird gecacht und still abgeglichen.
+//
+// Verwaltung (nur Owner): Upload, Bearbeiten, Löschen und der Vorschaubild-
+// Backfill laufen gebündelt im "3D-Modelle verwalten"-Popup (#m3dManage), das
+// über den Verwalten-Tab des Header-Menüs geöffnet wird. Das Upload-Sheet
+// (#m3dModal) dient auch als Editor; eine neue Datei ersetzt das Modell optional
+// und erzeugt automatisch ein neues Vorschaubild.
 //
 // Die Datei landet im Storage-Bucket `moodboard` unter models/, der Datensatz
 // in public.models_3d (RLS: lesen Mitglieder, schreiben/löschen nur Owner –
@@ -46,6 +48,7 @@ const $ = id => document.getElementById(id);
 
 const page   = $('m3dPage');
 const grid   = $('m3dGrid');
+const featuredHost = $('m3dFeatured');   // große, drehende Modellansicht oben
 const modal  = $('m3dModal');
 const viewer = $('m3dViewer');
 const manage = $('m3dManage');
@@ -90,8 +93,9 @@ const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.slug, c.label]));
 function catOf(m){ return CAT_LABEL[m?.category] ? m.category : FALLBACK_CAT; }
 
 // ── Inventar-Zustand ───────────────────────────────────────────────────────
-let _models = null;      // Cache der geladenen Datensätze (neueste zuerst)
-let _owner  = false;
+let _models   = null;    // Cache der geladenen Datensätze (neueste zuerst)
+let _owner    = false;
+let _featured = null;     // Modell, das gerade oben groß gedreht wird
 
 // ── Seite öffnen / schließen ───────────────────────────────────────────────
 let _animTimer = null;
@@ -142,22 +146,23 @@ function getIO(){
   return _io;
 }
 
-// Grid-Bühnen anhalten/fortsetzen. Wird der große Viewer geöffnet, geben wir
-// ALLE laufenden Grid-<model-viewer> frei: sonst liegen deren WebGL-Kontexte
+// Live-Bühne anhalten/fortsetzen. Wird der große Viewer geöffnet, geben wir den
+// laufenden <model-viewer> der Seite frei: sonst liegen dessen WebGL-Kontext
 // plus der große Viewer (mit u. U. großem Modell) gleichzeitig auf der GPU –
 // auf Mobilgeräten sprengt das schnell das Kontext-/Speicherlimit, der Tab
-// stürzt ab und lädt neu. Beim Schließen lassen wir die sichtbaren Bühnen
-// wieder aufleben (erneutes observe → der Observer feuert für den aktuellen
-// Sichtbarkeitsstand neu).
+// stürzt ab und lädt neu. Beim Schließen lassen wir die Bühne wieder aufleben
+// (erneutes observe → der Observer feuert für den aktuellen Sichtbarkeitsstand
+// neu). Der Selektor deckt die große Bühne oben (#m3dFeatured) mit ab, die
+// außerhalb von #m3dGrid liegt.
 function pauseGrid(){
   _gridPaused = true;
-  grid.querySelectorAll('.m3d-stage').forEach(unmountStage);
+  page.querySelectorAll('.m3d-stage').forEach(unmountStage);
 }
 function resumeGrid(){
   if(!_gridPaused) return;
   _gridPaused = false;
   const io = getIO();
-  grid.querySelectorAll('.m3d-stage').forEach(st => { io.unobserve(st); io.observe(st); });
+  page.querySelectorAll('.m3d-stage').forEach(st => { io.unobserve(st); io.observe(st); });
 }
 
 async function mountStage(stage){
@@ -273,6 +278,81 @@ function makeStage(m){
   return stage;
 }
 
+// ── Vorschaubilder (Screenshots) ────────────────────────────────────────────
+// Für die Grid-Ansicht wird pro Modell einmal ein statischer PNG-Screenshot
+// erzeugt: das spart in der Übersicht komplett die WebGL-Kontexte (dutzende
+// Bilder statt dutzende Viewer). Erzeugt wird direkt im Browser über
+// <model-viewer>.toBlob() – beim Upload automatisch (aus der lokalen Datei,
+// daher ohne CORS-Probleme) und für Altbestand per Owner-Backfill (aus der
+// Modell-URL). Die Bilder landen im Storage unter models/thumbs/.
+const THUMB_PX = 320;
+let _captureHost = null;
+function captureHost(){
+  if(_captureHost) return _captureHost;
+  _captureHost = document.createElement('div');
+  _captureHost.className = 'm3d-capture';
+  _captureHost.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(_captureHost);
+  return _captureHost;
+}
+
+// Rendert das Modell (src = URL oder blob:) einmal ab und gibt einen PNG-Blob
+// mit transparentem Hintergrund und einheitlicher Rahmung zurück.
+async function captureThumb(src){
+  await ensureViewerLib();
+  const mv = document.createElement('model-viewer');
+  mv.setAttribute('src', src);
+  mv.setAttribute('camera-orbit', '0deg 80deg auto');
+  mv.setAttribute('environment-image', 'neutral');
+  mv.setAttribute('exposure', '1');
+  mv.setAttribute('shadow-intensity', '0.9');
+  mv.setAttribute('shadow-softness', '1');
+  mv.setAttribute('field-of-view', `${M3D_FOV}deg`);
+  mv.setAttribute('interaction-prompt', 'none');
+  mv.setAttribute('loading', 'eager');
+  mv.setAttribute('reveal', 'auto');
+  mv.style.width = mv.style.height = `${THUMB_PX}px`;
+  captureHost().appendChild(mv);
+  try{
+    await new Promise((res, rej) => {
+      mv.addEventListener('load', res, { once: true });
+      mv.addEventListener('error', () => rej(new Error('load-failed')), { once: true });
+      setTimeout(() => rej(new Error('timeout')), 25000);
+    });
+    frameUniform(mv, 0.82, 80);
+    // Zwei Frames warten, damit die neue Kamerastellung sicher gerendert ist.
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return await mv.toBlob({ mimeType: 'image/png', idealAspect: false });
+  }finally{
+    mv.remove();
+  }
+}
+
+// Screenshot in den Storage laden und die öffentliche URL zurückgeben.
+async function uploadThumb(blob){
+  const path = `models/thumbs/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+  const { error } = await sb.storage.from(BUCKET)
+    .upload(path, blob, { upsert: false, contentType: 'image/png', cacheControl: '31536000' });
+  if(error) throw error;
+  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+// Screenshot erzeugen + hochladen; bei Fehler null (der Backfill kann es später
+// nachholen). `local` = optionale lokale Datei (schneller, ohne Netz/CORS).
+async function makeThumbUrl(modelUrl, localFile){
+  let objUrl = null;
+  try{
+    const src = localFile ? (objUrl = URL.createObjectURL(localFile)) : modelUrl;
+    const blob = await captureThumb(src);
+    if(!blob) return null;
+    return await uploadThumb(blob);
+  }catch(e){
+    return null;
+  }finally{
+    if(objUrl) URL.revokeObjectURL(objUrl);
+  }
+}
+
 // ── Tages-Rotation ─────────────────────────────────────────────────────────
 // Bestimmt das Modell des heutigen Tages. Jedes Modell kommt genau einmal je
 // Runde dran (wird bis dahin „gestrichen"); ist die Runde durch, startet eine
@@ -303,9 +383,10 @@ function seededShuffle(arr, seed){
   }
   return a;
 }
-// Das Modell des heutigen Tages aus der vollständigen Liste wählen.
-function pickDaily(models){
-  if(!models || !models.length) return null;
+// Tages-Zustand: die für heute zufällige (aber deterministische) Reihenfolge
+// aller Modelle plus das Modell des Tages (Startmodell oben). Die Grid-Ansicht
+// übernimmt dieselbe Reihenfolge, damit die Übersicht täglich variiert.
+function dailyState(models){
   // Stabile Grundreihenfolge (unabhängig von der Ladereihenfolge), damit die
   // Rotation reproduzierbar bleibt.
   const base = [...models].sort((a, b) => String(a.id).localeCompare(String(b.id)));
@@ -314,34 +395,51 @@ function pickDaily(models){
   const cycle = Math.floor(day / n);   // wievielte volle Runde
   const pos = ((day % n) + n) % n;     // Position innerhalb der Runde
   // Pro Runde eine neue zufällige Reihenfolge ⇒ jedes Modell genau einmal je Runde.
-  return seededShuffle(base, cycle + 1)[pos];
+  const order = seededShuffle(base, cycle + 1);
+  return { order, daily: order[pos] };
 }
 
 // ── Rendern ────────────────────────────────────────────────────────────────
-// Zeigt nur das Modell des Tages: groß, zentriert, mit Namen darunter. Der
-// <model-viewer> wird über den IntersectionObserver eingehängt (die Bühne ist
-// sofort im Blick, also lädt er unmittelbar) und beim Öffnen des großen Viewers
-// wieder freigegeben (pauseGrid/resumeGrid).
+// Oben: das gewählte Modell groß und drehend (ein einziger WebGL-Viewer).
+// Darunter: ein cleanes Grid aus statischen Vorschaubildern aller Modelle –
+// per Klick wird das Modell oben geladen. So ist alles auf einen Blick sichtbar,
+// ohne dutzende Viewer gleichzeitig laufen zu lassen.
 function render(){
-  // Alte Bühne sauber abbauen, bevor neu befüllt wird.
-  grid.querySelectorAll('.m3d-stage').forEach(st => { _io?.unobserve(st); unmountStage(st); });
+  // Alte Bühne(n) sauber abbauen, bevor neu befüllt wird.
+  page.querySelectorAll('.m3d-stage').forEach(st => { _io?.unobserve(st); unmountStage(st); });
 
   if(!(_models && _models.length)){
+    if(featuredHost) featuredHost.innerHTML = '';
+    _featured = null;
     grid.innerHTML = _owner
       ? '<div class="m3d-status">Noch keine Modelle – lade dein erstes über „Verwalten → 3D-Modelle verwalten“ hoch 🧊</div>'
       : '<div class="m3d-status">Noch keine Modelle im Inventar 🧊</div>';
     return;
   }
 
-  const m = pickDaily(_models);
-  grid.innerHTML = '';
+  const { order, daily } = dailyState(_models);
+  // Auswahl über einen Hintergrund-Abgleich hinweg beibehalten, sonst das
+  // Tagesmodell zeigen.
+  if(!_featured || !_models.some(m => m.id === _featured.id)) _featured = daily;
+  else _featured = _models.find(m => m.id === _featured.id);
+
+  renderFeatured(_featured, daily);
+  renderGrid(order);
+}
+
+// Große, drehende Modellansicht oben. `daily` dient nur dem kleinen Label
+// „Modell des Tages", wenn gerade das Tagesmodell gezeigt wird.
+function renderFeatured(m, daily){
+  if(!featuredHost) return;
+  featuredHost.querySelectorAll('.m3d-stage').forEach(st => { _io?.unobserve(st); unmountStage(st); });
+  featuredHost.innerHTML = '';
 
   const wrap = document.createElement('div');
   wrap.className = 'm3d-featured';
 
   const kicker = document.createElement('div');
   kicker.className = 'm3d-featured-kicker';
-  kicker.textContent = 'Modell des Tages';
+  kicker.textContent = (daily && m.id === daily.id) ? 'Modell des Tages' : 'Ausgewählt';
   wrap.appendChild(kicker);
 
   const stage = makeStage(m);
@@ -354,7 +452,69 @@ function render(){
   name.textContent = m.title || '3D-Modell';
   wrap.appendChild(name);
 
-  grid.appendChild(wrap);
+  featuredHost.appendChild(wrap);
+}
+
+// Grid aus statischen Vorschaubildern (keine Namen). Ein Klick lädt das Modell
+// oben und scrollt bei Bedarf zur großen Ansicht hoch.
+function renderGrid(order){
+  grid.innerHTML = '';
+
+  const head = document.createElement('div');
+  head.className = 'm3d-gridhead';
+  const hName = document.createElement('span');
+  hName.className = 'm3d-gridhead-name';
+  hName.textContent = 'Alle Modelle';
+  const hN = document.createElement('span');
+  hN.className = 'm3d-gridhead-n';
+  hN.textContent = order.length;
+  head.append(hName, hN);
+  grid.appendChild(head);
+
+  const tiles = document.createElement('div');
+  tiles.className = 'm3d-tiles';
+  order.forEach((m, i) => tiles.appendChild(makeTile(m, i)));
+  grid.appendChild(tiles);
+}
+
+// Eine Vorschau-Kachel: statisches Bild (falls vorhanden), sonst Platzhalter.
+function makeTile(m, i){
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = 'm3d-tile';
+  tile.dataset.id = m.id;
+  tile.setAttribute('aria-label', m.title || '3D-Modell');
+  tile.style.animationDelay = `${Math.min(i, 12) * 0.03 + 0.04}s`;
+  if(_featured && m.id === _featured.id) tile.classList.add('is-active');
+
+  if(m.thumb_url){
+    const img = document.createElement('img');
+    img.className = 'm3d-tile-img';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = m.title || '3D-Modell';
+    img.src = m.thumb_url;
+    tile.appendChild(img);
+  }else{
+    const ph = document.createElement('span');
+    ph.className = 'm3d-tile-ph';
+    ph.innerHTML = '<span></span>';
+    tile.appendChild(ph);
+  }
+
+  tile.addEventListener('click', () => selectModel(m));
+  return tile;
+}
+
+// Ein Modell auswählen: oben laden, aktive Kachel markieren und (falls nötig)
+// nach oben zur großen Ansicht scrollen.
+function selectModel(m){
+  _featured = m;
+  const { daily } = dailyState(_models);
+  renderFeatured(m, daily);
+  grid.querySelectorAll('.m3d-tile').forEach(t =>
+    t.classList.toggle('is-active', t.dataset.id === String(m.id)));
+  $('m3dScroll')?.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ── Modelle laden ──────────────────────────────────────────────────────────
@@ -367,7 +527,7 @@ async function loadModels(){
 
   const [{ data, error }, owner] = await Promise.all([
     sb.from('models_3d')
-      .select('id,title,model_url,category,created_at')
+      .select('id,title,model_url,thumb_url,category,created_at')
       .order('created_at', { ascending: false }),
     isOwner(),
   ]);
@@ -423,6 +583,47 @@ $('m3dManageBtnSheet')?.addEventListener('click', openManage);
 $('m3dgClose')?.addEventListener('click', closeManage);
 manage?.addEventListener('click', e => { if(e.target === manage) closeManage(); });
 
+// ── Vorschaubilder nachträglich erzeugen (Owner-Backfill) ───────────────────
+// Für Modelle ohne thumb_url (z. B. Altbestand): Modell aus seiner URL einmal
+// abrendern, Screenshot hochladen und thumb_url speichern. Läuft nacheinander
+// mit Fortschritt auf dem Button. Einzelne Fehlschläge (z. B. CORS) werden
+// übersprungen und am Ende gemeldet.
+let _backfilling = false;
+function missingThumbs(){ return (_models || []).filter(m => !m.thumb_url); }
+function updateThumbsBtn(){
+  const btn = $('m3dgThumbsBtn');
+  if(!btn) return;
+  const n = missingThumbs().length;
+  btn.hidden = n === 0;
+  if(!_backfilling) btn.textContent = `Vorschaubilder erzeugen (${n})`;
+}
+async function runBackfill(){
+  if(_backfilling) return;
+  const todo = missingThumbs();
+  if(!todo.length) return;
+  const btn = $('m3dgThumbsBtn');
+  _backfilling = true;
+  if(btn) btn.disabled = true;
+  let done = 0, failed = 0;
+  for(const m of todo){
+    if(btn) btn.textContent = `Erzeuge ${done + failed + 1}/${todo.length}…`;
+    const thumb_url = await makeThumbUrl(m.model_url, null);
+    if(!thumb_url){ failed++; continue; }
+    const { error } = await sb.from('models_3d').update({ thumb_url }).eq('id', m.id);
+    if(error){ failed++; continue; }
+    // Storage aufräumen, falls direkt danach ein Fehler kam? Nicht nötig – Erfolg.
+    const rec = (_models || []).find(x => x.id === m.id);
+    if(rec) rec.thumb_url = thumb_url;
+    done++;
+    render();   // Grid nach jedem Bild aktualisieren
+  }
+  _backfilling = false;
+  if(btn) btn.disabled = false;
+  updateThumbsBtn();
+  toast(failed ? `${done} erzeugt, ${failed} fehlgeschlagen` : `${done} Vorschaubild${done === 1 ? '' : 'er'} erzeugt ✓`);
+}
+$('m3dgThumbsBtn')?.addEventListener('click', runBackfill);
+
 // Verwalten-Liste: nach Kategorie gruppiert, jede Gruppe mit Überschrift und
 // Anzahl. Das macht auf einen Blick sichtbar, was wo einsortiert ist, statt
 // eine lange, undifferenzierte Liste zu zeigen. Bearbeiten (inkl. Kategorie-
@@ -430,6 +631,8 @@ manage?.addEventListener('click', e => { if(e.target === manage) closeManage(); 
 function renderManage(){
   const listEl = $('m3dgList');
   if(!listEl) return;
+
+  updateThumbsBtn();
 
   const sub = $('m3dgSub');
   if(!_models || !_models.length){
@@ -504,9 +707,10 @@ async function onDelete(m, btn){
   }
   const { error } = await sb.from('models_3d').delete().eq('id', m.id);
   if(error){ toast('Löschen fehlgeschlagen'); return; }
-  // Datei aus dem Storage entfernen (best effort – die Anzeige hängt nur am Datensatz).
-  const path = storagePathFromUrl(m.model_url);
-  if(path) sb.storage.from(BUCKET).remove([path]).catch(() => {});
+  // Dateien aus dem Storage entfernen (best effort – die Anzeige hängt nur am
+  // Datensatz): Modell und – falls vorhanden – sein Vorschaubild.
+  const paths = [storagePathFromUrl(m.model_url), storagePathFromUrl(m.thumb_url)].filter(Boolean);
+  if(paths.length) sb.storage.from(BUCKET).remove(paths).catch(() => {});
   _models = (_models || []).filter(x => x.id !== m.id);
   render();
   renderManage();
@@ -644,19 +848,28 @@ $('m3dmSave')?.addEventListener('click', async () => {
   try{
     if(editModel){
       const patch = { title: title.slice(0, 80), category };
-      if(pickedFile) patch.model_url = await uploadFile(pickedFile);
+      if(pickedFile){
+        patch.model_url = await uploadFile(pickedFile);
+        // Neue Datei ⇒ neues Vorschaubild (aus der lokalen Datei, ohne CORS).
+        // Klappt es nicht, wird thumb_url geleert (Grid zeigt Platzhalter, per
+        // Backfill nachholbar) – nie das alte, jetzt falsche Bild behalten.
+        btn.textContent = 'Erzeuge Vorschau…';
+        patch.thumb_url = await makeThumbUrl(patch.model_url, pickedFile);
+      }
       const { error } = await sb.from('models_3d').update(patch).eq('id', editModel.id);
       if(error) throw error;
-      // Alte Datei erst nach erfolgreichem Update entfernen (best effort).
+      // Alte Dateien erst nach erfolgreichem Update entfernen (best effort).
       if(pickedFile){
-        const oldPath = storagePathFromUrl(editModel.model_url);
-        if(oldPath) sb.storage.from(BUCKET).remove([oldPath]).catch(() => {});
+        const oldPaths = [storagePathFromUrl(editModel.model_url), storagePathFromUrl(editModel.thumb_url)].filter(Boolean);
+        if(oldPaths.length) sb.storage.from(BUCKET).remove(oldPaths).catch(() => {});
       }
       toast('Modell aktualisiert ✓');
     }else{
       const url = await uploadFile(pickedFile);
+      btn.textContent = 'Erzeuge Vorschau…';
+      const thumb_url = await makeThumbUrl(url, pickedFile);
       const { error } = await sb.from('models_3d')
-        .insert({ title: title.slice(0, 80), model_url: url, category });
+        .insert({ title: title.slice(0, 80), model_url: url, thumb_url, category });
       if(error) throw error;
       toast('Modell hinzugefügt 🧊');
     }

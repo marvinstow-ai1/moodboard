@@ -36,6 +36,12 @@ create table if not exists public.models_3d (
   --   random  → "Random Items"  (Default/Fallback für Altbestand)
   category   text not null default 'random'
              check (category in ('chars','devices','sports','random')),
+  -- Vorschaubild (Screenshot des Modells) für die Grid-Ansicht: statt pro Kachel
+  -- einen WebGL-Viewer zu laden, zeigt das Inventar hier ein leichtes Bild; das
+  -- gewählte Modell wird erst oben im großen, drehenden Viewer live geladen.
+  -- Wird beim Upload automatisch erzeugt (js/models3d.js) und liegt im Storage
+  -- unter models/thumbs/. NULL = noch kein Thumbnail (per Owner-Backfill erzeugbar).
+  thumb_url  text,
   created_at timestamptz not null default now()
 );
 
@@ -59,6 +65,11 @@ begin
       check (category in ('chars','devices','sports','random'));
   end if;
 end $$;
+
+-- Nachträgliche Migration für bestehende Tabellen (apply_migration:
+-- "models_3d_add_thumb_url"). Additiv & idempotent: nullbare Vorschaubild-Spalte.
+alter table public.models_3d
+  add column if not exists thumb_url text;
 
 alter table public.models_3d enable row level security;
 

@@ -49,14 +49,16 @@
 .m3d-hero .info-hero-badge{animation:m3dBadgeFloat 5.5s ease-in-out infinite}
 @keyframes m3dBadgeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 
-/* ── Modell des Tages ─────────────────────────────────────────────────────
-   Statt des vollen Inventars zeigt die Seite pro Tag genau EIN Modell –
-   groß, zentriert, mit einem kleinen „Modell des Tages"-Label darüber und
-   dem Namen darunter. Auswahl/Rotation in js/models3d.js (pickDaily). */
-.m3d-grid{display:flex;flex-direction:column;align-items:center;gap:30px}
+/* ── Große Modellansicht oben + Vorschau-Grid darunter ─────────────────────
+   Oben (.m3d-featured) das gewählte Modell groß und live drehend, mit einem
+   kleinen Label darüber und dem Namen darunter. Darunter (.m3d-grid) ein
+   cleanes Grid aus statischen Vorschaubildern aller Modelle – ohne Namen.
+   Klick auf eine Kachel lädt das Modell oben. Logik in js/models3d.js. */
 .m3d-status{text-align:center;font-size:13px;opacity:.45;
   padding:40px 0;letter-spacing:.03em;line-height:1.6}
 
+/* Große Modellansicht oben. */
+.m3d-featured-host{width:100%}
 .m3d-featured{
   display:flex;flex-direction:column;align-items:center;gap:10px;
   width:100%;padding:8px 0 0;
@@ -76,6 +78,56 @@
   /* Ganze Namen zeigen: mehrzeilig umbrechen; überlange Einzelwörter abfangen. */
   overflow-wrap:anywhere;word-break:break-word;hyphens:auto;
 }
+
+/* Vorschau-Grid darunter. */
+.m3d-grid{display:flex;flex-direction:column;gap:12px;margin-top:30px}
+.m3d-grid .m3d-status{align-self:center}
+.m3d-gridhead{
+  display:flex;align-items:baseline;gap:9px;margin:0;
+  padding:0 2px 8px;border-bottom:1px solid var(--border);
+}
+.m3d-gridhead-name{font-size:14px;font-weight:750;letter-spacing:.07em;
+  text-transform:uppercase;opacity:.9}
+.m3d-gridhead-n{font-size:11px;font-weight:700;opacity:.38;font-variant-numeric:tabular-nums}
+
+.m3d-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px}
+.m3d-tile{
+  position:relative;aspect-ratio:1/1;width:100%;padding:0;overflow:hidden;
+  border:1px solid var(--border);border-radius:14px;
+  background:rgba(255,255,255,.04);color:inherit;cursor:pointer;
+  opacity:0;transform:translateY(10px);
+  animation:infoRise .34s cubic-bezier(.22,1,.36,1) forwards;
+  transition:border-color .18s,background .18s,transform .1s;
+}
+.m3d-tile:hover{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.07)}
+.m3d-tile:active{transform:scale(.97)}
+/* Aktuell oben gezeigtes Modell hervorheben. */
+.m3d-tile.is-active{
+  border-color:rgba(140,160,255,.6);
+  box-shadow:0 0 0 1px rgba(140,160,255,.5), 0 8px 24px rgba(90,110,255,.16);
+  background:rgba(120,140,255,.08);
+}
+/* Sanfter Farb-Halo hinter dem Vorschaubild (wie bei der großen Bühne). */
+.m3d-tile::before{
+  content:"";position:absolute;left:50%;top:50%;translate:-50% -50%;
+  width:76%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle, rgba(120,140,255,.14), transparent 68%);
+  filter:blur(6px);z-index:0;pointer-events:none;
+}
+.m3d-tile-img{
+  position:relative;z-index:1;width:100%;height:100%;object-fit:contain;padding:8px;
+}
+/* Platzhalter (noch kein Vorschaubild): kleiner rotierender Diamant. */
+.m3d-tile-ph{position:absolute;left:50%;top:50%;translate:-50% -50%;z-index:1;pointer-events:none}
+.m3d-tile-ph span{
+  display:block;width:14px;height:14px;border-radius:3px;
+  background:linear-gradient(135deg,rgba(255,255,255,.3),rgba(255,255,255,.07));
+  border:1px solid rgba(255,255,255,.25);transform:rotate(45deg);
+  animation:m3dPhSpin 1.6s ease-in-out infinite;
+}
+
+/* Offscreen-Bühne zum Erzeugen der Screenshots (unsichtbar, aber gerendert). */
+.m3d-capture{position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1}
 
 /* Bühne: quadratisch und transparent – nur Halo und Modell. */
 .m3d-stage{position:relative;aspect-ratio:1/1;width:100%;cursor:pointer;overflow:hidden}
@@ -181,6 +233,16 @@
   transition:transform .1s;
 }
 .m3dg-upload:active{transform:scale(.98)}
+/* Sekundär-Button „Vorschaubilder erzeugen" (Owner-Backfill). */
+.m3dg-thumbs{
+  flex:none;padding:10px;border:1px solid var(--border);border-radius:12px;
+  font:inherit;font-size:13px;font-weight:650;background:rgba(255,255,255,.05);
+  color:#fff;cursor:pointer;transition:background .18s,border-color .18s,opacity .18s;
+  font-variant-numeric:tabular-nums;
+}
+.m3dg-thumbs[hidden]{display:none}
+.m3dg-thumbs:hover:not(:disabled){background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25)}
+.m3dg-thumbs:disabled{opacity:.6;cursor:default}
 .m3dg-close{
   flex:none;padding:11px;border:none;border-radius:12px;font:inherit;font-size:14px;
   font-weight:700;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;
