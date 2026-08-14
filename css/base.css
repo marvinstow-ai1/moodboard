@@ -1,6 +1,10 @@
 :root{--bg:#050505;--text:#fff;--border:rgba(255,255,255,.12);--panel:rgba(12,12,12,.96)}
 *{box-sizing:border-box;margin:0;padding:0}
-html{background:var(--bg);overflow-x:hidden;width:100%}
+/* Kein Doppeltipp-Zoom auf dem Handy: touch-action:manipulation unterbindet
+   das Double-Tap-to-Zoom, lässt normales Scrollen aber unberührt. Pinch-Zoom
+   wird zusätzlich per JS (siehe index.html) blockiert, da iOS Safari
+   user-scalable=no im Viewport ignoriert. */
+html{background:var(--bg);overflow-x:hidden;width:100%;touch-action:manipulation}
 body{min-height:100vh;background:var(--bg);color:var(--text);font-family:"DM Sans",sans-serif;overscroll-behavior-y:none;-webkit-text-size-adjust:100%;padding-bottom:96px;overflow-x:hidden;width:100%}
 html.no-scroll{overflow:hidden;height:100%}
 /* Bewusst OHNE overflow:hidden/height:100%: das würde den fixierten Body auf

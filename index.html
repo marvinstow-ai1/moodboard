@@ -4,11 +4,38 @@
 <html lang="de" class="booting">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Marvin's Place</title>
+<script>
+/* Pinch-Zoom & Doppeltipp-Zoom auf dem Handy komplett unterbinden.
+   iOS Safari ignoriert user-scalable=no im Viewport, deshalb blockieren wir
+   hier zusätzlich die Gesture-Events (iOS-Pinch), Mehrfinger-Touchmoves
+   (Pinch allgemein) sowie den schnellen Doppeltipp. */
+(function () {
+  // iOS-Pinch: Safari feuert eigene gesture*-Events beim Zwei-Finger-Zoom.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (evt) {
+    document.addEventListener(evt, function (e) { e.preventDefault(); }, { passive: false });
+  });
+  // Mehrfinger-Touchmove (Pinch) plattformübergreifend abfangen.
+  document.addEventListener('touchmove', function (e) {
+    if (e.touches.length > 1) e.preventDefault();
+  }, { passive: false });
+  // Doppeltipp-Zoom als Fallback verhindern (zweiter Tap < 300 ms).
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    var now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  // Trackpad-Pinch (ctrl+wheel) auf mobilen Browsern mit Zeigegeräten.
+  document.addEventListener('wheel', function (e) {
+    if (e.ctrlKey) e.preventDefault();
+  }, { passive: false });
+})();
+</script>
 <!-- Verbindung zu Supabase (RPCs + Storage-Bilder, z. B. Gate-Swiper)
      schon beim Parsen aufbauen – spart DNS/TLS-Roundtrips beim ersten Bild. -->
 <link rel="preconnect" href="https://uvfuxnwinuakbqanaxtp.supabase.co" crossorigin>
