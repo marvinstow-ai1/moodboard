@@ -31,12 +31,30 @@
 }
 .tama-pop.is-animating{will-change:opacity,transform}
 
-/* ── Tier-Button in der Pill ──────────────────────────────────────────────
-   Öffnet das Tamagotchi (rechts neben der Suche). Das Icon ist dasselbe
-   Pixel-Sprite wie die Figur im LCD (Pfad in index.html); .active spiegelt den
-   offenen Zustand wie bei den übrigen Pill-Buttons. Ein zartes Wippen macht den
-   Mitbewohner lebendig, ohne aufdringlich zu sein. */
+/* ── Tier-Button (freistehend, am rechten Bildschirmrand) ──────────────────
+   Öffnet das Tamagotchi. Der Button ist aus der Pill herausgelöst und lebt als
+   eigener runder Button rechts – exakt auf gleicher Höhe / perfekt in Linie mit
+   der Pill: gleicher bottom-Wert (16px) und dieselbe Außenhöhe (54px Inhalt +
+   1px Rahmen). Look (Glas, Rahmen, Schatten) übernimmt er von der Pill
+   (.bottombar in css/grid.css), damit beide als ein System wirken. Das Icon ist
+   dasselbe Pixel-Sprite wie die Figur im LCD (Pfad in index.html); .active
+   spiegelt den offenen Zustand. Ein zartes Wippen macht den Mitbewohner
+   lebendig, ohne aufdringlich zu sein. */
+.tama-btn{
+  position:fixed;bottom:16px;right:16px;z-index:72;
+  /* 56px = exakte Außenhöhe der Pill (54px Inhalt + 2×1px Rahmen), damit der
+     Button perfekt in Linie mit ihr sitzt (gleiche Mitte, gleiche Unterkante). */
+  width:56px;height:56px;border-radius:999px;box-sizing:border-box;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(10,10,10,.75);color:#fff;cursor:pointer;
+  display:grid;place-items:center;padding:0;
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  transition:.15s;
+}
+.tama-btn:focus{outline:none}
 #tamaBtn.active{background:rgba(255,255,255,.14)}
+.tama-btn:active{transform:scale(.92);transition:background-color .05s ease,transform .05s ease}
 #tamaBtn svg{transition:transform .18s ease}
 #tamaBtn:active svg{transform:translateY(1px) scale(.94)}
 @media (prefers-reduced-motion:no-preference){
