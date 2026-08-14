@@ -32,6 +32,28 @@ Sammel-Album im Panini-Gefühl. Freunde sammeln Sticker.
 - Also: durchnummerierte Sammelkarten mit einheitlichem Rahmen-Look, fortlaufende
   ID (`0001`, `0002`, …), Bild in der Mitte, Label unten.
 
+### FINALE Rahmen-Auswahl ✅ (festgelegt 2026-08-14)
+
+Nach mehreren Skizzen (Artifacts) stehen die Rahmen fest:
+
+- **Holo-Foil-Rahmen** aus dem 1. Vorschlag — der Regenbogen-Conic-Rand mit dunklem
+  Fenster. **OHNE** den rotierenden/„spinning" Innen-Effekt (statischer Schimmer).
+  Referenz-Wunsch: ruhiger, radialer YGO-Foil statt vieler zappelnder Sprinkles.
+- **5 dezente 8-Bit-Paletten** (gedämpft, KEIN lautes Neon-Grün):
+  1. Slate · Bernstein  (`#2a2d38` / Akzent `#c99a54`)
+  2. Dusk · Mauve       (`#2c2632` / Akzent `#c095b0`)
+  3. Steel · Ice        (`#242c34` / Akzent `#87a9c6`)
+  4. Charcoal · Sand    (`#282521` / Akzent `#cbb488`)
+  5. Ink · Coral        (`#262330` / Akzent `#cf9a8b`)
+  Pixel-Rahmen = chunky gestufter Rand (box-shadow-Ringe) + Monospace-Label.
+
+### FINALE Pack-Öffnung ✅ (festgelegt 2026-08-14)
+
+- **Aufreißen-Animation** (Effekt #1): obere Zacken-Naht reißt weg.
+- **Genau 1 Sticker pro Pack** (nicht 5).
+- Pack hat **Yu-Gi-Oh-Zacken oben & unten** (CSS `mask`, Zickzack-Kante).
+- Pack-Design selbst bleibt vorerst **clean/Platzhalter** — wird noch ausgedacht.
+
 ### Woher kommen die Sticker (Herkunft)
 
 - **Start-Empfehlung:** fester, selbst gestalteter Sticker-Satz (z. B. 30–50 Stück,
