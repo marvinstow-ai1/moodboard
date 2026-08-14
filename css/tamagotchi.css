@@ -59,7 +59,7 @@
    Button (Screenshot des LCD-Geräts, s. img/tama-btn.png). Das hohe Ei füllt
    den runden Button fast komplett und behält sein Seitenverhältnis. */
 #tamaBtn img{
-  width:auto;height:46px;display:block;
+  width:auto;height:40px;display:block;
   object-fit:contain;pointer-events:none;user-select:none;
   filter:drop-shadow(0 2px 4px rgba(0,0,0,.45));
   transition:transform .18s ease;
