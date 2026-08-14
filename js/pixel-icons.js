@@ -102,6 +102,29 @@
     K: '#241405', W: '#b06a2c', G: '#f6c020', L: '#3a2408',
   });
 
+  // ── Startseite: kleines Retro-Häuschen ────────────────────────────────────
+  // Rotes Dach, warme Wände, Fenster + Tür – passt zur „Startseite".
+  const HOME = make([
+    '................',
+    '................',
+    '.......KK.......',
+    '......KRRK......',
+    '.....KRRRRK.....',
+    '....KRRRRRRK....',
+    '...KRRRRRRRRK...',
+    '..KRRRRRRRRRRK..',
+    '.KKKKKKKKKKKKKK.',
+    '.KWWWWWWWWWWWWK.',
+    '.KWGGWWWWWWGGWK.',
+    '.KWGGWWWWWWGGWK.',
+    '.KWWWWDDDDWWWWK.',
+    '.KWWWWDDDDWWWWK.',
+    '.KKKKKDDDDKKKKK.',
+    '................',
+  ], {
+    K: '#3a2a10', R: '#e5484d', W: '#f0d9a8', G: '#7fd4e8', D: '#8a5a2a',
+  });
+
   // ── Tamagotchi: geflecktes Dino-Ei ────────────────────────────────────────
   // Passt zum kleinen Pixel-Mitbewohner, der aus einem Ei schlüpft.
   const TAMA = make([
@@ -125,7 +148,7 @@
     K: '#2f4a22', W: '#f4f7ee', G: '#57b24a',
   });
 
-  const ICONS = { info: INFO, guestbook: GUESTBOOK, inventory: INVENTORY, tama: TAMA };
+  const ICONS = { home: HOME, info: INFO, guestbook: GUESTBOOK, inventory: INVENTORY, tama: TAMA };
   window.PIXEL_ICONS = ICONS;
 
   // Statische Badges (Hero-Bereiche der Unterseiten) befüllen.

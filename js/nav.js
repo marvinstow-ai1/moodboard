@@ -19,30 +19,20 @@
   const icon = (key) => (window.PIXEL_ICONS && window.PIXEL_ICONS[key]) || '';
 
   // ── Mini-Vorschauen der einzelnen Seiten ──────────────────────────────────
-  // Startseite: dasselbe Grid-Design wie die echte Ansicht, mit einer festen
-  // Auswahl an Bildern. Bewusst nur <img> (Thumbnails) – nie <video>, damit in
-  // der Vorschau nichts autoplayt.
+  // Startseite: Held-Badge + Titelzeile + Skelett-Raster (spiegelt das echte
+  // Moodboard-Grid). Bewusst keine echten Vorschaubilder – einheitlich cleanes
+  // Skelett-Design wie bei den übrigen Karten.
   function buildHome() {
-    const grid = document.createElement('div');
-    grid.className = 'nav-mini-grid';
-    const thumbs = window.MB?.getPreviewThumbs?.(12) || [];
-    for (let i = 0; i < 12; i++) {
-      const cell = document.createElement('div');
-      cell.className = 'nav-cell';
-      const src = thumbs[i];
-      if (src) {
-        const img = document.createElement('img');
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.alt = '';
-        // Lädt ein Thumbnail nicht, bleibt die dezente Platzhalter-Kachel stehen.
-        img.onerror = () => img.remove();
-        img.src = src;
-        cell.appendChild(img);
-      }
-      grid.appendChild(cell);
-    }
-    return grid;
+    const wrap = document.createElement('div');
+    wrap.className = 'nav-mini-page';
+    let cells = '';
+    for (let i = 0; i < 9; i++) cells += '<div class="nav-cell"></div>';
+    wrap.innerHTML =
+      '<div class="nav-mini-badge">' + icon('home') + '</div>' +
+      '<div class="nav-mini-heroline"></div>' +
+      '<div class="nav-mini-subline"></div>' +
+      '<div class="nav-mini-grid three home">' + cells + '</div>';
+    return wrap;
   }
 
   // Info: Held-Badge + Titelzeile + Skelett-Karten (spiegelt die echte Seite).
@@ -106,8 +96,7 @@
     const closeBtn = $('navClose');
     if (!btn || !panel || !swiper) return;
 
-    // Karten einmalig aufbauen (die Startseiten-Auswahl wird bei jedem Öffnen
-    // frisch nachgezogen, sobald Items geladen sind – s. refreshHome()).
+    // Karten einmalig aufbauen – alle rein statische Skelett-Vorschauen.
     // Alle Karten liegen nebeneinander in einer Reihe und sind sofort sichtbar.
     const cards = PAGES.map((p) => {
       const card = document.createElement('button');
@@ -141,17 +130,9 @@
       return 'home';
     }
 
-    function refreshHome() {
-      // Startseiten-Vorschau mit der aktuellen Bild-Auswahl neu füllen.
-      const homeCard = cards.find((c) => c.dataset.key === 'home');
-      const frame = homeCard?.querySelector('.nav-card-frame');
-      if (frame) { frame.innerHTML = ''; frame.appendChild(buildHome()); }
-    }
-
     function open() {
       // Andere Bottom-Bar-Popups (Spotify, Kachelgröße, Chat) sanft schließen.
       window.MB?.closeOtherPopups?.('nav');
-      refreshHome();
       panel.classList.add('show');
       panel.setAttribute('aria-hidden', 'false');
       btn.classList.add('active');
