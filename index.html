@@ -631,7 +631,10 @@
      herausgelöst und als eigener runder Button am rechten Bildschirmrand –
      exakt auf gleicher Höhe wie die Pill. Logik: js/tamagotchi.js. -->
 <button class="tama-btn" id="tamaBtn" aria-label="Tamagotchi">
-  <img src="img/tama-btn.png" alt="" aria-hidden="true" draggable="false">
+  <!-- Das Tamagotchi selbst IST der Button (kein runder Rahmen). Das Bild zeigt
+       das Gerät in der jeweiligen Tagesfarbe – js/tamagotchi.js setzt per
+       Datums-Hash die passende Variante img/tama-btn-<0..4>.png. -->
+  <img src="img/tama-btn-0.png" alt="" aria-hidden="true" draggable="false">
 </button>
 
 <!-- ── Navigations-Vorschau ─────────────────────────────────

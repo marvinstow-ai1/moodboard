@@ -75,13 +75,22 @@ function todayStamp() {
 // Farbe deterministisch aus dem Datum ableiten (kein Zufall, kein Speicher):
 // So sieht das gemeinsame Tier an einem Tag bei ALLEN gleich aus und wechselt
 // zum nächsten Tag automatisch die Farbe.
-function dailyColor() {
+function dailyColorIndex() {
   const stamp = todayStamp();
   let hash = 0;
   for (let i = 0; i < stamp.length; i++) hash = (hash * 31 + stamp.charCodeAt(i)) >>> 0;
-  return DAILY_COLORS[hash % DAILY_COLORS.length];
+  return hash % DAILY_COLORS.length;
+}
+function dailyColor() { return DAILY_COLORS[dailyColorIndex()]; }
+// Der freistehende Tamagotchi-Button trägt ein Foto des Geräts in der jeweiligen
+// Tagesfarbe. Für jede DAILY_COLORS-Variante gibt es ein vorgerendertes Bild
+// (img/tama-btn-<index>.png), hier wird passend zum Tag gewechselt.
+function applyBtnImage() {
+  const img = document.querySelector('#tamaBtn img');
+  if (img) img.src = `img/tama-btn-${dailyColorIndex()}.png`;
 }
 function applyDailyColor() {
+  applyBtnImage();
   if (!tamagotchi) return;
   const c = dailyColor();
   tamagotchi.style.setProperty('--body-color', c.color);
