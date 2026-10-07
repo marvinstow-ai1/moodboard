@@ -1,7 +1,7 @@
 /* ============================================================================
    Pixel-Icons — 16-Bit-Retro-Symbole für die Unterseiten
    ----------------------------------------------------------------------------
-   Ersetzt die früheren Emoji-Badges (Info, Gästebuch, Inventory, Tamagotchi)
+   Ersetzt die früheren Emoji-Badges (Info, Gästebuch, Tamagotchi)
    durch handgezeichnete, farbige Pixel-Grafiken im Stil alter Nintendo-Spiele.
 
    Jedes Icon ist ein 16×16-Raster (ein Buchstabe = ein Pixel). `make()` baut
@@ -79,29 +79,6 @@
     K: '#33405c', P: '#fbf3e0', F: '#cbb78a', H: '#e5484d',
   });
 
-  // ── Inventory: Schatztruhe ────────────────────────────────────────────────
-  // Die klassische Retro-Spiel-Truhe – das Inventar der 3D-Modelle.
-  const INVENTORY = make([
-    '................',
-    '................',
-    '.KKKKKKKKKKKKKK.',
-    '.KGWWWWWWWWWWGK.',
-    '.KWWWWWWWWWWWWK.',
-    '.KWWWWWGGWWWWWK.',
-    '.KKKKKKGGKKKKKK.',
-    '.KWWWWGGGGWWWWK.',
-    '.KWWWWGLLGWWWWK.',
-    '.KWWWWGGGGWWWWK.',
-    '.KWWWWWWWWWWWWK.',
-    '.KWWWWWWWWWWWWK.',
-    '.KGWWWWWWWWWWGK.',
-    '.KKKKKKKKKKKKKK.',
-    '................',
-    '................',
-  ], {
-    K: '#241405', W: '#b06a2c', G: '#f6c020', L: '#3a2408',
-  });
-
   // ── Startseite: kleines Retro-Häuschen ────────────────────────────────────
   // Rotes Dach, warme Wände, Fenster + Tür – passt zur „Startseite".
   const HOME = make([
@@ -148,7 +125,7 @@
     K: '#2f4a22', W: '#f4f7ee', G: '#57b24a',
   });
 
-  const ICONS = { home: HOME, info: INFO, guestbook: GUESTBOOK, inventory: INVENTORY, tama: TAMA };
+  const ICONS = { home: HOME, info: INFO, guestbook: GUESTBOOK, tama: TAMA };
   window.PIXEL_ICONS = ICONS;
 
   // Statische Badges (Hero-Bereiche der Unterseiten) befüllen.

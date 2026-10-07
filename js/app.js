@@ -833,6 +833,43 @@ function isGif(n){ return /\.gif$/i.test(n||''); }
 // GIFs – letztere behalten media_type 'gif' (u. a. für den Mood-Chat-Filter),
 // ihre media_url zeigt aber auf eine .mp4-Datei.
 function isClip(it){ return it.media_type === 'video' || /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(it.media_url || ''); }
+// ── Echtes WebP aus einem Canvas ────────────────────────
+// Safari (iPhone/Mac) kann per Canvas KEIN WebP erzeugen: toBlob('image/webp')
+// liefert dort stillschweigend ein PNG. Genau so sind hunderte „.webp"-Dateien
+// entstanden, die in Wahrheit 5–10× größere PNGs sind. Deshalb wird das
+// Ergebnis geprüft und notfalls mit libwebp als WebAssembly (jSquash) kodiert –
+// nur nachgeladen, wenn der Browser es wirklich braucht. Gibt null zurück, wenn
+// kein echtes WebP entstehen konnte (Aufrufer behalten dann das Original).
+const WEBP_ENC_URL = 'https://cdn.jsdelivr.net/npm/@jsquash/webp@1.5.0/codec/enc/webp_enc.js';
+// Vollständige libwebp-Konfiguration (WebPConfig) – das WASM-Modul verlangt
+// alle Felder; Werte = jSquash-Defaults.
+const WEBP_ENC_OPTS = {
+  quality:75, target_size:0, target_PSNR:0, method:4, sns_strength:50,
+  filter_strength:60, filter_sharpness:0, filter_type:1, partitions:0,
+  segments:4, pass:1, show_compressed:0, preprocessing:0, autofilter:0,
+  partition_limit:0, alpha_compression:1, alpha_filtering:1, alpha_quality:100,
+  lossless:0, exact:0, image_hint:0, emulate_jpeg_size:0, thread_level:0,
+  low_memory:0, near_lossless:100, use_delta_palette:0, use_sharp_yuv:0,
+};
+let _webpEnc = null;
+function loadWebpEncoder(){
+  if(!_webpEnc){
+    _webpEnc = import(WEBP_ENC_URL).then(m => m.default({ noInitialRun:true }));
+    _webpEnc.catch(() => { _webpEnc = null; });
+  }
+  return _webpEnc;
+}
+async function canvasToWebp(c, q){
+  const b = await new Promise(r => c.toBlob(r, 'image/webp', q));
+  if(b && b.type === 'image/webp') return b;
+  try{
+    const enc = await loadWebpEncoder();
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height);
+    const out = enc.encode(d.data, d.width, d.height, { ...WEBP_ENC_OPTS, quality: Math.round(q * 100) });
+    if(out && out.length) return new Blob([out], { type:'image/webp' });
+  }catch(e){}
+  return null;
+}
 function prog(p){ progressBar.style.width=p+'%'; if(p>=100) setTimeout(()=>progressBar.style.width='0',600); }
 function compress(file, maxPx=MAX_PX, q=0.88){
   // GIFs gehen durch den Gifsicle-Pfad (WASM), der die Animation erhält –
@@ -851,9 +888,9 @@ function compress(file, maxPx=MAX_PX, q=0.88){
       }
       const c=document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
-      const outType='image/webp', outName=file.name.replace(/\.[^.]+$/,'.webp');
+      const outName=file.name.replace(/\.[^.]+$/,'.webp');
       // Fallback: schlägt die Umwandlung fehl, die Originaldatei behalten.
-      c.toBlob(b=>res(b ? new File([b],outName,{type:outType}) : file),outType,q);
+      canvasToWebp(c,q).then(b=>res(b ? new File([b],outName,{type:'image/webp'}) : file));
     };
     img.onerror=()=>{ URL.revokeObjectURL(url); res(file); };
     img.src=url;
@@ -871,7 +908,7 @@ function makeThumb(file, maxPx=THUMB_PX, q=0.7){
       const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
       const c=document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
-      c.toBlob(b=>res(b ? new File([b],'thumb.webp',{type:'image/webp'}) : null),'image/webp',q);
+      canvasToWebp(c,q).then(b=>res(b ? new File([b],'thumb.webp',{type:'image/webp'}) : null));
     };
     img.onerror=()=>{ URL.revokeObjectURL(url); res(null); };
     img.src=url;
@@ -946,13 +983,14 @@ async function makeGifThumb(file, maxPx=GIF_THUMB_PX){
   }catch(e){}
   return null;
 }
-// ── GIF → MP4 (ffmpeg.wasm) ──────────────────────────────
-// Wandelt animierte GIFs nach H.264-MP4: typisch 5–20× kleiner, hardware-
-// dekodiert und streambar. Läuft NICHT automatisch beim Upload, sondern nur
-// über den Owner-Button "GIFs → Video (MP4) konvertieren". media_type bleibt
-// 'gif' (u. a. für den Mood-Chat), gerendert wird als <video muted loop> mit
-// Autoplay – verhält sich also exakt wie das GIF. ffmpeg.wasm (~10 MB Core)
-// wird erst beim ersten Einsatz nachgeladen – normale Besuche kostet es nichts.
+// ── GIF → animiertes WebP (ffmpeg.wasm) ──────────────────
+// Animiertes WebP ist typisch 50–80 % kleiner als ein (schon gifsicle-
+// optimiertes) GIF, wird aber exakt wie ein GIF als <img> gerendert – KEIN
+// <video>, also kein Decoder-Limit und kein Ruckeln im Grid (MP4-Clips haben
+// genau das verursacht). Läuft NICHT automatisch beim Upload, sondern nur über
+// den Owner-Button "GIFs → animiertes WebP". media_type bleibt 'gif'.
+// ffmpeg.wasm (Core inkl. libwebp) wird erst beim ersten Einsatz nachgeladen –
+// normale Besuche kostet es nichts.
 // Bewusst die UMD-Builds: die ESM-Worker-Datei hat relative Imports und lässt
 // sich deshalb nicht als (nötige) Blob-URL instanziieren – der UMD-Worker-Chunk
 // (814.ffmpeg.js) ist dagegen self-contained.
@@ -991,39 +1029,31 @@ function loadFFmpeg(){
   }
   return _ffmpeg;
 }
-// GIF-Datei nach MP4 konvertieren; gibt null zurück, wenn irgendetwas schief
-// geht (CDN offline, exotisches GIF …) – der Aufrufer fällt dann transparent
-// auf den bisherigen Gifsicle-Weg zurück, es geht also nie etwas kaputt.
-// ffmpeg.wasm ist eine EINZELINSTANZ mit festen Dateinamen (in.gif/out.mp4);
-// parallele Aufrufe – etwa beim gleichzeitigen Mehrfach-Upload (CONCURRENCY>1) –
-// würden sich die Dateien gegenseitig überschreiben. Deshalb werden ALLE
-// Konvertierungen über diese Promise-Kette serialisiert: sie laufen nacheinander,
-// nie gleichzeitig. (Der Owner-Button arbeitet ohnehin sequenziell, ist damit
-// aber ebenfalls abgesichert.)
+// GIF-Datei nach animiertem WebP konvertieren (Kante max. maxPx, Endlos-
+// schleife, Transparenz bleibt). Gibt null zurück, wenn irgendetwas schief geht
+// (CDN offline, exotisches GIF …) – der Aufrufer lässt das GIF dann unverändert.
+// ffmpeg.wasm ist eine EINZELINSTANZ mit festen Dateinamen (in.gif/out.webp);
+// alle Konvertierungen laufen deshalb über diese Promise-Kette nacheinander.
 let _ffLock = Promise.resolve();
-async function gifToMp4(file){
+async function gifToWebp(file, maxPx=GIF_MAX_PX, quality=70){
   const run = _ffLock.then(async () => {
     try{
       const ff = await loadFFmpeg();
       await ff.writeFile('in.gif', new Uint8Array(await file.arrayBuffer()));
-      // yuv420p + gerade Kantenlängen sind Pflicht für H.264; Deckel bei
-      // GIF_MAX_PX, kleinere GIFs behalten ihre Größe. veryfast, weil der
-      // WASM-Encoder single-threaded läuft.
       await ff.exec([
         '-i', 'in.gif',
-        '-vf', `scale=trunc(min(iw\\,${GIF_MAX_PX})/2)*2:-2`,
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '25',
-        '-pix_fmt', 'yuv420p',
-        '-movflags', '+faststart',
+        '-vf', `scale=w=min(iw\\,${maxPx}):h=min(ih\\,${maxPx}):force_original_aspect_ratio=decrease`,
+        '-c:v', 'libwebp_anim', '-lossless', '0', '-q:v', String(quality),
+        '-compression_level', '4', '-loop', '0',
         '-an',
-        'out.mp4',
+        'out.webp',
       ]);
-      const data = await ff.readFile('out.mp4');
+      const data = await ff.readFile('out.webp');
       try{ await ff.deleteFile('in.gif'); }catch(e){}
-      try{ await ff.deleteFile('out.mp4'); }catch(e){}
+      try{ await ff.deleteFile('out.webp'); }catch(e){}
       if(data && data.length > 0){
-        const name = file.name.replace(/\.gif$/i, '') + '.mp4';
-        return new File([data], name, { type: 'video/mp4' });
+        const name = file.name.replace(/\.gif$/i, '') + '.webp';
+        return new File([data], name, { type: 'image/webp' });
       }
     }catch(e){}
     return null;
@@ -1040,8 +1070,7 @@ function updateBodyLock(){
   const lock = (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
-    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'))
-    || !!document.querySelector('.m3d-manage.show');   // 3D-Modelle verwalten (js/models3d.js)
+    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'));
   // Weiche Sperre für die Vollbild-Overlays (Lightbox, Info-Seite & Gästebuch):
   // sie liegen über dem Grid, der Hintergrund soll dabei still stehen. Ein harter
   // Body-Lock (position:fixed) scheidet aus – er fährt auf iOS Safari die Toolbar
@@ -1051,11 +1080,11 @@ function updateBodyLock(){
   // lässt die Toolbar aber eingefahren – die Lightbox bleibt so fullscreen wie
   // das Grid dahinter.
   const lbShown = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'));
-  const softLock = !lock && (lbShown || !!document.querySelector('.info-page.show, .gb-page.show, .m3d-page.show'));
+  const softLock = !lock && (lbShown || !!document.querySelector('.info-page.show, .gb-page.show'));
   document.documentElement.classList.toggle('no-scroll-soft', softLock);
   // Dynamische Pill: auf Info-/Gästebuch-Seiten Shuffle + Kachelgröße einziehen
   // (dort ohne Funktion) – nur Spotify, Chat und Navigation bleiben stehen.
-  const onSubpage = !!document.querySelector('.info-page.show, .gb-page.show, .m3d-page.show');
+  const onSubpage = !!document.querySelector('.info-page.show, .gb-page.show');
   document.getElementById('bottombar')?.classList.toggle('subpage', onSubpage);
   const isLocked = document.documentElement.classList.contains('no-scroll');
   if(lock && !isLocked){
@@ -2025,6 +2054,98 @@ async function backfillGifs(){
   toast(`Fertig ✓ (${total - failed} ok, ${gifShrunk}× GIF verkleinert${failed ? `, ${failed} Fehler` : ''})`);
 }
 
+// 4) Falsche „WebP"s reparieren: Auf Safari erzeugte Uploads/Thumbnails heißen
+// .webp, sind aber PNGs (s. canvasToWebp) – 5–10× zu groß. Prüft pro Bild die
+// ersten Bytes von Volldatei und Thumbnail (Range-Request, kaum Traffic) und
+// kodiert nur die echten PNGs neu als WebP. Neue Pfade (alte URLs sind 1 Jahr
+// immutable gecacht), DB umstellen, alte Dateien löschen.
+// Test-Lauf: `?fixwebp=5` in der URL repariert nur die ersten 5 Bilder.
+async function sniffFormat(url){
+  try{
+    // Range spart Traffic; scheitert er (CORS-Preflight), normal abrufen und
+    // trotzdem nur den ersten Chunk lesen.
+    let r = await fetch(url, { headers:{ Range:'bytes=0-15' } }).catch(() => null);
+    if(!r || !r.ok) r = await fetch(url);
+    if(!r.ok || !r.body) return null;
+    // Nur den ersten Chunk lesen – falls der Server Range ignoriert, wird der
+    // Rest nicht heruntergeladen.
+    const reader = r.body.getReader();
+    const { value } = await reader.read();
+    try{ reader.cancel(); }catch(e){}
+    const b = value || new Uint8Array();
+    if(b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'png';
+    if(b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57 && b[9] === 0x45) return 'webp';
+    if(b[0] === 0xff && b[1] === 0xd8) return 'jpeg';
+    if(b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'gif';
+    return 'other';
+  }catch(e){ return null; }
+}
+async function repairFakeWebp(){
+  if(!owner){ toast('Nur als Owner möglich'); return; }
+  const marker = `/public/${BUCKET}/`;
+  let todo = S().items.filter(it =>
+    it.media_type === 'image' && (it.media_url || '').includes(marker));
+  const limit = parseInt(new URLSearchParams(location.search).get('fixwebp'), 10);
+  if(limit > 0) todo = todo.slice(0, limit);
+  if(!todo.length){ toast('Keine Bilder gefunden'); return; }
+  if(!window.confirm(`${todo.length} Bilder prüfen und falsche PNGs → echtes WebP?\nDas kann eine Weile dauern – Seite bitte offen lassen.`)) return;
+  closeMenu();
+  let done = 0, failed = 0, fixed = 0, saved = 0;
+  toast(`Prüfe… 0/${todo.length}`);
+  for(const it of todo){
+    try{
+      const path = storagePath(it.media_url, marker);
+      const tPath = it.thumb_url && it.thumb_url !== it.media_url ? storagePath(it.thumb_url, marker) : null;
+      const fullFmt = await sniffFormat(it.media_url);
+      const thumbFmt = tPath ? await sniffFormat(it.thumb_url) : null;
+      const needFull = fullFmt === 'png';
+      const needThumb = needFull || !tPath || thumbFmt === 'png';
+      if(needFull || needThumb){
+        const resp = await fetch(it.media_url);
+        if(!resp.ok) throw new Error('fetch');
+        const blob = await resp.blob();
+        const srcFile = new File([blob], 'src.png', { type: blob.type || 'image/png' });
+        const base = path.replace(/\.[^./]+$/, '');
+        const patch = {}, oldPaths = [];
+
+        if(needFull){
+          const full = await compress(srcFile);   // max. MAX_PX, echtes WebP
+          if(full !== srcFile && full.type === 'image/webp' && full.size < srcFile.size){
+            const wpath = `${base}-w.webp`;
+            const {error:fe} = await sb.storage.from(BUCKET).upload(wpath, full, { upsert:true, contentType:'image/webp', cacheControl:'31536000' });
+            if(fe) throw fe;
+            patch.media_url = sb.storage.from(BUCKET).getPublicUrl(wpath).data.publicUrl;
+            oldPaths.push(path);
+            saved += srcFile.size - full.size;
+          }
+        }
+        const tf = await makeThumb(srcFile);
+        if(tf){
+          const tpath = `thumb/${base}-w.webp`;
+          const {error:te} = await sb.storage.from(BUCKET).upload(tpath, tf, { upsert:true, contentType:'image/webp', cacheControl:'31536000' });
+          if(te) throw te;
+          patch.thumb_url = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
+          if(tPath && tPath !== tpath) oldPaths.push(tPath);
+        }
+        if(Object.keys(patch).length){
+          const {error:ue} = await sb.from(S().table).update(patch).eq('id', it.id);
+          if(ue) throw ue;
+          Object.assign(it, patch);
+          fixed++;
+          try{ if(oldPaths.length) await sb.storage.from(BUCKET).remove(oldPaths); }catch(e){}
+        }
+      }
+    }catch(e){ failed++; }
+    done++;
+    prog(Math.round(done / todo.length * 100));
+    if(done % 10 === 0 || done === todo.length) toast(`Prüfe… ${done}/${todo.length} (${fixed} repariert)`);
+  }
+  renderGrid();
+  toast(`Fertig ✓ ${fixed} Bilder repariert, ca. ${Math.round(saved/1e6)} MB gespart${failed ? `, ${failed} Fehler` : ''}`);
+}
+$('fixWebpBtn')?.addEventListener('click', repairFakeWebp);
+$('fixWebpBtnSheet')?.addEventListener('click', repairFakeWebp);
+
 // 3) Farbprofile für die Chat-Farbsuche: pro Bild/GIF das kleine Thumbnail laden,
 // in 12 Farb-Buckets einteilen und in der Spalte `colors` speichern. Einmalig für
 // den Bestand; neue Uploads bringen ihr Profil schon selbst mit. Fehler (CORS bei
@@ -2063,54 +2184,68 @@ $('gifBackfillBtnSheet')?.addEventListener('click', backfillGifs);
 $('colorBackfillBtn')?.addEventListener('click', backfillColors);
 $('colorBackfillBtnSheet')?.addEventListener('click', backfillColors);
 
-// ── GIF → MP4 KONVERTIERUNG (Owner) ──────────────────────
-// Wandelt bereits hochgeladene GIFs auf Knopfdruck in MP4 um (Uploads bleiben
-// unangetastet – konvertiert wird NUR über diesen Button). media_type bleibt
-// 'gif'; Clips bekommen kein Poster/Thumbnail, alte GIF-Dateien (Volldatei +
-// animiertes Thumbnail) werden nach erfolgreichem Umstieg aufgeräumt.
-async function convertGifsToMp4(){
+// ── GIF → ANIMIERTES WEBP (Owner) ────────────────────────
+// Wandelt bereits hochgeladene GIFs auf Knopfdruck in animiertes WebP um –
+// Volldatei (Lightbox) UND animiertes Grid-Thumbnail. Ersetzt wird nur, wenn
+// das WebP wirklich spürbar kleiner ist; sonst bleibt das GIF. media_type
+// bleibt 'gif' (Mood-Chat, Autoplay-Killswitch). Alte GIF-Dateien werden nach
+// erfolgreichem Umstieg aufgeräumt. Uploads bleiben unangetastet.
+// Test-Lauf: `?gifwebp=3` in der URL konvertiert nur die ersten 3 GIFs.
+function storagePath(url, marker){
+  const i = (url || '').indexOf(marker);
+  return i < 0 ? null : url.slice(i + marker.length).split('?')[0];
+}
+async function convertGifsToWebp(){
   if(!owner){ toast('Nur als Owner möglich'); return; }
   const marker = `/public/${BUCKET}/`;
   // Nur Bucket-GIFs, deren Volldatei noch .gif ist – extern verlinkte lassen
-  // sich nicht ersetzen, bereits konvertierte (.mp4) sind fertig.
-  const todo = S().items.filter(it =>
+  // sich nicht ersetzen, bereits konvertierte (.webp) sind fertig.
+  let todo = S().items.filter(it =>
     it.media_type === 'gif' && /\.gif(\?|#|$)/i.test(it.media_url || '')
     && (it.media_url || '').includes(marker));
+  const limit = parseInt(new URLSearchParams(location.search).get('gifwebp'), 10);
+  if(limit > 0) todo = todo.slice(0, limit);
   if(!todo.length){ toast('Keine GIFs zu konvertieren ✓'); return; }
-  if(!window.confirm(`${todo.length} GIF${todo.length>1?'s':''} → MP4 konvertieren?\nJetzt starten? Das kann etwas dauern.`)) return;
+  if(!window.confirm(`${todo.length} GIF${todo.length>1?'s':''} → animiertes WebP konvertieren?\nDas kann etwas dauern – Seite bitte offen lassen.`)) return;
   closeMenu();
-  let done = 0, failed = 0;
+  let done = 0, failed = 0, converted = 0, saved = 0;
   toast(`Konvertiere… 0/${todo.length}`);
   for(const it of todo){
     try{
-      const i = it.media_url.indexOf(marker);
-      const path = it.media_url.slice(i + marker.length).split('?')[0];
+      const path = storagePath(it.media_url, marker);
       const resp = await fetch(it.media_url);
       if(!resp.ok) throw new Error('fetch');
       const srcFile = new File([await resp.blob()], 'src.gif', { type:'image/gif' });
 
-      const mp4 = await gifToMp4(srcFile);
-      if(!mp4) throw new Error('convert');
-      // Neuer Pfad statt Upsert auf .gif: die alte URL ist 1 Jahr immutable
-      // gecacht, Besucher bekämen sonst weiter die alte Datei.
-      const vpath = path.replace(/\.gif$/i, '') + '.mp4';
-      const {error:ve} = await sb.storage.from(BUCKET).upload(vpath, mp4, { upsert:true, contentType:'video/mp4', cacheControl:'31536000' });
-      if(ve) throw ve;
-      const vurl = sb.storage.from(BUCKET).getPublicUrl(vpath).data.publicUrl;
+      const full = await gifToWebp(srcFile, GIF_MAX_PX, 70);
+      if(!full) throw new Error('convert');
+      // Lohnt sich nicht (sehr kleines/schon optimales GIF) → GIF behalten.
+      if(full.size > srcFile.size * 0.9){ done++; continue; }
+      const thumb = await gifToWebp(srcFile, GIF_THUMB_PX, 60);
 
-      // Kein Poster/Thumbnail für Clips – das Video zeigt direkt seinen
-      // ersten Frame und läuft per Autoplay.
+      // Neue Pfade statt Upsert: die alten URLs sind 1 Jahr immutable gecacht.
+      const base = path.replace(/\.gif$/i, '');
+      const wpath = `${base}-a.webp`;
+      const {error:fe} = await sb.storage.from(BUCKET).upload(wpath, full, { upsert:true, contentType:'image/webp', cacheControl:'31536000' });
+      if(fe) throw fe;
+      const wurl = sb.storage.from(BUCKET).getPublicUrl(wpath).data.publicUrl;
+      let turl = wurl;
+      if(thumb && thumb.size < full.size * 0.8){
+        const tpath = `thumb/${wpath}`;
+        const {error:te} = await sb.storage.from(BUCKET).upload(tpath, thumb, { upsert:true, contentType:'image/webp', cacheControl:'31536000' });
+        if(!te) turl = sb.storage.from(BUCKET).getPublicUrl(tpath).data.publicUrl;
+      }
+
       const oldThumb = it.thumb_url;
-      const {error:ue} = await sb.from(S().table).update({ media_url: vurl, thumb_url: null }).eq('id', it.id);
+      const {error:ue} = await sb.from(S().table).update({ media_url: wurl, thumb_url: turl }).eq('id', it.id);
       if(ue) throw ue;
-      it.media_url = vurl; it.thumb_url = null;
+      it.media_url = wurl; it.thumb_url = turl;
+      converted++; saved += srcFile.size - full.size;
 
       // Alte Dateien aufräumen: GIF-Volldatei + evtl. animiertes GIF-Thumbnail.
       const oldPaths = [path];
-      if(oldThumb && oldThumb.includes(marker)){
-        const op = oldThumb.slice(oldThumb.indexOf(marker) + marker.length).split('?')[0];
-        if(op !== path) oldPaths.push(op);
-      }
+      const op = storagePath(oldThumb, marker);
+      if(op && op !== path) oldPaths.push(op);
       try{ await sb.storage.from(BUCKET).remove(oldPaths); }catch(e){}
     }catch(e){ failed++; }
     done++;
@@ -2118,10 +2253,10 @@ async function convertGifsToMp4(){
     if(done % 3 === 0 || done === todo.length) toast(`Konvertiere… ${done}/${todo.length}`);
   }
   renderGrid();
-  toast(`Fertig ✓ (${todo.length - failed} GIF${todo.length - failed !== 1 ? 's' : ''} → MP4${failed ? `, ${failed} Fehler` : ''})`);
+  toast(`Fertig ✓ ${converted}× WebP, ${Math.round(saved/1e6)} MB gespart${failed ? `, ${failed} Fehler` : ''}`);
 }
-$('gifConvertBtn')?.addEventListener('click', convertGifsToMp4);
-$('gifConvertBtnSheet')?.addEventListener('click', convertGifsToMp4);
+$('gifConvertBtn')?.addEventListener('click', convertGifsToWebp);
+$('gifConvertBtnSheet')?.addEventListener('click', convertGifsToWebp);
 
 // Ansicht-Filter „Nur MP4/Videos": blendet alle statischen Bilder/GIFs aus und
 // zeigt nur noch als Video gerenderte Kacheln – praktisch zum gezielten Sichten

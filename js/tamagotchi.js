@@ -1,7 +1,7 @@
 /* ============================================================================
    Tamagotchi — Marvin's Place
    ----------------------------------------------------------------------------
-   Vollflächige Seite (gleiche Glas-Mechanik wie Info/Gästebuch/3D-Inventar).
+   Vollflächige Seite (gleiche Glas-Mechanik wie Info/Gästebuch).
    Darauf leben die Überschrift und ein spielbarer Pure-CSS-Tamagotchi aus
    Marvins Gist (ursprünglich ein Pen von Manz.dev): die CSS-Hülle liefert das
    Aussehen, dieses Script macht die Icons funktionsfähig.
