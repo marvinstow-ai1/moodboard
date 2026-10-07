@@ -1040,8 +1040,7 @@ function updateBodyLock(){
   const lock = (typeof moodCreateModal!=='undefined' && moodCreateModal && moodCreateModal.classList.contains('show'))
     || bottomSheet.classList.contains('show')
     || (typeof moodsMgmtPopup!=='undefined' && moodsMgmtPopup && moodsMgmtPopup.classList.contains('show'))
-    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'))
-    || !!document.querySelector('.m3d-manage.show');   // 3D-Modelle verwalten (js/models3d.js)
+    || (typeof confirmPopup!=='undefined' && confirmPopup && confirmPopup.classList.contains('show'));
   // Weiche Sperre für die Vollbild-Overlays (Lightbox, Info-Seite & Gästebuch):
   // sie liegen über dem Grid, der Hintergrund soll dabei still stehen. Ein harter
   // Body-Lock (position:fixed) scheidet aus – er fährt auf iOS Safari die Toolbar
@@ -1051,11 +1050,11 @@ function updateBodyLock(){
   // lässt die Toolbar aber eingefahren – die Lightbox bleibt so fullscreen wie
   // das Grid dahinter.
   const lbShown = (typeof lightbox!=='undefined' && lightbox.classList.contains('show'));
-  const softLock = !lock && (lbShown || !!document.querySelector('.info-page.show, .gb-page.show, .m3d-page.show'));
+  const softLock = !lock && (lbShown || !!document.querySelector('.info-page.show, .gb-page.show'));
   document.documentElement.classList.toggle('no-scroll-soft', softLock);
   // Dynamische Pill: auf Info-/Gästebuch-Seiten Shuffle + Kachelgröße einziehen
   // (dort ohne Funktion) – nur Spotify, Chat und Navigation bleiben stehen.
-  const onSubpage = !!document.querySelector('.info-page.show, .gb-page.show, .m3d-page.show');
+  const onSubpage = !!document.querySelector('.info-page.show, .gb-page.show');
   document.getElementById('bottombar')?.classList.toggle('subpage', onSubpage);
   const isLocked = document.documentElement.classList.contains('no-scroll');
   if(lock && !isLocked){

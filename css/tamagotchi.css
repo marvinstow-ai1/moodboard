@@ -1,6 +1,6 @@
 /* ── Tamagotchi ───────────────────────────────────────────────────────────
    Vollflächige, deckend schwarze Seite im selben Look wie die Info-/
-   Gästebuch-/Inventar-Seite (css/info.css liefert Top-Leiste und Hero-Badge).
+   Gästebuch-Seite (css/info.css liefert Top-Leiste und Hero-Badge).
    Auf der Seite selbst leben nur noch die Überschrift und ein Pure-CSS-
    Tamagotchi (aus Marvins Gist, ursprünglich ein Pen von Manz.dev). Die
    frühere Canvas-Version liegt unter archive/tamagotchi-classic/.

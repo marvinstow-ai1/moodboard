@@ -69,7 +69,6 @@
 <link rel="stylesheet" href="css/gate.css">
 <link rel="stylesheet" href="css/guestbook.css">
 <link rel="stylesheet" href="css/nav.css">
-<link rel="stylesheet" href="css/models3d.css">
 <link rel="stylesheet" href="css/tamagotchi.css">
 <script>
 /* Gate-Weiche, synchron VOR dem ersten Paint: Liegt keine Supabase-Session
@@ -136,9 +135,6 @@
 })();
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-<!-- Die 3D-Modell-Anzeige (Google model-viewer) wird bewusst NICHT mehr hier
-     geladen: js/models3d.js importiert die Bibliothek erst beim ersten Öffnen
-     der Inventar-Seite (schnellerer App-Start). -->
 </head>
 <body>
 
@@ -371,13 +367,6 @@
           <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/>
         </svg>
       </span> GIFs → Video (MP4) konvertieren</button>
-    <div class="dd-section">3D-Inventar</div>
-    <button class="dd-btn" id="m3dManageBtn">
-      <span class="icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-        </svg>
-      </span> 3D-Modelle verwalten</button>
   </div>
 
   <div class="editor-wrap" id="editorWrap">
@@ -451,13 +440,6 @@
           <rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 9 15 12 10 15 10 9"/>
         </svg>
       </span> GIFs → Video (MP4) konvertieren</button>
-    <div class="dd-section">3D-Inventar</div>
-    <button class="dd-btn" id="m3dManageBtnSheet">
-      <span class="icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-        </svg>
-      </span> 3D-Modelle verwalten</button>
   </div>
 
 </div>
@@ -554,7 +536,6 @@
 <script defer src="js/header-menu.js"></script>
 <script type="module" src="js/mood-chat.js"></script>
 <script type="module" src="js/guestbook.js"></script>
-<script type="module" src="js/models3d.js"></script>
 <!-- Tamagotchi-Seite: Öffnen/Schließen + Pure-CSS-Gadget (Farbwechsel).
      Modul, weil der Zustand global über Supabase geteilt wird (import). -->
 <script type="module" src="js/tamagotchi.js"></script>
@@ -666,7 +647,7 @@
 
 <!-- ── Navigations-Vorschau ─────────────────────────────────
      Öffnet sich als kleines Pop-up über der Pill – genau wie das Chat-Panel.
-     Die Vorschau-Karten der Seiten (Startseite, Inventory, Gästebuch, Info)
+     Die Vorschau-Karten der Seiten (Startseite, Gästebuch, Info)
      liegen alle nebeneinander und sind sofort sichtbar – kein Swipen nötig. Ein
      Tipp öffnet die jeweilige Unterseite dynamisch. Die Vorschauen zeigen bewusst
      keinen Header/keine Pill. Das Tamagotchi öffnet nur über den Pill-Button.
@@ -1108,141 +1089,6 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
       <button class="gbm-btn confirm" id="gbdDone" type="button">Fertig</button>
     </div>
   </div>
-</div>
-
-<!-- ============================================================
-     3D-Modell-Inventar
-     Vollflächige, deckend schwarze Seite im Stil der Info-/Gästebuch-
-     Seite: cleanes 3er-Grid aus interaktiven 3D-Modellen, die frei im
-     Bühnen-Halo schweben. Upload/Bearbeiten/Löschen laufen über das
-     "Verwalten"-Menü (Popup #m3dManage). Logik in js/models3d.js,
-     Styles in css/models3d.css. -->
-<div class="m3d-page" id="m3dPage" role="dialog" aria-modal="true" aria-label="Inventory" aria-hidden="true">
-
-  <!-- Kopfzeile: 1:1-Spiegelung des Haupt-Headers (.topbar). -->
-  <div class="topbar in-page">
-    <span class="board-title page-home" role="button" tabindex="0" aria-label="Zur Startseite">Marvin's Place</span>
-
-    <div class="topbar-right">
-      <button class="menubtn hubbtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-
-      <div class="hub-menu" role="menu">
-        <button class="hub-item admin-only" data-hub="menu" role="menuitem">
-          <span class="hub-ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </span> Verwalten</button>
-        <button class="hub-item" data-hub="login" role="menuitem">
-          <span class="hub-ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-          </span> <span class="hub-login-label">Login</span></button>
-      </div>
-    </div>
-  </div>
-
-  <div class="m3d-scroll" id="m3dScroll">
-    <div class="m3d-inner">
-      <div class="m3d-hero">
-        <div class="info-hero-badge" data-pixel-icon="inventory"></div>
-        <h1 class="info-hero-title">Inventory</h1>
-      </div>
-
-      <!-- Große, live drehende Modellansicht: js/models3d.js rendert hier das
-           gewählte Modell (Start = Modell des Tages) mit Namen darunter. -->
-      <div class="m3d-featured-host" id="m3dFeatured"></div>
-
-      <!-- Cleanes Grid aus statischen Vorschaubildern aller Modelle (ohne
-           Namen). Klick lädt das Modell oben. Rendering siehe renderGrid(). -->
-      <div class="m3d-grid" id="m3dGrid">
-        <div class="m3d-status" id="m3dStatus">Lade…</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- "3D-Modelle verwalten"-Popup (nur Owner): Upload, Bearbeiten und Löschen
-     gebündelt – erreichbar über den Verwalten-Tab des Header-Menüs.
-     Logik in js/models3d.js. -->
-<div class="m3d-manage" id="m3dManage" role="dialog" aria-modal="true" aria-label="3D-Modelle verwalten">
-  <div class="m3dg-content">
-    <div class="m3dg-head">
-      <div class="m3dg-title">3D-Modelle verwalten</div>
-      <div class="m3dg-sub" id="m3dgSub"></div>
-    </div>
-    <div class="m3dg-list" id="m3dgList"><div class="m3dg-empty">Lade…</div></div>
-    <!-- Vorschaubilder für Modelle ohne Screenshot nachträglich erzeugen
-         (Altbestand). Wird ausgeblendet, wenn alle Modelle ein Bild haben. -->
-    <button class="m3dg-thumbs" id="m3dgThumbsBtn" type="button" hidden>Vorschaubilder erzeugen</button>
-    <button class="m3dg-upload" id="m3dgUploadBtn" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;display:block">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      Modell hochladen
-    </button>
-    <button class="m3dg-close" id="m3dgClose" type="button">Schließen</button>
-  </div>
-</div>
-
-<!-- Upload-/Bearbeiten-Sheet: Titel + Datei-Dropzone.
-     js/models3d.js schaltet Überschrift/Buttons je nach Modus um. -->
-<div class="m3d-modal" id="m3dModal" role="dialog" aria-modal="true" aria-label="3D-Modell hochladen">
-  <div class="m3dm-content">
-    <div class="m3dm-title" id="m3dmHeading">3D-Modell hochladen</div>
-
-    <label class="m3dm-label" for="m3dmTitle">Titel</label>
-    <input class="m3dm-input" id="m3dmTitle" placeholder="Titel (z. B. „Sneaker“)" maxlength="80" autocomplete="off">
-
-    <label class="m3dm-label" for="m3dmCategory">Kategorie</label>
-    <select class="m3dm-select" id="m3dmCategory" aria-label="Kategorie">
-      <option value="chars">Chars</option>
-      <option value="devices">Devices &amp; Games</option>
-      <option value="sports">Sports</option>
-      <option value="random">Random Items</option>
-    </select>
-
-    <label class="m3dm-drop" id="m3dmDrop" for="m3dmFile">
-      <span class="m3dm-drop-ic">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px;display:block">
-          <path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"/><polyline points="7 9 12 4 17 9"/><line x1="12" y1="4" x2="12" y2="16"/>
-        </svg>
-      </span>
-      <span class="m3dm-drop-main" id="m3dmDropMain">Datei wählen oder hierher ziehen</span>
-      <span class="m3dm-drop-sub">.glb oder .gltf · am besten .glb (eine Datei) · max. 60 MB</span>
-      <input type="file" id="m3dmFile" accept=".glb,.gltf,model/gltf-binary,model/gltf+json">
-    </label>
-
-    <div class="m3dm-error" id="m3dmError"></div>
-    <div class="m3dm-actions">
-      <button class="m3dm-btn cancel" id="m3dmCancel" type="button">Abbrechen</button>
-      <button class="m3dm-btn confirm" id="m3dmSave" type="button">Hochladen</button>
-    </div>
-  </div>
-</div>
-
-<!-- Viewer-Overlay: Modell groß mit voller Steuerung (drehen/zoomen) -->
-<div class="m3d-viewer" id="m3dViewer" role="dialog" aria-modal="true" aria-label="3D-Modell ansehen" aria-hidden="true">
-  <div class="m3d-viewer-head">
-    <div class="m3d-viewer-headtx">
-      <span class="m3d-viewer-title" id="m3dViewerTitle">Modell</span>
-      <span class="m3d-viewer-meta" id="m3dViewerMeta"></span>
-    </div>
-    <button class="m3d-viewer-close" id="m3dViewerClose" type="button" aria-label="Schließen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:block">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
-  </div>
-  <div class="m3d-viewer-stage" id="m3dViewerStage"></div>
-  <div class="m3d-viewer-hint">Ziehen zum Drehen · Pinch/Scroll zum Zoomen</div>
 </div>
 
 <!-- ============================================================

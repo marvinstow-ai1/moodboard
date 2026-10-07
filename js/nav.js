@@ -3,7 +3,7 @@
    ----------------------------------------------------------------------------
    Der Kompass-Button in der Pill öffnet ein kleines Pop-up über der Bottom-Bar
    – im selben Look/Verhalten wie das Chat-Panel. Die Vorschau-Karten der Seiten
-   (Startseite, Inventory, Gästebuch, Info) liegen alle nebeneinander und sind
+   (Startseite, Gästebuch, Info) liegen alle nebeneinander und sind
    sofort sichtbar – kein Swipen nötig. Ein Tipp öffnet die jeweilige Unterseite
    dynamisch und schließt das Pop-up. Das Tamagotchi ist bewusst nicht mehr dabei –
    es öffnet ausschließlich über den Tier-Button in der Pill.
@@ -65,26 +65,11 @@
     return wrap;
   }
 
-  // Inventory: Held-Badge + 3er-Raster als Skelett (spiegelt das Inventar-Grid).
-  function buildModels() {
-    const wrap = document.createElement('div');
-    wrap.className = 'nav-mini-page';
-    let cells = '';
-    for (let i = 0; i < 6; i++) cells += '<div class="nav-cell"></div>';
-    wrap.innerHTML =
-      '<div class="nav-mini-badge">' + icon('inventory') + '</div>' +
-      '<div class="nav-mini-heroline"></div>' +
-      '<div class="nav-mini-subline"></div>' +
-      '<div class="nav-mini-grid three">' + cells + '</div>';
-    return wrap;
-  }
-
   // Feste Reihenfolge, alle Karten gleichzeitig sichtbar (kein Swipen mehr):
   // links Startseite … Info rechts. Das Tamagotchi wird bewusst NICHT mehr hier
   // gelistet – es öffnet ausschließlich über den Tier-Button in der Pill.
   const PAGES = [
     { key: 'home',      label: 'Startseite', build: buildHome,      go: () => window.MB?.goHome?.() },
-    { key: 'models',    label: 'Inventory',  build: buildModels,    go: () => window.MB?.openModels?.() },
     { key: 'guestbook', label: 'Freundebuch', build: buildGuestbook, go: () => window.MB?.openGuestbook?.() },
     { key: 'info',      label: 'Info',       build: buildInfo,      go: () => window.MB?.openInfoPage?.() },
   ];
@@ -124,7 +109,6 @@
     }
 
     function currentKey() {
-      if ($('m3dPage')?.classList.contains('show')) return 'models';
       if ($('gbPage')?.classList.contains('show')) return 'guestbook';
       if ($('infoPage')?.classList.contains('show')) return 'info';
       return 'home';

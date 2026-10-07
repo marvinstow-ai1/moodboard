@@ -137,7 +137,7 @@
   border:1px solid rgba(255,255,255,.07);
 }
 
-/* 3D Modelle: 3-spaltiges Inventar-Skelett (spiegelt das echte Grid). */
+/* 3-spaltiges Skelett-Raster (Startseiten-Vorschau). */
 .nav-mini-grid.three{
   flex:none;width:100%;background:transparent;padding:0;margin-top:3px;gap:5px;
 }
