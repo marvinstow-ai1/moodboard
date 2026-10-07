@@ -175,24 +175,24 @@
     </div>
     <div class="gip-body">
       <h3>WAS IST DAS HIER?</h3>
-      <p>Marvin's Place ist ein privates Moodboard. Der Zugang ist nur auf Einladung möglich: Du fragst mit deinem Namen und deiner E-Mail-Adresse Zugriff an, und Marvin entscheidet, ob du reinkommst.</p>
+      <p>Marvin's Place ist ein privates Moodboard. Der Zugang ist nur auf Einladung möglich: Marvin legt dir einen Zugang an, und du meldest dich mit deinem Namen und deinem Passwort an.</p>
 
       <h3>WELCHE DATEN WERDEN ERHOBEN?</h3>
       <ul>
-        <li>Der Name, den du hier angibst</li>
-        <li>Deine E-Mail-Adresse</li>
-        <li>Zeitpunkt deiner Anfrage und der Freigabe-Status (offen / freigegeben / gesperrt)</li>
+        <li>Dein Name</li>
+        <li>Dein Passwort – nur verschlüsselt (gehasht) gespeichert, niemand kann es im Klartext lesen</li>
+        <li>Wann dein Zugang angelegt wurde und ob er aktiv oder gesperrt ist</li>
       </ul>
       <p>Mehr nicht – es gibt kein Tracking, keine Analyse-Tools und keine Werbung.</p>
 
       <h3>WOFÜR WERDEN SIE VERWENDET?</h3>
-      <p>Ausschließlich für die Zugangskontrolle: Marvin sieht Name und E-Mail deiner Anfrage und kann sie annehmen oder ablehnen. Beim Einloggen wird geprüft, ob deine Angaben mit einer freigegebenen Anfrage übereinstimmen. Die Daten werden nicht an Dritte weitergegeben.</p>
+      <p>Ausschließlich für die Zugangskontrolle: Beim Einloggen wird geprüft, ob Name und Passwort zu einem freigegebenen Zugang passen. Marvin kann Zugänge sperren oder wieder freigeben. Die Daten werden nicht an Dritte weitergegeben.</p>
 
       <h3>WO LIEGEN DIE DATEN?</h3>
       <p>Auf Servern von Supabase in der EU (Region Frankfurt). Im Browser wird nach dem Login eine Sitzung gespeichert (localStorage), damit du eingeloggt bleibst – auch das ist kein Tracking.</p>
 
       <h3>LÖSCHUNG</h3>
-      <p>Wenn du deinen Zugang und deine Daten löschen lassen willst, sag Marvin einfach Bescheid – dann werden Name, E-Mail und dein Zugang entfernt.</p>
+      <p>Wenn du deinen Zugang und deine Daten löschen lassen willst, sag Marvin einfach Bescheid – dann werden Name und Zugang entfernt.</p>
     </div>
   </div>
 </div>
@@ -587,12 +587,18 @@
 </div>
 
 <!-- ── Zugriffe-Verwaltung (nur Owner) ─────────────────────
-     Anfragen von Freunden annehmen / ablehnen / sperren. Die Liste
+     Nutzer anlegen (Name + Passwort) und sperren / entsperren. Die Liste
      kommt per RLS nur beim Owner an; Entscheidungen laufen über die
      Edge Function "gate" (siehe js/app.js). -->
 <div class="access-popup" id="accessPopup" role="dialog" aria-modal="true" aria-label="Zugriffe verwalten">
   <div class="acc-content">
     <div class="acc-title">Zugriffe</div>
+    <!-- Neuen Nutzer anlegen: Login danach mit genau diesem Namen + Passwort. -->
+    <form class="acc-create" id="accCreateForm" autocomplete="off">
+      <input class="acc-input" id="accNewName" placeholder="Name" maxlength="64" autocomplete="off">
+      <input class="acc-input" id="accNewPassword" placeholder="Passwort (min. 8)" maxlength="128" autocomplete="new-password">
+      <button class="acc-btn yes" id="accCreateBtn" type="submit">Anlegen</button>
+    </form>
     <div class="acc-list" id="accList"><div class="acc-empty">Lade…</div></div>
     <button class="acc-close" id="accClose">Schließen</button>
   </div>

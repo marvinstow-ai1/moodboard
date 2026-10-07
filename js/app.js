@@ -102,17 +102,16 @@ function isOwnerSession(session) {
 
 // ── GATE (Startpage mit Zugriffs-Anfrage) ────────────────
 // Ohne gültige Session steht das Gate (html.gate-open, gesetzt vom
-// Inline-Script in index.html) vor der App. Freunde tragen Name + E-Mail
-// ein; alles Weitere (Anfrage anlegen, Freigabe prüfen, Session bauen)
+// Inline-Script in index.html) vor der App. Freunde melden sich mit Name +
+// Passwort an (Nutzer legt nur der Owner an); Prüfen und Session bauen
 // erledigt die Edge Function "gate" serverseitig. Erst wenn der Zugriff
 // steht, wird die App überhaupt gestartet (startApp unten).
 const GATE_MSG = {
   checking:  ['PRÜFE ZUGANG…', ''],
-  requested: ['ANFRAGE GESENDET. MARVIN MUSS DICH FREIGEBEN – SCHAU SPÄTER NOCHMAL VORBEI.', 'warn'],
-  pending:   ['DEINE ANFRAGE WARTET NOCH AUF FREIGABE.', 'warn'],
   blocked:   ['KEIN ZUGRIFF.', 'err'],
-  mismatch:  ['NAME PASST NICHT ZU DIESER E-MAIL.', 'err'],
-  invalid:   ['BITTE NAME UND E-MAIL EINTRAGEN.', 'err'],
+  wrong:     ['NAME ODER PASSWORT FALSCH.', 'err'],
+  invalid:   ['BITTE NAME UND PASSWORT EINTRAGEN.', 'err'],
+  invalidOwner: ['BITTE E-MAIL UND PASSWORT EINTRAGEN.', 'err'],
   error:     ['FEHLER. VERSUCH ES GLEICH NOCHMAL.', 'err'],
   welcome:   ['WILLKOMMEN ✓', 'ok'],
 };
@@ -130,7 +129,6 @@ function showGate(msgKey) {
   initGateSwiper();
   try {
     $('gateName').value  = localStorage.getItem('mb_gate_name')  || '';
-    $('gateEmail').value = localStorage.getItem('mb_gate_email') || '';
   } catch (e) {}
   if (msgKey) gateStatus(msgKey);
 }
@@ -294,46 +292,23 @@ async function initGate() {
   return false;
 }
 
-async function gateFriendLogin(email, name) {
+async function gateFriendLogin(name, password) {
   const submit = $('gateSubmit');
   submit.disabled = true;
   gateStatus('checking');
   try {
     const { data, error } = await sb.functions.invoke('gate', {
-      body: { action: 'login', email, name },
+      body: { action: 'login', name, password },
     });
     if (error || !data) { gateStatus('error'); return; }
-    switch (data.status) {
-      case 'ok': {
-        const { error: e2 } = await sb.auth.setSession(data.session);
-        if (e2) { gateStatus('error'); return; }
-        try {
-          localStorage.setItem('mb_gate_name', name);
-          localStorage.setItem('mb_gate_email', email);
-        } catch (e) {}
-        gateStatus('welcome');
-        closeGate(true);
-        startApp();
-        return;
-      }
-      case 'unknown': {
-        // Noch keine Anfrage zu dieser E-Mail: direkt eine anlegen.
-        const { data: r, error: e3 } = await sb.functions.invoke('gate', {
-          body: { action: 'request', email, name },
-        });
-        if (e3 || !r) { gateStatus('error'); return; }
-        try {
-          localStorage.setItem('mb_gate_name', name);
-          localStorage.setItem('mb_gate_email', email);
-        } catch (e) {}
-        gateStatus(r.status === 'blocked' ? 'blocked' : 'requested');
-        return;
-      }
-      case 'pending':       gateStatus('pending');  return;
-      case 'blocked':       gateStatus('blocked');  return;
-      case 'name_mismatch': gateStatus('mismatch'); return;
-      default:              gateStatus('error');    return;
-    }
+    if (data.status !== 'ok') { gateStatus(data.status === 'invalid' ? 'wrong' : 'error'); return; }
+    const { error: e2 } = await sb.auth.setSession(data.session);
+    if (e2) { gateStatus('error'); return; }
+    try { localStorage.setItem('mb_gate_name', name); } catch (e) {}
+    if ($('gatePassword')) $('gatePassword').value = '';
+    gateStatus('welcome');
+    closeGate(true);
+    startApp();
   } catch (e) {
     gateStatus('error');
   } finally {
@@ -358,16 +333,16 @@ function initGateUI() {
   if (!gate) return;
   $('gateForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
-    const email = ($('gateEmail')?.value || '').trim().toLowerCase();
+    const pw = $('gatePassword')?.value || '';
     if (gate.dataset.mode === 'owner') {
-      const pw = $('gatePassword')?.value || '';
-      if (!email || !pw) { gateStatus('invalid'); return; }
+      const email = ($('gateEmail')?.value || '').trim().toLowerCase();
+      if (!email || !pw) { gateStatus('invalidOwner'); return; }
       gateOwnerLogin(email, pw);
       return;
     }
     const name = ($('gateName')?.value || '').trim().replace(/\s+/g, ' ');
-    if (!email || name.length < 2) { gateStatus('invalid'); return; }
-    gateFriendLogin(email, name);
+    if (name.length < 2 || !pw) { gateStatus('invalid'); return; }
+    gateFriendLogin(name, pw);
   });
   $('gateOwnerLink')?.addEventListener('click', () => {
     const ownerMode = gate.dataset.mode === 'owner';
@@ -2943,9 +2918,9 @@ window.MB.closeOtherPopups = function(except){
 };
 
 // ── Zugriffe-Verwaltung (nur Owner) ───────────────────────
-// Liste der Gate-Anfragen: annehmen / ablehnen / sperren / entsperren.
-// Lesen läuft über RLS (nur Owner), Entscheidungen über die Edge
-// Function "gate", weil dafür Admin-Rechte (User anlegen/bannen) nötig sind.
+// Nutzer anlegen (Name + Passwort) und sperren / entsperren. Lesen läuft
+// über RLS (nur Owner), Anlegen & Entscheidungen über die Edge Function
+// "gate", weil dafür Admin-Rechte (User anlegen/bannen) nötig sind.
 const accessPopup = $('accessPopup');
 const accList = $('accList');
 const ACC_STATE_LABEL = { pending: 'Offen', approved: 'Frei', blocked: 'Gesperrt' };
@@ -2971,7 +2946,7 @@ async function renderAccessList() {
     .select('id,name,email,status,created_at')
     .order('created_at', { ascending: false });
   if (error) { accList.innerHTML = '<div class="acc-empty">Fehler beim Laden</div>'; return; }
-  if (!data?.length) { accList.innerHTML = '<div class="acc-empty">Noch keine Anfragen</div>'; return; }
+  if (!data?.length) { accList.innerHTML = '<div class="acc-empty">Noch keine Nutzer</div>'; return; }
   accList.innerHTML = '';
   for (const row of data) {
     const el = document.createElement('div');
@@ -2981,10 +2956,14 @@ async function renderAccessList() {
     const nameEl = document.createElement('div');
     nameEl.className = 'acc-name';
     nameEl.textContent = row.name;          // textContent: Namen kommen von Fremden
-    const mailEl = document.createElement('div');
-    mailEl.className = 'acc-mail';
-    mailEl.textContent = row.email;
-    meta.append(nameEl, mailEl);
+    meta.append(nameEl);
+    // Interne Login-Adressen (angelegte Nutzer) nicht anzeigen – nur echte.
+    if (row.email && !/@nutzer\.marvins-place\.example\.com$/i.test(row.email)) {
+      const mailEl = document.createElement('div');
+      mailEl.className = 'acc-mail';
+      mailEl.textContent = row.email;
+      meta.append(mailEl);
+    }
     const state = document.createElement('span');
     state.className = 'acc-state ' + row.status;
     state.textContent = ACC_STATE_LABEL[row.status] || row.status;
@@ -3016,6 +2995,34 @@ async function decideAccess(id, decision, btn) {
   renderAccessList();
   refreshAccessBadge();
 }
+
+const ACC_CREATE_ERR = {
+  name_taken: 'Name ist schon vergeben',
+  invalid_name: 'Name: 2–64 Zeichen',
+  invalid_password: 'Passwort: mind. 8 Zeichen',
+};
+$('accCreateForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = ($('accNewName').value || '').trim().replace(/\s+/g, ' ');
+  const password = $('accNewPassword').value || '';
+  if (name.length < 2 || password.length < 8) { toast('Name (min. 2) und Passwort (min. 8 Zeichen) eingeben'); return; }
+  const btn = $('accCreateBtn');
+  btn.disabled = true;
+  const { data, error } = await sb.functions.invoke('gate', {
+    body: { action: 'create', name, password },
+  });
+  btn.disabled = false;
+  if (error || !data?.ok) {
+    let code = data?.error;
+    try { code = code || (await error?.context?.json())?.error; } catch (e2) {}
+    toast(ACC_CREATE_ERR[code] || 'Anlegen fehlgeschlagen');
+    return;
+  }
+  $('accNewName').value = '';
+  $('accNewPassword').value = '';
+  toast(`${data.name} angelegt ✓`);
+  renderAccessList();
+});
 
 $('accessBtn')?.addEventListener('click', () => {
   accessPopup.classList.add('show');
