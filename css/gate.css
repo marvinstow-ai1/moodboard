@@ -139,7 +139,7 @@ html.gate-open .bottombar{display:none !important}
 }
 .gate-owner-link:hover{color:rgba(255,255,255,.7)}
 .gate[data-mode="owner"] #gateName{display:none}
-.gate:not([data-mode="owner"]) #gatePassword{display:none}
+.gate:not([data-mode="owner"]) #gateEmail{display:none}
 
 /* Runder Info-Button unten mittig */
 .gate-info-btn{
@@ -206,6 +206,12 @@ html.gate-open .bottombar{display:none !important}
   box-shadow:0 24px 60px rgba(0,0,0,.65);
 }
 .acc-title{font-size:16px;font-weight:700;color:#fff}
+.acc-create{display:flex;gap:6px;flex-wrap:wrap}
+.acc-input{
+  flex:1 1 120px;min-width:0;padding:8px 10px;border-radius:10px;font-size:16px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;
+}
+.acc-input::placeholder{color:rgba(255,255,255,.4)}
 .acc-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:60px}
 .acc-empty{color:rgba(255,255,255,.55);font-size:13px;padding:14px 4px}
 .acc-row{
